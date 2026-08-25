@@ -229,6 +229,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const closeModalRef = useRef(closeModal);
   closeModalRef.current = closeModal;
 
+  const playerIdRef = useRef(playerId);
+  playerIdRef.current = playerId;
+
   // Initialize client settings and socket (once on mount)
   useEffect(() => {
     // Generate or read playerId safely
@@ -349,10 +352,15 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     newSocket.on('chat_message', handleChatMessage);
 
-    newSocket.on('trade_proposed', () => {
-      soundEngine.playCash();
-      showToastRef.current('Вам поступило новое предложение о сделке! 🤝', 'info', 4000);
-      openModalRef.current('trade');
+    newSocket.on('trade_proposed', (data: { trade?: any }) => {
+      const trade = data?.trade;
+      const currentPId = playerIdRef.current || safeGetStorage(STORAGE_PLAYER_KEY);
+      if (trade && (trade.toPlayerId === currentPId || trade.targetId === currentPId)) {
+        soundEngine.playCash();
+        const initiator = trade.fromPlayerName || 'Соперник';
+        showToastRef.current(`Вам поступило новое предложение о сделке от ${initiator}! 🤝`, 'info', 4000);
+        openModalRef.current('trade');
+      }
     });
 
     newSocket.on('error_notification', (data: { message: string }) => {
@@ -698,6 +706,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [socket, roomId, playerId]);
 
   const buildHouse = useCallback((tileId: number) => {
+    const isMyTurn = Boolean(
+      gameState &&
+      gameState.players[gameState.currentTurnIndex]?.id === playerId &&
+      gameState.status !== 'GAME_OVER' &&
+      gameState.status !== 'LOBBY'
+    );
+    if (!isMyTurn) {
+      showToast('Строить и улучшать недвижимость можно только во время своего хода ⏳', 'warning');
+      return;
+    }
     if (socket && roomId && playerId) {
       soundEngine.playBuy();
       socket.emit('build_house', { roomId, playerId, tileId }, (res: SocketResponse) => {
@@ -708,7 +726,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       });
     }
-  }, [socket, roomId, playerId, showToast]);
+  }, [socket, roomId, playerId, gameState, showToast]);
 
   const sellHouse = useCallback((tileId: number) => {
     if (socket && roomId && playerId) {

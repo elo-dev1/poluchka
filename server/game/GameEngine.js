@@ -23,6 +23,7 @@ class GameEngine {
     this.currentTurnIndex = 0;
     this.turnNumber = 1;
     this.roundNumber = 1;
+    this.tradeOffersThisRound = {}; // { [playerId]: count }
     
     const sourceTiles = this.boardSize === 24 ? BOARD_TILES_24 : BOARD_TILES_40;
     this.board = sourceTiles.map(tile => ({
@@ -1064,6 +1065,14 @@ class GameEngine {
     if (!player) throw new Error('Игрок не найден');
     if (player.isBankrupt) throw new Error('Банкрот не может строить');
 
+    const currentPlayer = this.getCurrentPlayer();
+    if (!currentPlayer || currentPlayer.id !== requestingPlayerId) {
+      throw new Error('Строить и улучшать недвижимость можно только во время своего хода');
+    }
+    if (this.status === 'GAME_OVER' || this.status === 'LOBBY') {
+      throw new Error('Сейчас нельзя строить здания');
+    }
+
     const result = MonopolyManager.buildHouse(player, this.board, tileId, {
       mode: this.mode,
       builtTilesThisTurn: this.builtTilesThisTurn || []
@@ -1134,8 +1143,17 @@ class GameEngine {
       throw new Error('Игроки для торговли не найдены');
     }
 
+    if (!this.tradeOffersThisRound) {
+      this.tradeOffersThisRound = {};
+    }
+    const currentOffers = this.tradeOffersThisRound[fromPlayerId] || 0;
+    if (currentOffers >= 2) {
+      throw new Error('Лимит исчерпан: нельзя предлагать больше 2 обменов за один раунд');
+    }
+
     const trade = TradeManager.createTradeProposal(fromPlayer, toPlayer, offer, request, this.board);
     this.activeTrade = trade;
+    this.tradeOffersThisRound[fromPlayerId] = currentOffers + 1;
 
     this.addLog(`🤝 ${fromPlayer.name} предложил сделку игроку ${toPlayer.name}`, 'trade', '📜');
     return trade;
@@ -1358,6 +1376,7 @@ class GameEngine {
   }
 
   handleBankruptcy(player, creditor) {
+    const wasCurrentTurn = Boolean(this.getCurrentPlayer() && this.getCurrentPlayer().id === player.id);
     player.isBankrupt = true;
     player.money = 0;
 
@@ -1378,9 +1397,12 @@ class GameEngine {
       '☠️'
     );
 
-    const isGameOver = this.checkWinCondition();
-    if (!isGameOver) {
-      this.status = 'TURN_END';
+    if (!this.checkWinCondition()) {
+      if (wasCurrentTurn) {
+        this.advanceToNextPlayer();
+      } else {
+        this.status = 'TURN_END';
+      }
     }
   }
 
@@ -1393,11 +1415,13 @@ class GameEngine {
       throw new Error('Игрок уже выбыл из партии');
     }
 
-    const currentPlayer = this.getCurrentPlayer();
-    const isCurrentTurnPlayer = Boolean(currentPlayer && currentPlayer.id === player.id);
-
     // Cancel active trade involving this player
-    if (this.activeTrade && (this.activeTrade.initiatorId === player.id || this.activeTrade.targetId === player.id)) {
+    if (this.activeTrade && (
+      this.activeTrade.initiatorId === player.id ||
+      this.activeTrade.targetId === player.id ||
+      this.activeTrade.fromPlayerId === player.id ||
+      this.activeTrade.toPlayerId === player.id
+    )) {
       this.activeTrade = null;
     }
 
@@ -1412,13 +1436,6 @@ class GameEngine {
     }
 
     this.handleBankruptcy(player, null);
-
-    if (!this.checkWinCondition()) {
-      if (isCurrentTurnPlayer) {
-        this.advanceToNextPlayer();
-      }
-    }
-
     return this.getPublicState();
   }
 
@@ -1498,9 +1515,11 @@ class GameEngine {
       return;
     }
 
-    // Increment turnNumber only after a full cycle of all active players completed
+    // Increment turnNumber and roundNumber after a full cycle of all active players completed
     if (nextIndex <= this.currentTurnIndex) {
       this.turnNumber = (this.turnNumber || 1) + 1;
+      this.roundNumber = (this.roundNumber || 1) + 1;
+      this.tradeOffersThisRound = {}; // Reset 2 trades/round limit on new round
     }
 
     this.currentTurnIndex = nextIndex;
@@ -1539,6 +1558,9 @@ class GameEngine {
     this.startedAt = null;
     this.endedAt = null;
     this.currentTurnIndex = 0;
+    this.turnNumber = 1;
+    this.roundNumber = 1;
+    this.tradeOffersThisRound = {};
     this.pendingAction = null;
     this.activeAuction = null;
     this.activeTrade = null;
@@ -1650,6 +1672,7 @@ class GameEngine {
       pendingAction: this.pendingAction,
       activeAuction: this.activeAuction,
       activeTrade: this.activeTrade,
+      tradeOffersThisRound: this.tradeOffersThisRound || {},
       builtTilesThisTurn: this.builtTilesThisTurn || [],
       disconnectWaitingState: this.disconnectWaitingState,
       winner: this.winner,
@@ -1697,6 +1720,7 @@ class GameEngine {
         avatarUrl: p.avatarUrl || null,
         characterId: p.characterId || 'cat',
         disconnectBudgetSeconds: p.disconnectBudgetSeconds || 60,
+        tradeOffersRemaining: Math.max(0, 2 - ((this.tradeOffersThisRound || {})[p.id] || 0)),
         propertiesCount: p.properties.length,
         properties: p.properties
       })),

@@ -49,6 +49,7 @@ export interface PlayerData {
   disconnectBudgetSeconds?: number;
   activePlaySeconds?: number;
   missedTurns?: number;
+  tradeOffersRemaining?: number;
   propertiesCount?: number;
   properties?: number[];
 }
@@ -185,6 +186,7 @@ export interface GameState {
   } | null;
   activeAuction: ActiveAuction | null;
   activeTrade: ActiveTrade | null;
+  tradeOffersThisRound?: Record<string, number>;
   builtTilesThisTurn?: number[];
   disconnectWaitingState: {
     disconnectedPlayerId: string;

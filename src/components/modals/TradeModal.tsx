@@ -40,10 +40,16 @@ export const TradeModal: React.FC = () => {
     activeTrade.status === 'PENDING'
   );
 
-  const isOpen = activeModal === 'trade' || isIncomingTrade;
+  const isOpen = (activeModal === 'trade' && (!activeTrade || activeTrade.status !== 'PENDING' || isIncomingTrade || isOutgoingTrade)) || isIncomingTrade;
 
   const myPlayer = gameState.players.find((p) => p.id === playerId);
   const otherPlayers = gameState.players.filter((p) => !p.isBankrupt && p.id !== playerId);
+
+  const myOffersCount = (gameState.tradeOffersThisRound || {})[playerId] || 0;
+  const remainingTrades = myPlayer?.tradeOffersRemaining !== undefined
+    ? myPlayer.tradeOffersRemaining
+    : Math.max(0, 2 - myOffersCount);
+  const isTradeLimitReached = remainingTrades <= 0;
 
   const [selectedPartnerId, setSelectedPartnerId] = useState<string>(
     modalData?.targetPlayerId || otherPlayers[0]?.id || ''
@@ -87,6 +93,10 @@ export const TradeModal: React.FC = () => {
   };
 
   const handleSendTrade = () => {
+    if (isTradeLimitReached) {
+      showToast('Вы уже предложили 2 обмена в этом раунде. Дождитесь следующего раунда!', 'warning');
+      return;
+    }
     if (!selectedPartnerId) {
       showToast('Выберите партнера для обмена', 'warning');
       return;
@@ -427,6 +437,22 @@ export const TradeModal: React.FC = () => {
               </div>
             </div>
 
+            {/* Trade Limit Status & Warnings */}
+            <div className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/10">
+              <span className="text-[11px] text-muted-foreground font-semibold">
+                Лимит обменов в раунде {gameState.roundNumber || 1}:
+              </span>
+              <Badge variant={isTradeLimitReached ? "destructive" : "secondary"} className="text-[10px] font-bold">
+                {remainingTrades}/2 доступно
+              </Badge>
+            </div>
+
+            {isTradeLimitReached && (
+              <div className="p-2 rounded-xl bg-red-500/10 border border-red-500/25 text-red-300 text-[11px] font-medium text-center">
+                ⚠️ Вы исчерпали лимит (максимум 2 обмена за раунд). Сделки снова станут доступны в следующем раунде.
+              </div>
+            )}
+
             {/* Propose Button */}
             <div className="flex justify-end gap-2 mt-1">
               <Button variant="outline" size="sm" onClick={closeModal}>
@@ -437,9 +463,9 @@ export const TradeModal: React.FC = () => {
                 size="sm"
                 className="font-bold px-6 shadow-md"
                 onClick={handleSendTrade}
-                disabled={!selectedPartnerId}
+                disabled={!selectedPartnerId || isTradeLimitReached}
               >
-                Отправить предложение 🤝
+                {isTradeLimitReached ? 'Лимит исчерпан (2/2)' : 'Отправить предложение 🤝'}
               </Button>
             </div>
           </div>

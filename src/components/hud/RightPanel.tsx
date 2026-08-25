@@ -681,6 +681,11 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                   {displayTile.housePrice && (
                     <div className="grid grid-cols-2 gap-1.5">
                       {(() => {
+                        const isMyTurn = Boolean(
+                          gameState.players[gameState.currentTurnIndex]?.id === playerId &&
+                          gameState.status !== 'GAME_OVER' &&
+                          gameState.status !== 'LOBBY'
+                        );
                         const isAlreadyBuiltThisTurn = Boolean(
                           gameState.builtTilesThisTurn?.includes(
                             displayTile.id,
@@ -688,6 +693,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                         );
                         const isBuildCapped = isMaxHouses;
                         const canBuild =
+                          isMyTurn &&
                           !isBuildCapped &&
                           !isAlreadyBuiltThisTurn &&
                           canAffordHouse &&
@@ -697,7 +703,9 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                         );
 
                         let buildTitle = `Построить улучшение за $${displayTile.housePrice}`;
-                        if (displayTile.isMortgaged)
+                        if (!isMyTurn)
+                          buildTitle = "Улучшать недвижимость можно только во время своего хода";
+                        else if (displayTile.isMortgaged)
                           buildTitle = "Поле в залоге";
                         else if (isAlreadyBuiltThisTurn)
                           buildTitle =

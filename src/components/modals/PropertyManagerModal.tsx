@@ -21,15 +21,23 @@ export const PropertyManagerModal: React.FC = () => {
 
   const myPlayer = gameState.players.find((p) => p.id === playerId);
   const myTiles = gameState.board.filter((t) => t.ownerId === playerId);
+  const isMyTurn = Boolean(gameState.players[gameState.currentTurnIndex]?.id === playerId && gameState.status !== 'GAME_OVER' && gameState.status !== 'LOBBY');
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && closeModal()}>
       <DialogContent className="max-w-lg max-h-[85vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Building2 className="w-5 h-5 text-primary" />
-            Моя недвижимость ({myTiles.length})
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-primary" />
+              Моя недвижимость ({myTiles.length})
+            </DialogTitle>
+            {!isMyTurn && (
+              <Badge variant="outline" className="text-[10px] text-amber-400 border-amber-500/30">
+                ⏳ Улучшения только в свой ход
+              </Badge>
+            )}
+          </div>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-2.5 my-2">
@@ -100,7 +108,8 @@ export const PropertyManagerModal: React.FC = () => {
                           size="sm"
                           className="h-7 text-[11px] px-2"
                           onClick={() => buildHouse(tile.id)}
-                          disabled={!myPlayer || myPlayer.money < tile.housePrice}
+                          disabled={!isMyTurn || !myPlayer || myPlayer.money < tile.housePrice}
+                          title={!isMyTurn ? 'Строить улучшения можно только во время своего хода' : undefined}
                         >
                           <Plus className="w-3 h-3 mr-0.5" />
                           +Дом ({formatMoney(tile.housePrice)})
