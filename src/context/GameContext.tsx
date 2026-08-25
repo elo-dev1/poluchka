@@ -301,6 +301,25 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setPublicRooms(rooms || []);
     };
 
+    const fetchPublicRooms = () => {
+      if (newSocket.connected) {
+        newSocket.emit('get_rooms_list');
+      }
+      try {
+        fetch('/api/rooms')
+          .then((res) => {
+            if (res.ok) return res.json();
+            throw new Error('Failed to fetch rooms');
+          })
+          .then((data) => {
+            if (data && Array.isArray(data.rooms)) {
+              setPublicRooms(data.rooms);
+            }
+          })
+          .catch(() => {});
+      } catch {}
+    };
+
     const handleStateUpdate = (state: GameState) => {
       const savedRoom = safeGetStorage(STORAGE_ROOM_KEY);
       if (!savedRoom) {
@@ -338,7 +357,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     newSocket.on('connect', () => {
-      newSocket.emit('get_rooms_list');
+      fetchPublicRooms();
     });
 
     newSocket.on('rooms_list_updated', handleRoomsUpdate);
@@ -376,7 +395,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     newSocket.on('game_over', (data: { winner: any }) => {
       soundEngine.playWin();
       if (data.winner) {
-        showToastRef.current(`🏆 Победитель: ${data.winner.name}!`, 'success', 5000);
+        showToastRef.current(`🏆 Победитель: ${data.winner.name}! Поздравляем!`, 'success', 5000);
       }
     });
 
@@ -392,7 +411,19 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     }
 
+    // Initial fetch of rooms
+    fetchPublicRooms();
+
+    // Background interval to keep rooms browser always up-to-date
+    const roomsInterval = setInterval(() => {
+      const activeSavedRoom = safeGetStorage(STORAGE_ROOM_KEY);
+      if (!activeSavedRoom) {
+        fetchPublicRooms();
+      }
+    }, 3000);
+
     return () => {
+      clearInterval(roomsInterval);
       newSocket.disconnect();
     };
   }, [showToast, openModal]);

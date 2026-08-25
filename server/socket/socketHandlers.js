@@ -7,7 +7,9 @@ const botManager = require('../game/BotManager');
 function setupSocketHandlers(io) {
   // Helper to broadcast public rooms list to all clients in welcome/menu
   const broadcastRoomsList = () => {
-    io.emit('rooms_list_updated', roomManager.getPublicRooms());
+    const list = roomManager.getPublicRooms();
+    io.emit('rooms_list_updated', list);
+    io.emit('rooms_list_update', list);
   };
 
   io.on('connection', (socket) => {
@@ -16,7 +18,9 @@ function setupSocketHandlers(io) {
     let currentTelegramUser = null;
 
     // Send initial list of open rooms to newly connected socket
-    socket.emit('rooms_list_updated', roomManager.getPublicRooms());
+    const initialRooms = roomManager.getPublicRooms();
+    socket.emit('rooms_list_updated', initialRooms);
+    socket.emit('rooms_list_update', initialRooms);
 
     // Helper to broadcast room state to all in room and trigger bot actions if needed
     const broadcastGameState = (game) => {

@@ -10563,5 +10563,45 @@
         "totalCapital": 0
       }
     ]
+  },
+  {
+    "id": "game_1787687147099_xog9",
+    "roomId": "MY5F",
+    "winnerId": "p3",
+    "hasBots": false,
+    "endedAt": 1787687147099,
+    "playersCount": 3,
+    "rankings": [
+      {
+        "id": "p3",
+        "name": "Charlie",
+        "telegramId": null,
+        "isBot": false,
+        "botDifficulty": null,
+        "rank": 1,
+        "isWinner": true,
+        "totalCapital": 1500
+      },
+      {
+        "id": "p1",
+        "name": "Alice",
+        "telegramId": null,
+        "isBot": false,
+        "botDifficulty": null,
+        "rank": 2,
+        "isWinner": false,
+        "totalCapital": 1500
+      },
+      {
+        "id": "p2",
+        "name": "Bob",
+        "telegramId": null,
+        "isBot": false,
+        "botDifficulty": null,
+        "rank": 3,
+        "isWinner": false,
+        "totalCapital": 1500
+      }
+    ]
   }
 ]

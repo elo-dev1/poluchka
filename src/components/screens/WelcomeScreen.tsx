@@ -91,8 +91,13 @@ export const WelcomeScreen: React.FC = () => {
   useEffect(() => {
     if (activeTab === "leaderboard") {
       fetchLeaderboard();
+    } else if (activeTab === "lobby") {
+      if (socket) {
+        socket.emit("get_rooms_list");
+      }
+      fetch("/api/rooms").catch(() => {});
     }
-  }, [activeTab]);
+  }, [activeTab, socket]);
 
   const handleNameChange = (newName: string) => {
     setInputName(newName);

@@ -57,10 +57,11 @@ class RoomManager {
   getPublicRooms() {
     const list = [];
     for (const [roomId, game] of this.rooms.entries()) {
-      const connectedPlayers = game.players.filter(p => p.isConnected);
+      const activePlayers = game.players.filter(p => p.isConnected || p.isBot);
+      const connectedHumanPlayers = game.players.filter(p => p.isConnected && !p.isBot);
       
       // Auto-delete empty or abandoned lobby rooms immediately
-      if (game.status === 'LOBBY' && (game.players.length === 0 || connectedPlayers.length === 0)) {
+      if (game.status === 'LOBBY' && (game.players.length === 0 || connectedHumanPlayers.length === 0)) {
         game.clearTurnTimer();
         game.stopActivePlayTracker();
         game.stopDisconnectWaitingTimer();
@@ -68,16 +69,16 @@ class RoomManager {
         continue;
       }
 
-      if (!game.isPrivate && game.status === 'LOBBY' && connectedPlayers.length > 0 && connectedPlayers.length < (game.maxPlayers || 6)) {
-        const host = game.players.find(p => p.id === game.hostId && p.isConnected) || connectedPlayers[0];
+      if (!game.isPrivate && game.status === 'LOBBY' && activePlayers.length > 0 && activePlayers.length < (game.maxPlayers || 6)) {
+        const host = game.players.find(p => p.id === game.hostId && p.isConnected) || connectedHumanPlayers[0] || activePlayers[0];
         list.push({
           roomId: game.roomId,
           hostName: host ? host.name : 'Хост',
           mode: game.mode || 'standard',
           boardSize: game.boardSize || (game.mode === 'blitz' ? 24 : 40),
-          playersCount: connectedPlayers.length,
+          playersCount: activePlayers.length,
           maxPlayers: game.maxPlayers || 6,
-          players: connectedPlayers.map(p => ({
+          players: activePlayers.map(p => ({
             id: p.id,
             name: p.name,
             color: p.color
