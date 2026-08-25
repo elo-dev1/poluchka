@@ -150,10 +150,10 @@ setInterval(() => {
   roomManager.cleanInactiveRooms();
 }, 60 * 60 * 1000);
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`===========================================`);
   console.log(`🎲 Monopoly MVP Server is running!`);
-  console.log(`🌐 URL: http://localhost:${PORT}`);
-  console.log(`📁 Static files: ${PUBLIC_DIR}`);
+  console.log(`🌐 URL: http://0.0.0.0:${PORT}`);
+  console.log(`📁 Static files: ${STATIC_DIR}`);
   console.log(`===========================================`);
 });
