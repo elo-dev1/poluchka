@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useGame } from '@/context/GameContext';
 import {
   Dialog,
@@ -8,8 +8,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Gavel, Plus, XCircle, UserCheck, ShoppingBag, ArrowRight } from 'lucide-react';
-import { formatMoney } from '@/lib/utils';
+import { Gavel, Plus, XCircle, UserCheck, ShoppingBag, Clock } from 'lucide-react';
+import { formatMoney, cn } from '@/lib/utils';
 import { TileIconImage } from '@/lib/pixelIcons';
 import { soundEngine } from '@/lib/soundEngine';
 
@@ -18,11 +18,28 @@ export const AuctionModal: React.FC = () => {
   const auction = gameState?.activeAuction;
   const isOpen = Boolean(auction && gameState?.status === 'AUCTION');
 
+  const [countdown, setCountdown] = useState<number>(10);
+
   useEffect(() => {
     if (isOpen && auction) {
       soundEngine.playCard();
     }
   }, [auction?.startedAt]);
+
+  useEffect(() => {
+    if (!isOpen || !auction) return;
+    if (auction.endsAt) {
+      const update = () => {
+        const diff = Math.max(0, Math.ceil((auction.endsAt! - Date.now()) / 1000));
+        setCountdown(diff);
+      };
+      update();
+      const interval = setInterval(update, 200);
+      return () => clearInterval(interval);
+    } else if (auction.remainingSeconds !== undefined) {
+      setCountdown(auction.remainingSeconds);
+    }
+  }, [isOpen, auction?.endsAt, auction?.remainingSeconds, auction?.currentBid]);
 
   if (!isOpen || !auction || !gameState) return null;
 
@@ -47,17 +64,31 @@ export const AuctionModal: React.FC = () => {
         className="max-w-sm sm:max-w-md text-center p-4 sm:p-5 bg-[#0c1022]/95 border border-amber-500/30 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85)] rounded-2xl"
       >
         <DialogHeader className="flex flex-col items-center">
-          {auction.isDirectOffer ? (
-            <Badge variant="gold" className="text-xs px-3 py-1 font-black mb-1 flex items-center gap-1.5 animate-pulse bg-amber-500/20 text-amber-300 border-amber-500/40">
-              <ShoppingBag className="w-3.5 h-3.5" />
-              ПРЕДЛОЖЕНИЕ ВЫКУПА
-            </Badge>
-          ) : (
-            <Badge variant="gold" className="text-xs px-3 py-1 font-black mb-1 flex items-center gap-1.5 animate-pulse bg-amber-500/20 text-amber-300 border-amber-500/40">
-              <Gavel className="w-3.5 h-3.5" />
-              ИДЁТ АУКЦИОН!
-            </Badge>
-          )}
+          <div className="flex items-center gap-2 mb-1 flex-wrap justify-center">
+            {auction.isDirectOffer ? (
+              <Badge variant="gold" className="text-xs px-3 py-1 font-black flex items-center gap-1.5 animate-pulse bg-amber-500/20 text-amber-300 border-amber-500/40">
+                <ShoppingBag className="w-3.5 h-3.5" />
+                ПРЕДЛОЖЕНИЕ ВЫКУПА
+              </Badge>
+            ) : (
+              <Badge variant="gold" className="text-xs px-3 py-1 font-black flex items-center gap-1.5 animate-pulse bg-amber-500/20 text-amber-300 border-amber-500/40">
+                <Gavel className="w-3.5 h-3.5" />
+                ИДЁТ АУКЦИОН!
+              </Badge>
+            )}
+
+            {/* 10s Countdown Timer Badge */}
+            <div className={cn(
+              "flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-black border transition-all",
+              countdown <= 3
+                ? "bg-red-500/25 text-red-300 border-red-500/50 animate-pulse"
+                : "bg-amber-500/15 text-amber-300 border-amber-500/30"
+            )}>
+              <Clock className="w-3 h-3 text-amber-400" />
+              <span>{countdown}с</span>
+            </div>
+          </div>
+
           <DialogTitle className="text-lg sm:text-xl justify-center font-black text-white">{tile.name}</DialogTitle>
           <span className="text-xs text-muted-foreground">{tile.groupName || 'Недвижимость'}</span>
         </DialogHeader>
@@ -85,6 +116,11 @@ export const AuctionModal: React.FC = () => {
               ) : (
                 <span className="text-xs text-muted-foreground mt-1">Ставок пока нет</span>
               )
+            )}
+            {!auction.isDirectOffer && (
+              <span className="text-[10px] text-muted-foreground/80 mt-1">
+                Если за 10с никто не поднимет ставку, объект достанется лидеру
+              </span>
             )}
           </div>
 

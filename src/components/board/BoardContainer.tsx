@@ -18,7 +18,16 @@ export const BoardContainer: React.FC<BoardContainerProps> = ({ onTileClick }) =
   const activeIntervalsRef = useRef<Record<string, any>>({});
   const isMovingRef = useRef<boolean>(false);
 
-  const hopDuration = Math.max(80, Math.min(400, animSpeed || 170));
+  const speedToMsMap: Record<number, number> = {
+    1: 340, // Медленно (влево)
+    2: 250, // Плавная
+    3: 170, // Обычная
+    4: 110, // Быстрая
+    5: 65,  // Молниеносная / Турбо (вправо)
+  };
+  const hopDuration = animSpeed <= 5
+    ? (speedToMsMap[animSpeed] || 170)
+    : Math.max(65, Math.min(360, animSpeed));
 
   useEffect(() => {
     if (!gameState || !gameState.players) return;

@@ -928,6 +928,15 @@ class GameEngine {
 
     const opponents = this.getActivePlayers().filter(p => p.id !== requestingPlayerId);
 
+    // Save remaining turn time before pausing during auction
+    const currentRemaining = this.turnStartedAt
+      ? Math.max(1, this.turnTimeoutSeconds - Math.floor((Date.now() - this.turnStartedAt) / 1000))
+      : (this.turnTimeoutSeconds || 60);
+    if (this.pausedTurnRemainingSeconds === undefined) {
+      this.pausedTurnRemainingSeconds = currentRemaining;
+    }
+    this.clearTurnTimer();
+
     if (opponents.length === 1) {
       const singleOpponent = opponents[0];
       // Offer single remaining opponent to buy the property directly at base initial price
@@ -938,30 +947,77 @@ class GameEngine {
         'info',
         '🏷️'
       );
-      this.resetTurnTimer(45);
+      this.startAuctionTimer();
     } else if (opponents.length >= 2) {
       this.activeAuction = AuctionManager.initAuction(tile, this.players, requestingPlayerId);
       this.status = 'AUCTION';
       this.addLog(
-        `🔨 ${player.name} отказался от покупки "${tile.name}". Объявлен аукцион между ${opponents.length} соперниками! Стартовая цена: $${this.activeAuction.currentBid}`,
+        `🔨 ${player.name} отказался от покупки "${tile.name}". Объявлен аукцион (таймер: 10с на ставку)! Стартовая цена: $${this.activeAuction.currentBid}`,
         'warning',
         '🏷️'
       );
-      this.resetTurnTimer(45);
+      this.startAuctionTimer();
     } else {
       this.status = 'TURN_END';
-      this.resetTurnTimer();
+      const resumeSeconds = this.pausedTurnRemainingSeconds !== undefined ? this.pausedTurnRemainingSeconds : 60;
+      this.pausedTurnRemainingSeconds = undefined;
+      this.resetTurnTimer(resumeSeconds);
     }
 
     return this.getPublicState();
   }
 
   // --- Auctions ---
+  startAuctionTimer() {
+    this.stopAuctionTimer();
+    if (!this.activeAuction) return;
+
+    this.activeAuction.timerSeconds = 10;
+    this.activeAuction.remainingSeconds = 10;
+    this.activeAuction.endsAt = Date.now() + 10000;
+
+    this.auctionInterval = setInterval(() => {
+      if (!this.activeAuction || this.status !== 'AUCTION') {
+        this.stopAuctionTimer();
+        return;
+      }
+
+      this.activeAuction.remainingSeconds = Math.max(
+        0,
+        Math.ceil((this.activeAuction.endsAt - Date.now()) / 1000)
+      );
+
+      if (this.activeAuction.remainingSeconds <= 0) {
+        this.stopAuctionTimer();
+        this.finishAuction();
+        this.notifyStateChange();
+      } else {
+        this.notifyStateChange();
+      }
+    }, 1000);
+  }
+
+  stopAuctionTimer() {
+    if (this.auctionInterval) {
+      clearInterval(this.auctionInterval);
+      this.auctionInterval = null;
+    }
+  }
+
   startAuctionForTile(tile, initiatorId = null) {
+    // Pause general turn timer
+    const currentRemaining = this.turnStartedAt
+      ? Math.max(1, this.turnTimeoutSeconds - Math.floor((Date.now() - this.turnStartedAt) / 1000))
+      : (this.turnTimeoutSeconds || 60);
+    if (this.pausedTurnRemainingSeconds === undefined) {
+      this.pausedTurnRemainingSeconds = currentRemaining;
+    }
+    this.clearTurnTimer();
+
     this.activeAuction = AuctionManager.initAuction(tile, this.players, initiatorId);
     this.status = 'AUCTION';
-    this.addLog(`🔨 Объявлен аукцион на "${tile.name}"! Стартовая цена: $${this.activeAuction.currentBid}`, 'warning', '🏷️');
-    this.resetTurnTimer(45); // 45s auction timer
+    this.addLog(`🔨 Объявлен аукцион на "${tile.name}" (10с на ставку)! Стартовая цена: $${this.activeAuction.currentBid}`, 'warning', '🏷️');
+    this.startAuctionTimer();
   }
 
   placeBid(requestingPlayerId, amount) {
@@ -977,13 +1033,14 @@ class GameEngine {
     if (this.activeAuction.isDirectOffer) {
       this.addLog(`🤝 ${player.name} согласился выкупить "${this.activeAuction.tileName}" за $${this.activeAuction.currentBid}!`, 'success', '🏢');
     } else {
-      this.addLog(`💰 ${player.name} повысил ставку на аукционе до $${this.activeAuction.currentBid}!`, 'success', '🔨');
+      this.addLog(`💰 ${player.name} повысил ставку на аукционе до $${this.activeAuction.currentBid}! (Таймер сброшен на 10с)`, 'success', '🔨');
     }
 
     if (this.activeAuction.isCompleted) {
       this.finishAuction();
     } else {
-      this.resetTurnTimer(30);
+      // Reset the 10-second timer whenever someone raises the bid
+      this.startAuctionTimer();
     }
 
     return this.getPublicState();
@@ -1027,6 +1084,7 @@ class GameEngine {
   finishAuction() {
     if (!this.activeAuction) return;
 
+    this.stopAuctionTimer();
     this.stats.totalAuctionsCompleted++;
     const isDirect = this.activeAuction.isDirectOffer;
     const tileName = this.activeAuction.tileName;
@@ -1056,7 +1114,11 @@ class GameEngine {
 
     this.activeAuction = null;
     this.status = 'TURN_END';
-    this.resetTurnTimer();
+
+    // Resume general turn timer after auction ends
+    const resumeSeconds = this.pausedTurnRemainingSeconds !== undefined ? this.pausedTurnRemainingSeconds : 60;
+    this.pausedTurnRemainingSeconds = undefined;
+    this.resetTurnTimer(resumeSeconds);
   }
 
   // --- Houses & Hotels ---
@@ -1699,6 +1761,8 @@ class GameEngine {
         ownerId: tile.ownerId,
         houses: tile.houses || 0,
         isMortgaged: !!tile.isMortgaged,
+        upgradeCost: tile.type === 'property' && tile.housePrice ? MonopolyManager.getUpgradeCost(tile, tile.houses || 0) : null,
+        sellRefund: tile.type === 'property' && tile.housePrice ? Math.floor(MonopolyManager.getUpgradeCost(tile, Math.max(0, (tile.houses || 1) - 1)) / 2) : null,
         isMonopoly: tile.ownerId ? MonopolyManager.hasMonopoly(this.board, tile.ownerId, tile.group) : false,
         currentRent: tile.ownerId ? MonopolyManager.calculateRent(tile, this.board, this.players.find(p => p.id === tile.ownerId)) : 0
       })),

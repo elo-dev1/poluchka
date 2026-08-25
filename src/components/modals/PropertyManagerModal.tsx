@@ -53,6 +53,8 @@ export const PropertyManagerModal: React.FC = () => {
               const canSell = (tile.houses || 0) > 0;
               const canMortgage = (tile.houses || 0) === 0 && !tile.isMortgaged;
               const canUnmortgage = tile.isMortgaged;
+              const upgradeCost = tile.upgradeCost || Math.round((tile.housePrice || 50) * (1 + (tile.houses || 0) * 0.25));
+              const sellRefund = tile.sellRefund !== undefined ? tile.sellRefund : Math.floor(Math.round((tile.housePrice || 50) * (1 + Math.max(0, (tile.houses || 1) - 1) * 0.25)) / 2);
 
               return (
                 <div
@@ -108,11 +110,11 @@ export const PropertyManagerModal: React.FC = () => {
                           size="sm"
                           className="h-7 text-[11px] px-2"
                           onClick={() => buildHouse(tile.id)}
-                          disabled={!isMyTurn || !myPlayer || myPlayer.money < tile.housePrice}
+                          disabled={!isMyTurn || !myPlayer || myPlayer.money < upgradeCost}
                           title={!isMyTurn ? 'Строить улучшения можно только во время своего хода' : undefined}
                         >
                           <Plus className="w-3 h-3 mr-0.5" />
-                          +Дом ({formatMoney(tile.housePrice)})
+                          {tile.houses === 4 ? '+Отель' : '+Дом'} ({formatMoney(upgradeCost)})
                         </Button>
                       )}
 
@@ -124,7 +126,7 @@ export const PropertyManagerModal: React.FC = () => {
                           onClick={() => sellHouse(tile.id)}
                         >
                           <Minus className="w-3 h-3 mr-0.5" />
-                          Разрушить (+{formatMoney(Math.floor(tile.housePrice / 2))})
+                          Разрушить (+{formatMoney(sellRefund)})
                         </Button>
                       )}
 

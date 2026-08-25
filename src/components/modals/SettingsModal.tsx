@@ -144,24 +144,37 @@ export const SettingsModal: React.FC = () => {
             </div>
           </div>
 
-          {/* 3. Animation Speed Slider */}
-          <div className="flex flex-col gap-2 p-3.5 rounded-xl bg-black/30 border border-white/5">
+          {/* 3. Animation Speed Slider (Left = Slow, Right = Fast) */}
+          <div className="flex flex-col gap-2.5 p-3.5 rounded-xl bg-black/30 border border-white/5">
             <div className="flex items-center justify-between">
               <span className="text-sm font-bold flex items-center gap-1.5">
                 <Gauge className="w-4 h-4 text-indigo-400" />
                 Скорость шага фишек
               </span>
               <span className="text-xs font-bold text-primary">
-                {draftSpeed <= 100 ? 'Молниеносная' : draftSpeed <= 180 ? 'Быстрая' : 'Плавная'}
+                {draftSpeed === 1
+                  ? '🐢 Медленно'
+                  : draftSpeed === 2
+                  ? '🚶 Плавная'
+                  : draftSpeed === 3
+                  ? '⚡ Обычная'
+                  : draftSpeed === 4
+                  ? '🚀 Быстрая'
+                  : '🏎️ Турбо'}
               </span>
             </div>
             <Slider
-              min={80}
-              max={300}
-              step={20}
-              value={[draftSpeed]}
+              min={1}
+              max={5}
+              step={1}
+              value={[draftSpeed <= 5 ? draftSpeed : (draftSpeed <= 100 ? 5 : draftSpeed <= 180 ? 4 : 2)]}
               onValueChange={(val) => setDraftSpeed(val[0])}
             />
+            <div className="flex justify-between text-[10px] text-muted-foreground font-semibold px-0.5">
+              <span>🐢 Медленно</span>
+              <span>Обычная</span>
+              <span>Быстро ⚡</span>
+            </div>
           </div>
 
           {/* 4. Falling Snow Effect */}

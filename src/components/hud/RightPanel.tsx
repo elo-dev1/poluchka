@@ -82,11 +82,25 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   const ownerPlayer = displayTile?.ownerId
     ? gameState.players.find((p) => p.id === displayTile.ownerId)
     : null;
-  const canAffordHouse = Boolean(
-    displayTile?.housePrice && myMoney >= displayTile.housePrice,
-  );
   const housesCount = displayTile?.houses || 0;
   const isMaxHouses = housesCount >= 5;
+  const currentUpgradeCost = displayTile
+    ? displayTile.upgradeCost ||
+      Math.round((displayTile.housePrice || 50) * (1 + housesCount * 0.25))
+    : 50;
+  const currentSellRefund = displayTile
+    ? displayTile.sellRefund !== undefined
+      ? displayTile.sellRefund
+      : Math.floor(
+          Math.round(
+            (displayTile.housePrice || 50) *
+              (1 + Math.max(0, housesCount - 1) * 0.25),
+          ) / 2,
+        )
+    : 25;
+  const canAffordHouse = Boolean(
+    displayTile?.housePrice && myMoney >= currentUpgradeCost,
+  );
 
   const getSpecialInfo = (tile: TileData) => {
     switch (tile.type) {
@@ -698,11 +712,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                           !isAlreadyBuiltThisTurn &&
                           canAffordHouse &&
                           !displayTile.isMortgaged;
-                        const sellRefund = Math.floor(
-                          (displayTile.housePrice || 50) / 2,
-                        );
-
-                        let buildTitle = `Построить улучшение за $${displayTile.housePrice}`;
+                        let buildTitle = `Построить улучшение за $${currentUpgradeCost}`;
                         if (!isMyTurn)
                           buildTitle = "Улучшать недвижимость можно только во время своего хода";
                         else if (displayTile.isMortgaged)
@@ -711,7 +721,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                           buildTitle =
                             "Не более 1 улучшения на одной улице за ход";
                         else if (!canAffordHouse)
-                          buildTitle = `Недостаточно средств ($${displayTile.housePrice})`;
+                          buildTitle = `Недостаточно средств ($${currentUpgradeCost})`;
 
                         return (
                           <>
@@ -723,7 +733,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                               title={buildTitle}
                             >
                               <ArrowUpCircle className="w-3.5 h-3.5" />
-                              <span>+Улучшить (${displayTile.housePrice})</span>
+                              <span>+Улучшить (${currentUpgradeCost})</span>
                             </Button>
 
                             <Button
@@ -732,10 +742,10 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                               className="h-8 text-xs font-bold bg-white/5 hover:bg-white/10 border-white/10 text-muted-foreground hover:text-white rounded-xl flex items-center justify-center gap-1 cursor-pointer active:scale-98"
                               disabled={housesCount === 0}
                               onClick={() => sellHouse(displayTile.id)}
-                              title={`Разрушить (${housesCount === 5 ? "отель" : "офис"}) за +$${sellRefund}`}
+                              title={`Разрушить (${housesCount === 5 ? "отель" : "дом"}) за +$${currentSellRefund}`}
                             >
                               <ArrowDownCircle className="w-3.5 h-3.5 text-amber-400" />
-                              <span>Разрушить (+${sellRefund})</span>
+                              <span>Разрушить (+${currentSellRefund})</span>
                             </Button>
                           </>
                         );

@@ -18,6 +18,16 @@ class MonopolyManager {
   }
 
   /**
+   * Calculate progressive cost for upgrading a property based on existing improvements
+   * Cost increases by +25% per each existing house
+   */
+  static getUpgradeCost(tile, currentHouses = 0) {
+    const base = tile.housePrice || 50;
+    const multiplier = 1 + (Math.max(0, currentHouses) * 0.25);
+    return Math.round(base * multiplier);
+  }
+
+  /**
    * Validate if a player can build a house on the property
    */
   static canBuildHouse(player, board, tileId, options = {}) {
@@ -63,7 +73,8 @@ class MonopolyManager {
       return { allowed: false, reason: 'Правило равномерной застройки: сначала постройте дома на остальных улицах района' };
     }
 
-    const houseCost = tile.housePrice || 50;
+    // Progressive upgrade cost: increases with each house
+    const houseCost = this.getUpgradeCost(tile, currentHouses);
     if (player.money < houseCost) {
       return { allowed: false, reason: `Недостаточно средств ($${player.money} / $${houseCost})` };
     }
@@ -121,7 +132,9 @@ class MonopolyManager {
       return { allowed: false, reason: 'Правило равномерной продажи: сначала продайте постройки с других улиц района' };
     }
 
-    const refund = Math.floor((tile.housePrice || 50) / 2);
+    // Refund is 50% of the cost for that specific level
+    const lastUpgradeCost = this.getUpgradeCost(tile, currentHouses - 1);
+    const refund = Math.floor(lastUpgradeCost / 2);
     return { allowed: true, refund };
   }
 

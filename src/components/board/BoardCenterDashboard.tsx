@@ -174,7 +174,31 @@ export const BoardCenterDashboard: React.FC = () => {
 
       {/* 3. Action Controls Button */}
       <div className="flex flex-col items-center gap-1.5 w-full max-w-xs z-10">
-        {isTokenMoving ? (
+        {myPlayer?.isBankrupt ? (
+          /* Spectator Mode Panel - ALWAYS visible when bankrupt */
+          <div className="w-full flex flex-col gap-2">
+            {isTokenMoving && (
+              <div className="flex items-center justify-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold animate-pulse w-full shadow-sm">
+                <Dices className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                <span>Фишка перемещается...</span>
+              </div>
+            )}
+            <div className="w-full p-2.5 rounded-2xl bg-red-950/85 border border-red-500/40 text-center flex flex-col items-center gap-1.5 shadow-xl">
+              <div className="flex items-center gap-1.5 text-xs font-black text-red-300">
+                <span>💀 Вы выбыли из игры (Режим зрителя)</span>
+              </div>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="w-full h-8 font-black text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-md hover:bg-red-700 cursor-pointer"
+                onClick={leaveRoom}
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Выйти из игры</span>
+              </Button>
+            </div>
+          </div>
+        ) : isTokenMoving ? (
           <div className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 animate-pulse w-full shadow-md">
             <Dices className="w-4 h-4 animate-spin text-amber-400" />
             <span className="text-xs sm:text-sm font-black">Фишка перемещается...</span>
@@ -274,26 +298,8 @@ export const BoardCenterDashboard: React.FC = () => {
               </button>
             )}
 
-            {/* 4. If Bankrupt: Exit Game Button */}
-            {myPlayer?.isBankrupt && (
-              <div className="w-full p-2.5 rounded-2xl bg-red-950/80 border border-red-500/40 text-center flex flex-col items-center gap-1.5 shadow-lg">
-                <div className="flex items-center gap-1.5 text-xs font-black text-red-300">
-                  <span>💀 Вы выбыли из игры</span>
-                </div>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="w-full h-8 font-black text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-md"
-                  onClick={leaveRoom}
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  <span>Выйти из игры</span>
-                </Button>
-              </div>
-            )}
-
-            {/* Waiting indicator when not my turn and not bankrupt */}
-            {!isMyTurn && !myPlayer?.isBankrupt && (
+            {/* Waiting indicator when not my turn */}
+            {!isMyTurn && (
               <div className="text-xs sm:text-sm font-semibold text-muted-foreground/80 py-1 flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-indigo-400 animate-ping" />
                 <span>Ожидание хода соперника...</span>

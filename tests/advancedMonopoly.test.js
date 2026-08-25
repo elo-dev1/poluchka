@@ -91,11 +91,11 @@ console.log('✅ Uniform building, turn limit per street passed');
 console.log('Test 3: Selling houses uniform rule');
 // Cannot sell from tile 3 (houses = 4) because tile 1 has hotel (5)
 assert.throws(() => game.sellHouse('p1', 3), /равномерной продажи/);
-// Sell from tile 1 (5 -> 4) for 50% refund ($25)
+// Sell from tile 1 (5 -> 4) for 50% refund of hotel level cost ($100 / 2 = $50)
 const moneyBeforeSell = p1.money;
 game.sellHouse('p1', 1);
 assert.strictEqual(tile1.houses, 4);
-assert.strictEqual(p1.money, moneyBeforeSell + 25);
+assert.strictEqual(p1.money, moneyBeforeSell + 50);
 console.log('✅ Selling houses passed');
 
 // 4. Mortgages

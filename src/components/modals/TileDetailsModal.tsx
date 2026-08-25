@@ -328,8 +328,8 @@ export const TileDetailsModal: React.FC = () => {
                 )}
                 {tile.housePrice && (
                   <div className="flex justify-between text-xs text-muted-foreground pt-1.5 border-t border-white/5">
-                    <span>Цена постройки дома:</span>
-                    <span className="font-bold text-foreground">{formatMoney(tile.housePrice)}</span>
+                    <span>Базовая цена постройки:</span>
+                    <span className="font-bold text-foreground">{formatMoney(tile.housePrice)} (+25%/уровень)</span>
                   </div>
                 )}
                 {tile.mortgageValue && (

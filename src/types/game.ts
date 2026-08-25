@@ -14,6 +14,8 @@ export interface TileData {
   color?: string;
   price?: number;
   housePrice?: number;
+  upgradeCost?: number;
+  sellRefund?: number;
   mortgageValue?: number;
   rent?: number;
   rents?: number[];
@@ -76,6 +78,8 @@ export interface ActiveAuction {
   passedPlayerIds?: string[];
   startedAt?: number;
   endsAt?: number;
+  timerSeconds?: number;
+  remainingSeconds?: number;
   turnTimeLimitSeconds?: number;
   isCompleted?: boolean;
 }

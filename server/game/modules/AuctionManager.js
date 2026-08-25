@@ -22,7 +22,10 @@ class AuctionManager {
       passedBidders: initiator ? [initiator.id] : [],
       minIncrement: 0,
       isCompleted: false,
-      startedAt: Date.now()
+      startedAt: Date.now(),
+      timerSeconds: 10,
+      remainingSeconds: 10,
+      endsAt: Date.now() + 10000
     };
   }
 
@@ -50,7 +53,10 @@ class AuctionManager {
       passedBidders,
       minIncrement: 10,
       isCompleted: false,
-      startedAt: Date.now()
+      startedAt: Date.now(),
+      timerSeconds: 10,
+      remainingSeconds: 10,
+      endsAt: Date.now() + 10000
     };
   }
 
