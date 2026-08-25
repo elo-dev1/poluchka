@@ -10493,5 +10493,75 @@
         "totalCapital": 1400
       }
     ]
+  },
+  {
+    "id": "game_1787687027096_3fql",
+    "roomId": "65MF",
+    "winnerId": "p1",
+    "hasBots": false,
+    "endedAt": 1787687027096,
+    "playersCount": 2,
+    "rankings": [
+      {
+        "id": "p1",
+        "name": "Alice",
+        "telegramId": null,
+        "isBot": false,
+        "botDifficulty": null,
+        "rank": 1,
+        "isWinner": true,
+        "totalCapital": 1500
+      },
+      {
+        "id": "p2",
+        "name": "Bob",
+        "telegramId": null,
+        "isBot": false,
+        "botDifficulty": null,
+        "rank": 2,
+        "isWinner": false,
+        "totalCapital": 1450
+      }
+    ]
+  },
+  {
+    "id": "game_1787687027099_3g4k",
+    "roomId": "TVJP",
+    "winnerId": "p1",
+    "hasBots": true,
+    "endedAt": 1787687027099,
+    "playersCount": 3,
+    "rankings": [
+      {
+        "id": "p1",
+        "name": "Alice",
+        "telegramId": null,
+        "isBot": false,
+        "botDifficulty": null,
+        "rank": 1,
+        "isWinner": true,
+        "totalCapital": 1500
+      },
+      {
+        "id": "p3",
+        "name": "Charlie",
+        "telegramId": null,
+        "isBot": false,
+        "botDifficulty": null,
+        "rank": 2,
+        "isWinner": false,
+        "totalCapital": 1500
+      },
+      {
+        "id": "bot_1787686847090_wybo",
+        "name": "Щенок (Баланс)",
+        "telegramId": null,
+        "isBot": true,
+        "botDifficulty": "balanced",
+        "rank": 3,
+        "isWinner": false,
+        "totalCapital": 0
+      }
+    ]
   }
 ]
