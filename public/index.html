@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Монополия Онлайн — Мультиплеерная игра с друзьями</title>
+  <meta name="description" content="Браузерная мультиплеерная игра в стиле Монополии для игры с друзьями. Дома, отели, аукционы, залог, тюрьма и торговля между игроками.">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎲</text></svg>">
+</head>
+<body>
+
+  <!-- =========================================================================
+       1. WELCOME SCREEN (CREATE OR JOIN ROOM & TABLES BROWSER)
+       ========================================================================= -->
+  <main id="screen-welcome" class="screen-container">
+    <div class="welcome-layout">
+      <!-- Left Column: Create Room & Enter by Code -->
+      <div class="welcome-card welcome-card-main">
+        <div class="brand-header" style="position: relative;">
+          <div class="welcome-header-actions">
+            <button id="btn-open-leaderboard" class="btn-icon header-action-btn" title="Таблица лидеров">🏆</button>
+            <button id="btn-open-tg-auth" class="btn-telegram-auth" title="Войти через Telegram">
+              <span class="tg-icon">✈️</span> <span class="tg-btn-label">Войти</span>
+            </button>
+            <div id="user-profile-badge" class="user-profile-badge" style="display: none;" title="Открыть профиль">
+              <img id="user-badge-avatar" class="user-badge-avatar" src="" alt="Avatar" style="display: none;">
+              <div id="user-badge-placeholder" class="user-badge-placeholder">👤</div>
+              <div class="user-badge-info">
+                <span id="user-badge-name" class="user-badge-name">Игрок</span>
+                <span id="user-badge-rating" class="user-badge-rating">⭐ 1000</span>
+              </div>
+            </div>
+            <button id="btn-welcome-settings" class="btn-icon header-action-btn" title="Настройки (3D, темы, звук)">⚙️</button>
+          </div>
+          <div class="brand-logo-icon">🎲</div>
+          <h1 class="brand-title">Монополия</h1>
+          <p class="brand-subtitle">Мультиплеерная игра для компании (2–6 игроков)</p>
+        </div>
+
+        <!-- Reconnect Banner if saved session exists -->
+        <div id="reconnect-banner" class="reconnect-banner" style="display: none;">
+          <div class="reconnect-text">
+            Найдена активная игра в комнате <span class="saved-room-code">XXXX</span>
+          </div>
+          <div class="reconnect-actions">
+            <button id="btn-resume-session" class="btn-primary" style="flex: 1; padding: 8px 12px; font-size: 0.85rem;">
+              ⚡ Вернуться в игру
+            </button>
+            <button id="btn-discard-session" class="btn-secondary" style="padding: 8px 12px; font-size: 0.85rem;">
+              Сбросить
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="input-player-name" class="form-label">Ваше имя в игре</label>
+          <input type="text" id="input-player-name" class="input-field" placeholder="Например, Александр" maxlength="20" autofocus>
+        </div>
+
+        <div class="create-room-box">
+          <button id="btn-create-room" class="btn-primary" style="width: 100%;">
+            <span>✨ Создать новый стол</span>
+          </button>
+          <label class="checkbox-container">
+            <input type="checkbox" id="checkbox-private-room">
+            <span class="checkbox-label">🔒 Закрытый стол (вход только по коду)</span>
+          </label>
+        </div>
+
+        <div class="welcome-divider">или войти по коду</div>
+
+        <div class="join-row">
+          <input type="text" id="input-room-code" class="input-field" placeholder="Код (4 буквы)" maxlength="6" style="text-transform: uppercase; font-weight: 700; letter-spacing: 2px;">
+          <button id="btn-join-room" class="btn-secondary">
+            Войти
+          </button>
+        </div>
+      </div>
+
+      <!-- Right Column: Public Tables Browser -->
+      <div class="welcome-card welcome-card-tables">
+        <div class="tables-browser-header">
+          <div>
+            <h2 class="tables-title">🟢 Открытые столы</h2>
+            <p class="tables-subtitle">Столы, ожидающие подключения игроков</p>
+          </div>
+          <button id="btn-refresh-rooms" class="btn-icon" title="Обновить список столов">
+            🔄
+          </button>
+        </div>
+
+        <!-- Rooms List -->
+        <div id="public-rooms-list" class="public-rooms-list">
+          <!-- Dynamically populated room cards -->
+        </div>
+      </div>
+    </div>
+  </main>
+
+
+  <!-- =========================================================================
+       2. LOBBY SCREEN (WAITING ROOM)
+       ========================================================================= -->
+  <main id="screen-lobby" class="screen-container" style="display: none;">
+    <div class="lobby-card">
+      <div class="brand-header" style="position: relative;">
+        <button id="btn-lobby-settings" class="btn-icon" style="position: absolute; right: 0; top: 0; font-size: 1.1rem;" title="Настройки (3D, темы, звук)">⚙️</button>
+        <h2 class="brand-title" style="font-size: 1.6rem;">Комната ожидания</h2>
+        <p class="brand-subtitle">Поделитесь кодом или ссылкой с друзьями</p>
+      </div>
+
+      <div class="lobby-code-box">
+        <span class="lobby-code-title">Код комнаты</span>
+        <div id="lobby-room-code" class="lobby-code-value">----</div>
+        <div class="lobby-code-actions">
+          <button id="btn-copy-lobby-code" class="btn-icon" title="Скопировать код">
+            📋 Копировать код
+          </button>
+          <button id="btn-copy-lobby-link" class="btn-icon" title="Скопировать ссылку">
+            🔗 Ссылка для друзей
+          </button>
+        </div>
+      </div>
+
+      <div class="lobby-players-section">
+        <div class="lobby-section-header">
+          <span>Подключившиеся игроки</span>
+          <span id="lobby-player-count">1 / 6</span>
+        </div>
+        <div id="lobby-players-list" class="lobby-players-list">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <button id="btn-start-game" class="btn-success" style="display: none;">
+        🚀 Начать игру
+      </button>
+
+      <div id="lobby-waiting-notice" class="lobby-waiting-notice" style="display: none;">
+        ⏳ Ожидание, пока создатель комнаты начнёт игру...
+      </div>
+
+      <button id="btn-leave-lobby" class="btn-secondary" style="font-size: 0.85rem;">
+        🚪 Выйти в меню
+      </button>
+    </div>
+  </main>
+
+
+  <!-- =========================================================================
+       3. MAIN GAME SCREEN
+       ========================================================================= -->
+  <div id="screen-game" class="game-container" style="display: none;">
+    <!-- Top Header -->
+    <header class="game-top-bar">
+      <div class="top-bar-left">
+        <span class="app-title">🎲 Монополия</span>
+        <div class="room-chip">
+          <span>Комната:</span>
+          <strong id="game-room-code" class="room-code-tag">----</strong>
+          <button id="btn-copy-game-code" class="btn-icon" style="padding: 2px 6px; font-size: 0.75rem;" title="Скопировать код">📋</button>
+        </div>
+      </div>
+      <div class="top-bar-right">
+        <button id="btn-toggle-3d" class="btn-secondary" title="Переключить 3D / 2D вид поля">
+          <span id="label-3d-toggle">🕶️ 3D Вид</span>
+        </button>
+        <button id="btn-open-trade" class="btn-secondary" title="Предложить сделку другому игроку">
+          🤝 Сделка
+        </button>
+        <button id="btn-sound-toggle" class="btn-icon" title="Включить / выключить звук">
+          <span id="sound-icon">🔊</span>
+        </button>
+        <button id="btn-open-settings" class="btn-icon" title="Настройки игры (3D, темы, звук)">
+          ⚙️
+        </button>
+        <button id="btn-leave-game" class="btn-icon" style="font-size: 0.85rem; padding: 6px 10px;" title="Выйти в главное меню">
+          🚪 Выход
+        </button>
+        <button id="btn-host-end-game" class="btn-danger" style="display: none;">
+          Завершить партию
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Game Content -->
+    <div class="game-main-content">
+      <!-- 7x7 Perimeter Board Wrapper -->
+      <div class="board-wrapper">
+        <div id="board-tiles-grid" class="board-tiles-grid">
+          <!-- Center Dashboard directly in grid (rows 2..6, cols 2..6) -->
+          <div id="board-center-dashboard" class="board-center-dashboard" style="grid-row: 2 / 7; grid-column: 2 / 7;">
+            
+            <!-- Turn Timer Progress Bar -->
+            <div id="turn-timer-container" class="turn-timer-container">
+              <div id="turn-timer-fill" class="turn-timer-fill" style="width: 100%;"></div>
+              <span id="turn-timer-text" class="turn-timer-text">60с</span>
+            </div>
+
+            <!-- Turn Banner -->
+            <div id="turn-banner" class="turn-banner">
+              <div id="turn-avatar" class="turn-avatar">🚗</div>
+              <div class="turn-details">
+                <div id="turn-player-name" class="turn-player-name">Ход игрока</div>
+                <div id="turn-status-text" class="turn-status-text">Бросьте кубики</div>
+              </div>
+            </div>
+
+            <!-- Dice Box with True 3D Volumetric Cubes -->
+            <div id="dice-container" class="dice-container">
+              <div class="die-3d-wrapper" id="die-wrapper-1">
+                <div class="die-floor-shadow"></div>
+                <div id="die-1" class="die-3d-cube" data-face="1">
+                  <!-- Face 1 (Front) -->
+                  <div class="dice-face face-1">
+                    <span class="die-dot dot-center"></span>
+                  </div>
+                  <!-- Face 2 (Top) -->
+                  <div class="dice-face face-2">
+                    <span class="die-dot dot-top-left"></span>
+                    <span class="die-dot dot-bottom-right"></span>
+                  </div>
+                  <!-- Face 3 (Right) -->
+                  <div class="dice-face face-3">
+                    <span class="die-dot dot-top-left"></span>
+                    <span class="die-dot dot-center"></span>
+                    <span class="die-dot dot-bottom-right"></span>
+                  </div>
+                  <!-- Face 4 (Left) -->
+                  <div class="dice-face face-4">
+                    <span class="die-dot dot-top-left"></span>
+                    <span class="die-dot dot-top-right"></span>
+                    <span class="die-dot dot-bottom-left"></span>
+                    <span class="die-dot dot-bottom-right"></span>
+                  </div>
+                  <!-- Face 5 (Bottom) -->
+                  <div class="dice-face face-5">
+                    <span class="die-dot dot-top-left"></span>
+                    <span class="die-dot dot-top-right"></span>
+                    <span class="die-dot dot-center"></span>
+                    <span class="die-dot dot-bottom-left"></span>
+                    <span class="die-dot dot-bottom-right"></span>
+                  </div>
+                  <!-- Face 6 (Back) -->
+                  <div class="dice-face face-6">
+                    <span class="die-dot dot-top-left"></span>
+                    <span class="die-dot dot-top-right"></span>
+                    <span class="die-dot dot-mid-left"></span>
+                    <span class="die-dot dot-mid-right"></span>
+                    <span class="die-dot dot-bottom-left"></span>
+                    <span class="die-dot dot-bottom-right"></span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="die-3d-wrapper" id="die-wrapper-2">
+                <div class="die-floor-shadow"></div>
+                <div id="die-2" class="die-3d-cube" data-face="1">
+                  <!-- Face 1 (Front) -->
+                  <div class="dice-face face-1">
+                    <span class="die-dot dot-center"></span>
+                  </div>
+                  <!-- Face 2 (Top) -->
+                  <div class="dice-face face-2">
+                    <span class="die-dot dot-top-left"></span>
+                    <span class="die-dot dot-bottom-right"></span>
+                  </div>
+                  <!-- Face 3 (Right) -->
+                  <div class="dice-face face-3">
+                    <span class="die-dot dot-top-left"></span>
+                    <span class="die-dot dot-center"></span>
+                    <span class="die-dot dot-bottom-right"></span>
+                  </div>
+                  <!-- Face 4 (Left) -->
+                  <div class="dice-face face-4">
+                    <span class="die-dot dot-top-left"></span>
+                    <span class="die-dot dot-top-right"></span>
+                    <span class="die-dot dot-bottom-left"></span>
+                    <span class="die-dot dot-bottom-right"></span>
+                  </div>
+                  <!-- Face 5 (Bottom) -->
+                  <div class="dice-face face-5">
+                    <span class="die-dot dot-top-left"></span>
+                    <span class="die-dot dot-top-right"></span>
+                    <span class="die-dot dot-center"></span>
+                    <span class="die-dot dot-bottom-left"></span>
+                    <span class="die-dot dot-bottom-right"></span>
+                  </div>
+                  <!-- Face 6 (Back) -->
+                  <div class="dice-face face-6">
+                    <span class="die-dot dot-top-left"></span>
+                    <span class="die-dot dot-top-right"></span>
+                    <span class="die-dot dot-mid-left"></span>
+                    <span class="die-dot dot-mid-right"></span>
+                    <span class="die-dot dot-bottom-left"></span>
+                    <span class="die-dot dot-bottom-right"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Jail Actions Panel (Shown when active player is in Jail) -->
+            <div id="jail-actions-panel" class="jail-actions-panel" style="display: none;">
+              <div class="jail-panel-title">⛓️ Вы находитесь в Тюрьме!</div>
+              <div class="jail-buttons-row">
+                <button id="btn-jail-roll" class="btn-primary" style="font-size: 0.8rem; padding: 6px 10px;">
+                  🎲 Бросить на дубль
+                </button>
+                <button id="btn-jail-bail" class="btn-warning" style="font-size: 0.8rem; padding: 6px 10px;">
+                  💸 Залог $50
+                </button>
+                <button id="btn-jail-card" class="btn-success" style="font-size: 0.8rem; padding: 6px 10px; display: none;">
+                  🗝️ Карта свободы
+                </button>
+              </div>
+            </div>
+
+            <!-- Action Controls -->
+            <div id="action-controls" class="action-controls">
+              <button id="btn-roll-dice" class="btn-primary" style="display: none;">
+                🎲 Бросить кубики
+              </button>
+
+              <!-- Property Purchase Prompt Dialog -->
+              <div id="property-action-dialog" class="property-action-dialog" style="display: none;">
+                <div id="property-card-colorbar" class="property-card-colorbar"></div>
+                <div class="property-card-content">
+                  <div id="property-card-name" class="property-card-name">Улица</div>
+                  <div id="property-card-price" class="property-card-price">$100</div>
+                  <div id="property-card-rent" class="property-card-rent">Рента: $20</div>
+                </div>
+                <div class="property-action-buttons">
+                  <button id="btn-buy-property" class="btn-success">
+                    💳 Купить
+                  </button>
+                  <button id="btn-pass-property" class="btn-secondary" title="Отказаться и начать аукцион">
+                    🔨 Аукцион
+                  </button>
+                </div>
+              </div>
+
+              <button id="btn-end-turn" class="btn-primary" style="display: none;">
+                ✅ Завершить ход
+              </button>
+            </div>
+          </div>
+          <!-- 24 Tiles are injected by BoardRenderer around the center -->
+        </div>
+      </div>
+
+      <!-- Sidebar: Players & Tabbed Logs/Chat -->
+      <aside class="game-sidebar">
+        <!-- Players list -->
+        <div class="sidebar-players-panel">
+          <div class="sidebar-panel-title">👥 Игроки и капитал</div>
+          <div id="players-list" class="players-list">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- Tabs for Logs and Real-time Chat -->
+        <div class="sidebar-tabbed-panel">
+          <div class="panel-tabs-header">
+            <button id="tab-logs-btn" class="tab-btn tab-active">
+              📜 События
+            </button>
+            <button id="tab-chat-btn" class="tab-btn">
+              💬 Чат
+              <span id="chat-unread-badge" class="chat-badge" style="display: none;">0</span>
+            </button>
+          </div>
+
+          <!-- Logs Tab -->
+          <div id="panel-logs" class="panel-tab-body">
+            <div id="events-log" class="events-log-container">
+              <!-- Log messages -->
+            </div>
+          </div>
+
+          <!-- Chat Tab -->
+          <div id="panel-chat" class="panel-tab-body" style="display: none;">
+            <div id="chat-messages" class="chat-messages-container">
+              <!-- Chat messages -->
+            </div>
+            <div class="chat-input-bar">
+              <input type="text" id="input-chat-message" class="input-field" placeholder="Напишите сообщение..." maxlength="200">
+              <button id="btn-send-chat" class="btn-primary" style="padding: 8px 14px;">
+                ✈️
+              </button>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+
+  <!-- =========================================================================
+       MODALS: AUCTION, PROPERTY MANAGEMENT, TRADE, INCOMING TRADE, GAME OVER
+       ========================================================================= -->
+
+  <!-- AUCTION MODAL -->
+  <div id="modal-auction" class="modal-overlay" style="display: none;">
+    <div class="auction-card">
+      <div class="auction-header">
+        <span class="auction-badge">🔨 АУКЦИОН</span>
+        <h2 id="auction-tile-name" class="auction-title">Улица</h2>
+        <span id="auction-tile-group" class="auction-group-badge">Район</span>
+      </div>
+
+      <div class="auction-bid-display">
+        <div class="bid-label">Текущая наивысшая ставка</div>
+        <div id="auction-current-bid" class="bid-amount">$10</div>
+        <div id="auction-highest-bidder" class="highest-bidder-tag">Лидер: нет ставок</div>
+      </div>
+
+      <div class="auction-controls-box">
+        <div class="auction-quick-bids">
+          <button class="btn-secondary btn-quick-bid" data-inc="10">+$10</button>
+          <button class="btn-secondary btn-quick-bid" data-inc="50">+$50</button>
+          <button class="btn-secondary btn-quick-bid" data-inc="100">+$100</button>
+        </div>
+        <div class="auction-custom-bid-row">
+          <input type="number" id="input-custom-bid" class="input-field" placeholder="Своя ставка ($)">
+          <button id="btn-place-bid" class="btn-success" style="padding: 10px 16px;">Поставить</button>
+          <button id="btn-pass-bid" class="btn-danger" style="padding: 10px 16px;">Пас</button>
+        </div>
+      </div>
+
+      <div class="auction-bidders-status">
+        <div id="auction-bidders-list" class="auction-bidders-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INTERACTIVE TILE DETAILS & MANAGEMENT MODAL (Direct on tile click) -->
+  <div id="modal-tile-details" class="modal-overlay" style="display: none;">
+    <div class="tile-details-card">
+      <div id="tile-details-color-bar" class="tile-details-header-bar">
+        <span id="tile-details-group-tag" class="tile-details-group-tag">Район</span>
+        <button id="btn-close-tile-details" class="btn-icon" style="color: #fff; background: rgba(0,0,0,0.3);">✕</button>
+      </div>
+
+      <div class="tile-details-body">
+        <div class="tile-details-title-row">
+          <span id="tile-details-icon" class="tile-details-icon">🏛️</span>
+          <div>
+            <h2 id="tile-details-name" class="tile-details-title">Название улицы</h2>
+            <div id="tile-details-price" class="tile-details-price">Стоимость: $200</div>
+          </div>
+        </div>
+
+        <div id="tile-details-owner-banner" class="tile-details-owner-banner">
+          <!-- Populated dynamically: Owner name, status, mortgage badge -->
+        </div>
+
+        <!-- Rent Breakdown Table -->
+        <div id="tile-details-rent-table-box" class="tile-details-rent-table-box">
+          <div class="rent-table-title">Таблица ренты и доходности:</div>
+          <div class="rent-breakdown-grid">
+            <div class="rent-row" id="rent-row-base">
+              <span>🏷️ Базовая рента</span>
+              <strong id="rent-val-base">$10</strong>
+            </div>
+            <div class="rent-row" id="rent-row-monopoly">
+              <span>👑 С монополией района (x2)</span>
+              <strong id="rent-val-monopoly">$20</strong>
+            </div>
+            <div class="rent-row" id="rent-row-h1">
+              <span>🏠 С 1 домом</span>
+              <strong id="rent-val-h1">$50</strong>
+            </div>
+            <div class="rent-row" id="rent-row-h2">
+              <span>🏠🏠 С 2 домами</span>
+              <strong id="rent-val-h2">$150</strong>
+            </div>
+            <div class="rent-row" id="rent-row-h3">
+              <span>🏠🏠🏠 С 3 домами</span>
+              <strong id="rent-val-h3">$450</strong>
+            </div>
+            <div class="rent-row" id="rent-row-h4">
+              <span>🏠🏠🏠🏠 С 4 домами</span>
+              <strong id="rent-val-h4">$625</strong>
+            </div>
+            <div class="rent-row" id="rent-row-hotel">
+              <span>🏨 С 1 отелем</span>
+              <strong id="rent-val-hotel">$750</strong>
+            </div>
+          </div>
+
+          <div class="mortgage-info-grid">
+            <div class="mortgage-info-item">
+              <span class="info-label">Постройка дома/отеля</span>
+              <strong id="val-house-price">$100</strong>
+            </div>
+            <div class="mortgage-info-item">
+              <span class="info-label">Заклад в банк (50%)</span>
+              <strong id="val-mortgage-value">+$50</strong>
+            </div>
+            <div class="mortgage-info-item">
+              <span class="info-label">Выкуп из залога (+10%)</span>
+              <strong id="val-unmortgage-price">-$55</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Management Action Buttons (for Owner) -->
+        <div id="tile-details-actions-box" class="tile-details-actions-box" style="display: none;">
+          <div class="actions-section-title">Управление вашей недвижимостью:</div>
+          <div class="tile-actions-buttons">
+            <button id="btn-tile-build-house" class="btn-primary btn-tile-action">
+              🏠 Построить дом
+            </button>
+            <button id="btn-tile-build-hotel" class="btn-success btn-tile-action">
+              🏨 Построить отель
+            </button>
+            <button id="btn-tile-sell-building" class="btn-secondary btn-tile-action">
+              🏚️ Продать дом/отель
+            </button>
+            <button id="btn-tile-mortgage" class="btn-danger btn-tile-action">
+              🔒 Заложить в банк
+            </button>
+            <button id="btn-tile-unmortgage" class="btn-success btn-tile-action">
+              🔓 Выкупить из банка
+            </button>
+          </div>
+          <div id="tile-actions-hint" class="tile-actions-hint"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRADE PROPOSAL MODAL -->
+  <div id="modal-trade" class="modal-overlay" style="display: none;">
+    <div class="trade-modal-card">
+      <div class="modal-header-row">
+        <h2>🤝 Предложить сделку</h2>
+        <button id="btn-close-trade-modal" class="btn-icon">✕</button>
+      </div>
+
+      <div class="trade-partner-select-box">
+        <label for="trade-partner-select" class="form-label">Выберите партнёра по сделке:</label>
+        <select id="trade-partner-select" class="input-field"></select>
+      </div>
+
+      <div class="trade-columns-container">
+        <!-- Offer column (Me) -->
+        <div class="trade-column">
+          <div class="trade-column-title">Вы отдаёте 📤</div>
+          <div class="form-group">
+            <label class="form-label">Деньги ($):</label>
+            <input type="number" id="trade-offer-money" class="input-field" min="0" value="0" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Карты выхода из тюрьмы:</label>
+            <input type="number" id="trade-offer-jailcards" class="input-field" min="0" max="2" value="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Ваши улицы:</label>
+            <div id="trade-offer-properties-list" class="trade-properties-list"></div>
+          </div>
+        </div>
+
+        <!-- Request column (Partner) -->
+        <div class="trade-column">
+          <div class="trade-column-title">Вы получаете 📥</div>
+          <div class="form-group">
+            <label class="form-label">Деньги ($):</label>
+            <input type="number" id="trade-request-money" class="input-field" min="0" value="0" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Карты выхода из тюрьмы:</label>
+            <input type="number" id="trade-request-jailcards" class="input-field" min="0" max="2" value="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Улицы партнёра:</label>
+            <div id="trade-request-properties-list" class="trade-properties-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="trade-modal-footer">
+        <button id="btn-send-trade" class="btn-success" style="width: 100%;">
+          🚀 Отправить предложение
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- INCOMING TRADE PROPOSAL MODAL -->
+  <div id="modal-incoming-trade" class="modal-overlay" style="display: none;">
+    <div class="incoming-trade-card">
+      <div class="incoming-trade-header">
+        <div class="trade-icon-large">🤝</div>
+        <h2>Входящее предложение сделки!</h2>
+        <p id="incoming-trade-sender-info" class="trade-sender-text">Игрок предлагает сделку</p>
+      </div>
+
+      <div class="trade-summary-boxes">
+        <div class="trade-summary-box">
+          <div class="summary-title">Вам предлагают:</div>
+          <div id="incoming-trade-offer-content" class="summary-items"></div>
+        </div>
+        <div class="trade-summary-box">
+          <div class="summary-title">У вас просят:</div>
+          <div id="incoming-trade-request-content" class="summary-items"></div>
+        </div>
+      </div>
+
+      <div class="incoming-trade-actions">
+        <button id="btn-accept-trade" class="btn-success" style="flex: 1;">
+          ✅ Принять
+        </button>
+        <button id="btn-decline-trade" class="btn-danger" style="flex: 1;">
+          ❌ Отклонить
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DISCONNECT WAITING MODAL (When < 2 players connected) -->
+  <div id="modal-disconnect-wait" class="modal-overlay" style="display: none;">
+    <div class="disconnect-wait-card">
+      <div class="disconnect-icon-pulse">⏳</div>
+      <h2 class="disconnect-title">Ожидание переподключения игрока</h2>
+      <p id="disconnect-player-name-msg" class="disconnect-subtitle">
+        Игрок отключился. Ожидаем возвращения...
+      </p>
+
+      <div class="disconnect-countdown-box">
+        <div class="countdown-label">Осталось времени на вход</div>
+        <div id="disconnect-countdown-timer" class="disconnect-countdown-value">01:00</div>
+        <div class="countdown-subtext">Банк времени защищён от абуза (перезаходов)</div>
+      </div>
+
+      <div class="disconnect-info-banner">
+        <span>🏆 Если соперник не успеет зайти вовремя, победа будет автоматически присуждена вам!</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS MODAL (3D Mode, Themes, Sound, Animation Speed) -->
+  <div id="modal-settings" class="modal-overlay" style="display: none;">
+    <div class="settings-card">
+      <div class="modal-header-row">
+        <h2>⚙️ Настройки игры</h2>
+        <button id="btn-close-settings-modal" class="btn-icon">✕</button>
+      </div>
+      <p class="modal-subtitle">Настройте графику, 3D-отображение, цветовую тему и звук</p>
+
+      <!-- 1. Display Mode: 2D vs 3D -->
+      <div class="settings-section">
+        <div class="settings-section-title">
+          <span>🕶️ Режим отображения поля</span>
+        </div>
+        <div class="segmented-control">
+          <button id="btn-mode-2d" class="segmented-btn active" data-mode="2d">
+            📐 2D Плоский
+          </button>
+          <button id="btn-mode-3d" class="segmented-btn" data-mode="3d">
+            🕶️ 3D Объёмный
+          </button>
+        </div>
+
+        <div id="settings-3d-controls" class="settings-subcontrols" style="display: none;">
+          <div class="slider-control-row">
+            <label for="slider-tilt-x">Угол наклона 3D:</label>
+            <input type="range" id="slider-tilt-x" min="30" max="60" value="48" step="1">
+            <span id="label-tilt-x">48°</span>
+          </div>
+          <div class="slider-control-row">
+            <label for="slider-rot-z">Поворот 3D:</label>
+            <input type="range" id="slider-rot-z" min="-30" max="30" value="-14" step="1">
+            <span id="label-rot-z">-14°</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Themes Customization -->
+      <div class="settings-section">
+        <div class="settings-section-title">
+          <span>🎨 Тема оформления</span>
+        </div>
+        <div class="theme-grid">
+          <div class="theme-card active" data-theme="midnight">
+            <div class="theme-preview theme-preview-midnight">
+              <span class="preview-dot dot-1"></span>
+              <span class="preview-dot dot-2"></span>
+              <span class="preview-dot dot-3"></span>
+            </div>
+            <div class="theme-name">🌙 Midnight Cyber</div>
+            <div class="theme-desc">Тёмный неон</div>
+          </div>
+
+          <div class="theme-card" data-theme="classic">
+            <div class="theme-preview theme-preview-classic">
+              <span class="preview-dot dot-1"></span>
+              <span class="preview-dot dot-2"></span>
+              <span class="preview-dot dot-3"></span>
+            </div>
+            <div class="theme-name">🏛 Classic Emerald</div>
+            <div class="theme-desc">Изумруд и золото</div>
+          </div>
+
+          <div class="theme-card" data-theme="sunset">
+            <div class="theme-preview theme-preview-sunset">
+              <span class="preview-dot dot-1"></span>
+              <span class="preview-dot dot-2"></span>
+              <span class="preview-dot dot-3"></span>
+            </div>
+            <div class="theme-name">🌅 Sunset Gold</div>
+            <div class="theme-desc">Золотой люкс</div>
+          </div>
+
+          <div class="theme-card" data-theme="light">
+            <div class="theme-preview theme-preview-light">
+              <span class="preview-dot dot-1"></span>
+              <span class="preview-dot dot-2"></span>
+              <span class="preview-dot dot-3"></span>
+            </div>
+            <div class="theme-name">🏙 Minimal Light</div>
+            <div class="theme-desc">Светлая чистая</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. UI Scale (2K/4K adaptation) -->
+      <div class="settings-section">
+        <div class="settings-section-title">
+          <span>🖥️ Масштаб интерфейса (для 2K/4K экранов)</span>
+        </div>
+        <div class="segmented-control">
+          <button class="segmented-btn btn-ui-scale" data-scale="1.0">
+            100% (Обычный)
+          </button>
+          <button class="segmented-btn btn-ui-scale" data-scale="1.18">
+            120% (2K / 1440p)
+          </button>
+          <button class="segmented-btn btn-ui-scale" data-scale="1.35">
+            135% (Крупный)
+          </button>
+        </div>
+      </div>
+
+      <!-- 4. Sound & Speed -->
+      <div class="settings-section">
+        <div class="settings-section-title">
+          <span>🔊 Звук и анимация</span>
+        </div>
+        <div class="settings-checkboxes-row">
+          <label class="checkbox-container">
+            <input type="checkbox" id="setting-sound-enabled" checked>
+            <span class="checkbox-label">🔊 Звуковые эффекты</span>
+          </label>
+          <label class="checkbox-container">
+            <input type="checkbox" id="setting-snow-enabled" checked>
+            <span class="checkbox-label">❄️ Падающий снег</span>
+          </label>
+        </div>
+        <div class="slider-control-row" style="margin-top: 8px;">
+          <label for="setting-anim-speed">Скорость фишек:</label>
+          <select id="setting-anim-speed" class="input-field" style="max-width: 160px; padding: 6px 10px;">
+            <option value="180">Обычная</option>
+            <option value="90">Быстрая</option>
+            <option value="0">Мгновенная</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-actions" style="margin-top: 8px;">
+        <button id="btn-save-settings" class="btn-primary" style="width: 100%;">
+          💾 Сохранить настройки
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GAME OVER MODAL -->
+  <div id="modal-game-over" class="modal-overlay" style="display: none;">
+    <div class="game-over-card" style="max-width: 600px;">
+      <div class="game-over-trophy">🏆</div>
+      <h2 class="brand-title" style="font-size: 1.8rem;">Игра завершена!</h2>
+      <div id="game-duration-tag" class="game-duration-tag">⏱️ Длительность партии: 00:00</div>
+      
+      <div class="winner-highlight">
+        <div id="winner-icon" class="winner-icon">👑</div>
+        <div>
+          <div id="winner-name" class="winner-name">Игрок 1</div>
+          <div id="winner-stats" class="winner-stats">Капитал: $1500</div>
+        </div>
+      </div>
+
+      <div class="form-group" style="text-align: left;">
+        <label class="form-label">Итоговая таблица игроков</label>
+        <div id="players-ranking-list" class="players-ranking-list">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button id="btn-restart-game" class="btn-primary" style="display: none;">
+          🔄 Играть снова
+        </button>
+        <button id="btn-leave-to-main" class="btn-secondary">
+          🚪 Главное меню
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- PROFILE & LEADERBOARD MODAL -->
+  <div id="modal-profile" class="modal-overlay" style="display: none;">
+    <div class="settings-card" style="max-width: 580px; width: 100%;">
+      <div class="modal-header" style="align-items: center;">
+        <div class="segmented-control" style="flex: 1; margin-bottom: 0;">
+          <button id="tab-profile-stats" class="segmented-btn active">👤 Профиль</button>
+          <button id="tab-profile-leaderboard" class="segmented-btn">🏆 Таблица лидеров</button>
+        </div>
+        <button id="btn-close-profile" class="modal-close-btn">&times;</button>
+      </div>
+
+      <!-- Tab 1: Profile Details -->
+      <div id="panel-profile-stats" class="profile-panel">
+        <div class="profile-user-header">
+          <div class="profile-avatar-box">
+            <img id="profile-avatar-img" class="profile-avatar-img" src="" alt="Avatar" style="display: none;">
+            <div id="profile-avatar-placeholder" class="profile-avatar-placeholder">👤</div>
+          </div>
+          <div class="profile-user-meta">
+            <h3 id="profile-full-name" class="profile-full-name">Александр</h3>
+            <div id="profile-username" class="profile-username">@username</div>
+            <div class="profile-rating-badge">
+              <span>Рейтинг ELO:</span>
+              <strong id="profile-rating-val">⭐ 1000</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-stats-grid">
+          <div class="stat-card">
+            <span class="stat-icon">🏆</span>
+            <span class="stat-val" id="stat-wins">0</span>
+            <span class="stat-label">Побед</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon">🎮</span>
+            <span class="stat-val" id="stat-games">0</span>
+            <span class="stat-label">Всего игр</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon">📈</span>
+            <span class="stat-val" id="stat-winrate">0%</span>
+            <span class="stat-label">Винрейт</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon">💰</span>
+            <span class="stat-val" id="stat-capital">$0</span>
+            <span class="stat-label">Заработано</span>
+          </div>
+        </div>
+
+        <div class="modal-actions" style="margin-top: 20px;">
+          <button id="btn-logout-telegram" class="btn-danger" style="width: 100%; font-size: 0.9rem;">
+            🚪 Выйти из аккаунта (Перейти в гостевой режим)
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab 2: Leaderboard -->
+      <div id="panel-profile-leaderboard" class="profile-panel" style="display: none;">
+        <div class="leaderboard-header">
+          <span style="font-weight: 700;">Топ игроков Монополии</span>
+          <button id="btn-refresh-leaderboard" class="btn-icon" style="font-size: 0.8rem; padding: 4px 8px;" title="Обновить список">🔄 Обновить</button>
+        </div>
+        <div id="leaderboard-list" class="leaderboard-list">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TELEGRAM LOGIN MODAL -->
+  <div id="modal-telegram-login" class="modal-overlay" style="display: none;">
+    <div class="settings-card" style="max-width: 460px; text-align: center;">
+      <div class="modal-header" style="justify-content: flex-end;">
+        <button id="btn-close-tg-login" class="modal-close-btn">&times;</button>
+      </div>
+      <div style="font-size: 2.6rem; margin-bottom: 6px;">✈️</div>
+      <h2 class="brand-title" style="font-size: 1.5rem; margin-bottom: 6px;">Вход через Telegram</h2>
+      <p class="brand-subtitle" style="font-size: 0.88rem; margin-bottom: 16px; line-height: 1.45;">
+        Официальная авторизация через Telegram Widget для сохранения побед и ELO-рейтинга.
+      </p>
+
+      <!-- Telegram Widget Container -->
+      <div id="telegram-widget-wrapper" class="telegram-widget-wrapper" style="min-height: 44px; display: flex; justify-content: center; align-items: center; margin-bottom: 14px;">
+        <!-- Official Telegram Widget Button will render here -->
+      </div>
+
+      <!-- Custom Bot Input if not yet set in .env -->
+      <div id="custom-bot-box" class="custom-bot-box" style="display: flex; gap: 8px; margin-bottom: 16px;">
+        <input type="text" id="input-custom-bot-name" class="input-field" placeholder="Имя вашего бота (@MyMonopolyBot)" style="font-size: 0.85rem; flex: 1;">
+        <button id="btn-apply-bot-name" class="btn-secondary" style="font-size: 0.85rem; padding: 8px 14px;">
+          Загрузить
+        </button>
+      </div>
+
+      <!-- Quick Demo Login for instant testing / localhost -->
+      <div class="demo-auth-box">
+        <div class="demo-auth-divider"><span>или тестовый быстрый вход</span></div>
+        <div class="form-group" style="text-align: left; margin-bottom: 10px;">
+          <label class="form-label" style="font-size: 0.8rem;">Имя для профиля</label>
+          <input type="text" id="input-demo-tg-name" class="input-field" placeholder="Например: Иван" value="Игрок Telegram" style="font-size: 0.88rem;">
+        </div>
+        <button id="btn-demo-tg-login" class="btn-telegram-auth" style="width: 100%; justify-content: center; padding: 10px 16px; font-size: 0.9rem;">
+          <span>⚡</span> Быстрый вход (Dev / Тест)
+        </button>
+      </div>
+
+      <!-- Step-by-step Bot Setup Accordion -->
+      <details class="tg-setup-details" style="margin-top: 14px; text-align: left; font-size: 0.8rem; color: var(--text-muted); background: rgba(0,0,0,0.25); border-radius: var(--radius-md); padding: 8px 12px; cursor: pointer;">
+        <summary style="font-weight: 600; color: var(--text-secondary);">⚙️ Инструкция: Как создать и привязать бота (1 мин)</summary>
+        <ol style="margin-top: 8px; padding-left: 18px; line-height: 1.5;">
+          <li>Откройте бота <strong>@BotFather</strong> в Telegram</li>
+          <li>Создайте бота: <code>/newbot</code> (или выберите существующего)</li>
+          <li>Привяжите домен: отправьте <code>/setdomain</code>, выберите бота и введите <code>localhost</code> (или ваш сайт)</li>
+          <li>Введите имя бота выше или укажите в файле <code>.env</code>: <code>TELEGRAM_BOT_TOKEN=...</code> и <code>TELEGRAM_BOT_NAME=@ваш_бот</code></li>
+        </ol>
+      </details>
+
+      <!-- Legal Compliance Notice (152-ФЗ & Публичная оферта) -->
+      <div class="legal-notice-box" style="margin-top: 14px; font-size: 0.75rem; color: var(--text-muted); line-height: 1.45; border-top: 1px solid var(--border-color); padding-top: 10px;">
+        Авторизуясь, вы принимаете <button type="button" id="link-open-terms" class="legal-inline-btn">Пользовательское соглашение</button> и даете согласие на <button type="button" id="link-open-privacy" class="legal-inline-btn">Обработку персональных данных (152-ФЗ)</button>.
+      </div>
+    </div>
+  </div>
+
+  <!-- LEGAL & PRIVACY MODAL (152-ФЗ / Условия использования) -->
+  <div id="modal-legal" class="modal-overlay" style="display: none; z-index: 10000;">
+    <div class="settings-card" style="max-width: 680px; width: 100%; max-height: 85vh; display: flex; flex-direction: column;">
+      <div class="modal-header" style="align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
+        <div class="segmented-control" style="flex: 1; margin-bottom: 0;">
+          <button id="tab-legal-terms" class="segmented-btn active">📄 Пользовательское соглашение</button>
+          <button id="tab-legal-privacy" class="segmented-btn">🔒 Конфиденциальность (152-ФЗ)</button>
+        </div>
+        <button id="btn-close-legal" class="modal-close-btn">&times;</button>
+      </div>
+
+      <div class="legal-content-body" style="flex: 1; overflow-y: auto; padding: 16px 8px 16px 0; font-size: 0.86rem; line-height: 1.6; color: var(--text-secondary); text-align: left;">
+        <!-- Tab 1: Terms of Service -->
+        <div id="panel-legal-terms">
+          <h3 style="color: var(--text-primary); font-size: 1.05rem; margin-bottom: 10px;">Пользовательское соглашение (Публичная оферта)</h3>
+          <p style="margin-bottom: 12px;">Настоящее Пользовательское соглашение регулирует порядок использования онлайн-игры «Монополия» (далее — «Сервис»).</p>
+          
+          <h4 style="color: var(--text-primary); margin-top: 12px; margin-bottom: 6px;">1. Статус Сервиса и развлекательный характер</h4>
+          <p style="margin-bottom: 10px;">1.1. Сервис является бесплатной браузерной игрой, созданной исключительно в развлекательных целях для организации досуга.</p>
+          <p style="margin-bottom: 10px;">1.2. <strong>Игровая валюта и капитал:</strong> Все денежные единицы (доллары, цены улиц, аренда, баланс), используемые в игре, являются виртуальными игровыми очками. Они не имеют реальной денежной стоимости, не являются электронными денежными средствами, не подлежат обмену или выводу в реальные деньги в соответствии с законодательством РФ (включая 244-ФЗ «О государственном регулировании деятельности по организации и проведению азартных игр»).</p>
+
+          <h4 style="color: var(--text-primary); margin-top: 12px; margin-bottom: 6px;">2. Авторизация и аккаунты</h4>
+          <p style="margin-bottom: 10px;">2.1. Игрок может использовать сервис в гостевом режиме либо авторизоваться через Telegram для сохранения рейтинговой статистики (ELO) и участия в глобальной таблице лидеров.</p>
+          <p style="margin-bottom: 10px;">2.2. Пользователь обязуется не использовать нецензурную лексику в отображаемом имени и уважительно относиться к другим участникам игровых комнат.</p>
+
+          <h4 style="color: var(--text-primary); margin-top: 12px; margin-bottom: 6px;">3. Правила поведения и модерация</h4>
+          <p style="margin-bottom: 10px;">3.1. В игровом чате запрещены оскорбления, спам, разжигание ненависти и распространение вредоносных ссылок.</p>
+          <p style="margin-bottom: 10px;">3.2. Запрещается использование стороннего ПО для искусственной накрутки ELO-рейтинга или намеренного срыва игровых сессий других пользователей. При выявлении нарушений администрация оставляет за собой право ограничить доступ или аннулировать статистику.</p>
+
+          <h4 style="color: var(--text-primary); margin-top: 12px; margin-bottom: 6px;">4. Ограничение ответственности</h4>
+          <p style="margin-bottom: 10px;">4.1. Сервис предоставляется на условиях «как есть» (<em>as is</em>). Администрация не гарантирует абсолютную бесперебойность работы в случае сбоев интернет-соединения или технических работ.</p>
+        </div>
+
+        <!-- Tab 2: Privacy Policy 152-FZ -->
+        <div id="panel-legal-privacy" style="display: none;">
+          <h3 style="color: var(--text-primary); font-size: 1.05rem; margin-bottom: 10px;">Политика конфиденциальности и обработки данных (152-ФЗ)</h3>
+          <p style="margin-bottom: 12px;">Настоящая Политика определяет порядок сбора, обработки и защиты персональной информации пользователей Сервиса в соответствии с Федеральным законом РФ № 152-ФЗ «О персональных данных».</p>
+
+          <h4 style="color: var(--text-primary); margin-top: 12px; margin-bottom: 6px;">1. Состав обрабатываемых данных</h4>
+          <p style="margin-bottom: 8px;">При авторизации через Telegram или использовании Сервиса могут обрабатываться следующие данные:</p>
+          <ul style="padding-left: 20px; margin-bottom: 10px;">
+            <li>Уникальный идентификатор Telegram (<code>Telegram ID</code>);</li>
+            <li>Имя и фамилия, указанные в профиле Telegram (<code>first_name</code>, <code>last_name</code>);</li>
+            <li>Имя пользователя Telegram (<code>username</code>);</li>
+            <li>Ссылка на фотографию профиля (<code>photo_url</code>);</li>
+            <li>Игровая статистика: количество сыгранных партий, победы, винрейт, ELO-рейтинг;</li>
+            <li>Технические данные сессии: IP-адрес, данные WebSocket соединения для синхронизации игрового поля.</li>
+          </ul>
+
+          <h4 style="color: var(--text-primary); margin-top: 12px; margin-bottom: 6px;">2. Цели обработки данных</h4>
+          <p style="margin-bottom: 10px;">2.1. Идентификация игрока и обеспечение входа в учетную запись.</p>
+          <p style="margin-bottom: 10px;">2.2. Ведение игрового процесса, расчет рейтинга ELO и формирование публичной таблицы лидеров.</p>
+          <p style="margin-bottom: 10px;">2.3. Предотвращение злоупотреблений и обеспечение стабильности игровых комнат.</p>
+
+          <h4 style="color: var(--text-primary); margin-top: 12px; margin-bottom: 6px;">3. Защита и передача данных</h4>
+          <p style="margin-bottom: 10px;">3.1. Сервис не передает персональные данные третьим лицам и не использует их в рекламных рассылках.</p>
+          <p style="margin-bottom: 10px;">3.2. Все криптографические проверки подписи осуществляются на стороне сервера по стандарту HMAC-SHA256.</p>
+
+          <h4 style="color: var(--text-primary); margin-top: 12px; margin-bottom: 6px;">4. Удаление и отзыв согласия</h4>
+          <p style="margin-bottom: 10px;">Пользователь имеет право в любой момент выйти из учетной записи и запросить полное удаление своего профиля и статистики из базы данных Сервиса.</p>
+        </div>
+      </div>
+
+      <div class="modal-actions" style="margin-top: 12px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+        <button id="btn-agree-legal" class="btn-primary" style="width: 100%;">
+          Понятно / Закрыть
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notifications Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Socket.io & Application Scripts -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/snowOverlay.js"></script>
+  <script src="js/pixelIcons.js"></script>
+  <script src="js/boardRenderer.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Авторизация Яндекс ID</title>
+</head>
+<body style="font-family: system-ui, -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #0f172a; color: #f8fafc;">
+  <div style="text-align: center;">
+    <div style="width: 48px; height: 48px; border-radius: 50%; background: #fc3f1d; color: white; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 900; margin: 0 auto 16px auto;">
+      Я
+    </div>
+    <h3 style="margin: 0 0 8px 0; font-size: 18px;">Подтверждение входа через Яндекс ID...</h3>
+    <p style="margin: 0; font-size: 13px; color: #94a3b8;">Пожалуйста, подождите, окно закроется автоматически.</p>
+  </div>
+
+  <script>
+    (function() {
+      try {
+        const hash = window.location.hash.substring(1);
+        const params = new URLSearchParams(hash);
+        const token = params.get('access_token');
+        const error = params.get('error');
+
+        if (token) {
+          if (window.opener && !window.opener.closed) {
+            window.opener.postMessage({ type: 'YANDEX_AUTH_SUCCESS', token: token }, window.location.origin);
+            setTimeout(function() { window.close(); }, 300);
+          } else {
+            localStorage.setItem('yandex_oauth_token', token);
+            window.location.href = '/';
+          }
+        } else if (error) {
+          if (window.opener && !window.opener.closed) {
+            window.opener.postMessage({ type: 'YANDEX_AUTH_ERROR', error: error }, window.location.origin);
+            setTimeout(function() { window.close(); }, 300);
+          } else {
+            window.location.href = '/';
+          }
+        }
+      } catch (e) {
+        console.error('Yandex callback error:', e);
+      }
+    })();
+  </script>
+</body>
+</html>

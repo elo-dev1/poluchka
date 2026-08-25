@@ -1,0 +1,451 @@
+@import "tailwindcss";
+
+@theme {
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+:root {
+  --background: 222 47% 7%;
+  --foreground: 210 40% 98%;
+  --card: 222 47% 11%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222 47% 11%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 217 91% 60%;
+  --primary-foreground: 222 47% 11%;
+  --secondary: 217 33% 18%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 217 33% 18%;
+  --muted-foreground: 215 20% 65%;
+  --accent: 217 33% 18%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 217 33% 20%;
+  --input: 217 33% 20%;
+  --ring: 217 91% 60%;
+  --radius: 0.75rem;
+
+  --board-bg: #0d1322;
+  --board-border: #1e293b;
+  --tile-bg: rgba(17, 24, 39, 0.95);
+  --tile-hover-bg: rgba(30, 41, 59, 0.98);
+}
+
+[data-theme='classic'] {
+  --background: 160 84% 4%;
+  --foreground: 140 20% 98%;
+  --card: 160 70% 8%;
+  --card-foreground: 140 20% 98%;
+  --primary: 158 64% 52%;
+  --primary-foreground: 160 84% 4%;
+  --secondary: 160 40% 15%;
+  --border: 160 40% 18%;
+  --ring: 158 64% 52%;
+  --board-bg: #041a12;
+  --tile-bg: rgba(6, 32, 22, 0.95);
+}
+
+[data-theme='sunset'] {
+  --background: 28 80% 5%;
+  --foreground: 40 40% 98%;
+  --card: 28 65% 9%;
+  --card-foreground: 40 40% 98%;
+  --primary: 38 92% 50%;
+  --primary-foreground: 28 80% 5%;
+  --secondary: 28 40% 16%;
+  --border: 28 40% 20%;
+  --ring: 38 92% 50%;
+  --board-bg: #1f1205;
+  --tile-bg: rgba(36, 20, 6, 0.95);
+}
+
+/* =========================================================================
+   LIGHT THEME: High-Contrast, Crystal-Clear Typography & Crisp UI
+   ========================================================================= */
+[data-theme='light'], html.light {
+  --background: 210 30% 98%;          /* #f8fafc */
+  --foreground: 222 47% 11%;          /* #0f172a Deep readable text */
+  --card: 0 0% 100%;                  /* #ffffff Pure white cards */
+  --card-foreground: 222 47% 11%;     /* #0f172a */
+  --popover: 0 0% 100%;               /* #ffffff */
+  --popover-foreground: 222 47% 11%;  /* #0f172a */
+  --primary: 221 83% 53%;             /* #2563eb */
+  --primary-foreground: 210 40% 98%;  /* #ffffff */
+  --secondary: 214 32% 91%;           /* #e2e8f0 */
+  --secondary-foreground: 222 47% 11%;/* #0f172a */
+  --muted: 214 32% 93%;               /* #f1f5f9 */
+  --muted-foreground: 215 25% 35%;    /* #334155 Ultra-readable dark slate */
+  --accent: 214 32% 91%;              /* #e2e8f0 */
+  --accent-foreground: 222 47% 11%;   /* #0f172a */
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214 32% 82%;              /* #cbd5e1 Crisp visible border */
+  --input: 214 32% 82%;               /* #cbd5e1 */
+  --ring: 221 83% 53%;
+
+  --board-bg: #e2e8f0;                /* Slate 200 */
+  --board-border: #94a3b8;            /* Slate 400 */
+  --tile-bg: #ffffff;
+  --tile-hover-bg: #f1f5f9;
+}
+
+/* Light Theme Component Overrides for 100% Readability */
+[data-theme='light'] .bg-black\/40,
+[data-theme='light'] .bg-black\/30,
+[data-theme='light'] .bg-black\/20 {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+[data-theme='light'] .bg-white\/5,
+[data-theme='light'] .bg-white\/10,
+[data-theme='light'] .bg-white\/15 {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+[data-theme='light'] .border-white\/5,
+[data-theme='light'] .border-white\/10,
+[data-theme='light'] .border-white\/15,
+[data-theme='light'] .border-white\/20 {
+  border-color: #cbd5e1 !important;
+}
+
+[data-theme='light'] .text-muted-foreground {
+  color: #334155 !important;
+  font-weight: 500 !important;
+}
+
+[data-theme='light'] .text-white {
+  color: #0f172a;
+}
+
+[data-theme='light'] .glass-panel {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Solid colored action buttons maintain white text */
+[data-theme='light'] .bg-primary,
+[data-theme='light'] button.bg-primary,
+[data-theme='light'] .bg-gradient-to-r.from-primary,
+[data-theme='light'] .bg-gradient-to-tr.from-\[\#2AABEE\],
+[data-theme='light'] .bg-gradient-to-r.from-\[\#fc3f1d\],
+[data-theme='light'] .bg-destructive,
+[data-theme='light'] .bg-emerald-500,
+[data-theme='light'] .bg-amber-500,
+[data-theme='light'] .bg-blue-600,
+[data-theme='light'] .bg-indigo-600,
+[data-theme='light'] [data-state='active'] {
+  color: #ffffff !important;
+}
+
+[data-theme='light'] .bg-primary *,
+[data-theme='light'] .bg-destructive *,
+[data-theme='light'] .bg-gradient-to-r.from-\[\#fc3f1d\] *,
+[data-theme='light'] .bg-gradient-to-tr.from-\[\#2AABEE\] * {
+  color: #ffffff !important;
+}
+
+[data-theme='light'] .bg-primary .text-muted-foreground,
+[data-theme='light'] .bg-destructive .text-muted-foreground {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+[data-theme='light'] ::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme='light'] ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+[data-theme='light'] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* =========================================================================
+   Universal Pointer Cursor for All Clickable / Interactive Elements
+   ========================================================================= */
+button,
+[role="button"],
+[type="button"],
+[type="submit"],
+[type="reset"],
+.cursor-pointer,
+a,
+select,
+summary,
+input[type="checkbox"],
+input[type="radio"],
+input[type="range"],
+label[for],
+[data-radix-collection-item],
+[data-radix-tabs-trigger],
+[data-state],
+[tabindex="0"],
+.board-tile,
+.clickable-item {
+  cursor: pointer;
+}
+
+button:disabled,
+[role="button"][aria-disabled="true"],
+[disabled],
+button:disabled * {
+  cursor: not-allowed !important;
+}
+
+/* 3D Board Perspective Container */
+.perspective-board {
+  perspective: 1600px;
+  perspective-origin: 50% 50%;
+}
+
+.board-3d-wrapper {
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+/* 3D Polyhedral Cube Dice */
+.die-cube {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  transform-style: preserve-3d;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.die-face {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(145deg, #ffffff, #e6e6e6);
+  border: 1.5px solid #d4d4d8;
+  border-radius: 9px;
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.12);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  backface-visibility: hidden;
+  user-select: none;
+}
+
+.die-face-1 { transform: rotateY(0deg) translateZ(22px); }
+.die-face-2 { transform: rotateY(90deg) translateZ(22px); }
+.die-face-3 { transform: rotateX(90deg) translateZ(22px); }
+.die-face-4 { transform: rotateX(-90deg) translateZ(22px); }
+.die-face-5 { transform: rotateY(-90deg) translateZ(22px); }
+.die-face-6 { transform: rotateY(180deg) translateZ(22px); }
+
+.die-pip {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  background: #18181b;
+  border-radius: 50%;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+/* Pip layout coordinates */
+.pip-tl { top: 7px; left: 7px; }
+.pip-tr { top: 7px; right: 7px; }
+.pip-ml { top: 18.5px; left: 7px; }
+.pip-mr { top: 18.5px; right: 7px; }
+.pip-bl { bottom: 7px; left: 7px; }
+.pip-br { bottom: 7px; right: 7px; }
+.pip-center { top: 18.5px; left: 18.5px; }
+
+/* 3D Hopping Player Token */
+.player-token-standing {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.player-token-standing.hopping {
+  animation: tokenHop 0.35s ease-in-out infinite alternate;
+}
+
+@keyframes tokenHop {
+  0% { transform: translateY(0) scale(1); }
+  100% { transform: translateY(-14px) scale(1.1); }
+}
+
+/* iPad and Tablet Touch Optimizations */
+@media (hover: none) and (pointer: coarse) {
+  button,
+  [role="button"],
+  .cursor-pointer,
+  .board-tile {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Tablet / iPad / Desktop Board Adaptive Dimensions */
+.perspective-board {
+  perspective: 1400px;
+  -webkit-perspective: 1400px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+.board-3d-wrapper {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* Glassmorphism utility */
+.glass-panel {
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Tiny Pets Spritesheet Animations (8 frames horizontal strip) */
+@keyframes pet-sprite-32 {
+  from { background-position: 0px 0px; }
+  to { background-position: -256px 0px; }
+}
+
+@keyframes pet-sprite-40 {
+  from { background-position: 0px 0px; }
+  to { background-position: -320px 0px; }
+}
+
+@keyframes pet-sprite-48 {
+  from { background-position: 0px 0px; }
+  to { background-position: -384px 0px; }
+}
+
+@keyframes pet-sprite-64 {
+  from { background-position: 0px 0px; }
+  to { background-position: -512px 0px; }
+}
+
+.pet-sprite-32 {
+  width: 32px;
+  height: 32px;
+  background-repeat: no-repeat;
+  background-size: 256px 32px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  display: inline-block;
+  animation: pet-sprite-32 1s steps(8) infinite;
+}
+
+.pet-sprite-40 {
+  width: 40px;
+  height: 40px;
+  background-repeat: no-repeat;
+  background-size: 320px 40px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  display: inline-block;
+  animation: pet-sprite-40 1s steps(8) infinite;
+}
+
+.pet-sprite-48 {
+  width: 48px;
+  height: 48px;
+  background-repeat: no-repeat;
+  background-size: 384px 48px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  display: inline-block;
+  animation: pet-sprite-48 1s steps(8) infinite;
+}
+
+.pet-sprite-64 {
+  width: 64px;
+  height: 64px;
+  background-repeat: no-repeat;
+  background-size: 512px 64px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  display: inline-block;
+  animation: pet-sprite-64 1s steps(8) infinite;
+}
+
+.pet-anim-idle {
+  animation-duration: 1.0s;
+}
+
+.pet-anim-jump {
+  animation-duration: 0.6s;
+}
+
+.pet-anim-happy {
+  animation-duration: 0.8s;
+}
+
+.pet-anim-sleep {
+  animation-duration: 1.4s;
+}
+
