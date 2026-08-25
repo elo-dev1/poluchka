@@ -185,7 +185,7 @@ const BOARD_TILES_40 = [
   },
   {
     id: 15,
-    name: 'Airbnb',
+    name: 'DoorDash',
     type: 'property',
     group: 'transport',
     groupName: 'Транспортная сеть',
@@ -193,8 +193,8 @@ const BOARD_TILES_40 = [
     price: 200,
     mortgageValue: 100,
     rents: [25, 50, 100, 200],
-    icon: '🏠',
-    iconUrl: '/assets/tiles/airbnb_64px.png'
+    icon: '🚗',
+    iconUrl: '/assets/tiles/doordash_64px.png'
   },
   {
     id: 16,
@@ -474,7 +474,7 @@ const BOARD_TILES_40 = [
   },
   {
     id: 39,
-    name: 'Apple',
+    name: 'Claude',
     type: 'property',
     group: 'darkblue',
     groupName: 'AI & Технологии',
@@ -483,8 +483,8 @@ const BOARD_TILES_40 = [
     housePrice: 200,
     mortgageValue: 200,
     rents: [85, 200, 600, 1400, 1700, 2400],
-    icon: '🍏',
-    iconUrl: '/assets/tiles/apple_black_64px.png'
+    icon: '🧠',
+    iconUrl: '/assets/tiles/claude_64px.png'
   }
 ];
 
@@ -746,7 +746,7 @@ const BOARD_TILES_24 = [
   },
   {
     id: 23,
-    name: 'Apple',
+    name: 'Claude',
     type: 'property',
     group: 'darkblue',
     groupName: 'AI & Техногиганты',
@@ -755,8 +755,8 @@ const BOARD_TILES_24 = [
     housePrice: 200,
     mortgageValue: 200,
     rents: [85, 200, 600, 1400, 1700, 2400],
-    icon: '🍏',
-    iconUrl: '/assets/tiles/apple_black_64px.png'
+    icon: '🧠',
+    iconUrl: '/assets/tiles/claude_64px.png'
   }
 ];
 

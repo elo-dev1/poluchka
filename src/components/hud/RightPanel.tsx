@@ -330,7 +330,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           )}
 
           {/* =========================================================
-              B. TRANSPORT HUB (Citymapper, Airbnb, Booking, Expedia)
+              B. TRANSPORT HUB (Citymapper, DoorDash, Booking, Expedia)
               ========================================================= */}
           {isTransport && (
             <>

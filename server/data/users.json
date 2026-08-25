@@ -12,7 +12,7 @@
     "winRate": 0,
     "totalMoneyEarned": 0,
     "createdAt": 1787264964327,
-    "lastLoginAt": 1787686758235
+    "lastLoginAt": 1787689882980
   },
   {
     "telegramId": "tg_390799862",
@@ -104,7 +104,7 @@
     "winRate": 0,
     "totalMoneyEarned": 0,
     "createdAt": 1787309711512,
-    "lastLoginAt": 1787686758235
+    "lastLoginAt": 1787689882981
   },
   {
     "telegramId": "ya_elo",
@@ -1866,5 +1866,35 @@
     "totalMoneyEarned": 850,
     "createdAt": 1787686758179,
     "lastLoginAt": 1787686758179
+  },
+  {
+    "telegramId": "tg_test_alice_1787689882928",
+    "username": "alice_winner",
+    "firstName": "Алиса",
+    "lastName": "",
+    "avatarUrl": "https://example.com/alice.jpg",
+    "rating": 1030,
+    "gamesPlayed": 1,
+    "wins": 1,
+    "losses": 0,
+    "winRate": 100,
+    "totalMoneyEarned": 3200,
+    "createdAt": 1787689882929,
+    "lastLoginAt": 1787689882929
+  },
+  {
+    "telegramId": "tg_test_boris_1787689882929",
+    "username": "boris_player",
+    "firstName": "Борис",
+    "lastName": "",
+    "avatarUrl": "",
+    "rating": 984,
+    "gamesPlayed": 1,
+    "wins": 0,
+    "losses": 1,
+    "winRate": 0,
+    "totalMoneyEarned": 850,
+    "createdAt": 1787689882929,
+    "lastLoginAt": 1787689882929
   }
 ]

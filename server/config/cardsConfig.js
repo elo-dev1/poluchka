@@ -71,13 +71,13 @@ const CHANCE_CARDS = [
   },
   {
     id: 'ch_9',
-    title: 'Поездка в Apple',
-    text: 'Переместитесь на клетку "Apple". Если проходите через Старт — получите $200.',
+    title: 'Визит в Claude',
+    text: 'Переместитесь на клетку "Claude". Если проходите через Старт — получите $200.',
     type: 'move_to',
-    targetTileName: 'Apple',
+    targetTileName: 'Claude',
     targetTileIndex: 39,
     collectStartBonus: true,
-    icon: '🍏'
+    icon: '🧠'
   },
   {
     id: 'ch_10',
