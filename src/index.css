@@ -204,7 +204,7 @@ body {
 }
 
 /* =========================================================================
-   Universal Pointer Cursor for All Clickable / Interactive Elements
+   Universal Pointer Cursor for Clickable / Interactive Elements ONLY
    ========================================================================= */
 button,
 [role="button"],
@@ -219,13 +219,27 @@ input[type="checkbox"],
 input[type="radio"],
 input[type="range"],
 label[for],
-[data-radix-collection-item],
 [data-radix-tabs-trigger],
-[data-state],
-[tabindex="0"],
 .board-tile,
 .clickable-item {
   cursor: pointer;
+}
+
+/* Explicit text cursor for inputs and textareas */
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="number"],
+input[type="search"],
+textarea {
+  cursor: text;
+}
+
+/* Ensure modal containers and general text content have default cursor */
+[role="dialog"],
+[data-radix-dialog-content],
+[data-radix-tabs-content] {
+  cursor: default;
 }
 
 button:disabled,

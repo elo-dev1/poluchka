@@ -57,7 +57,7 @@ async function testTelegramAuth() {
     photo_url: 'https://example.com/alice.jpg'
   });
   assert.strictEqual(user1.telegramId, uid1);
-  assert.strictEqual(user1.rating, 1000);
+  assert.strictEqual(user1.rating, 0);
   assert.strictEqual(user1.wins, 0);
   assert.strictEqual(user1.gamesPlayed, 0);
 
@@ -67,8 +67,8 @@ async function testTelegramAuth() {
     username: 'boris_player'
   });
   assert.strictEqual(user2.telegramId, uid2);
-  assert.strictEqual(user2.rating, 1000);
-  console.log('✅ Users created with initial 1000 ELO rating and clean stats');
+  assert.strictEqual(user2.rating, 0);
+  console.log('✅ Users created with initial 0 ELO rating and clean stats');
 
   // Test 3: Game Results Recording and Rating Math
   console.log('\nTest 3: Game Results Recording and ELO Rating Calculation');
@@ -85,14 +85,14 @@ async function testTelegramAuth() {
   assert.strictEqual(updatedAlice.wins, 1, 'Alice must have 1 win');
   assert.strictEqual(updatedAlice.gamesPlayed, 1, 'Alice must have 1 game played');
   assert.strictEqual(updatedAlice.winRate, 100, 'Alice winrate must be 100%');
-  assert(updatedAlice.rating > 1000, `Alice rating (${updatedAlice.rating}) must increase above 1000`);
+  assert(updatedAlice.rating > 0, `Alice rating (${updatedAlice.rating}) must increase above 0`);
   assert.strictEqual(updatedAlice.totalMoneyEarned, 3200);
 
   assert.strictEqual(updatedBoris.wins, 0, 'Boris must have 0 wins');
   assert.strictEqual(updatedBoris.losses, 1, 'Boris must have 1 loss');
   assert.strictEqual(updatedBoris.gamesPlayed, 1, 'Boris must have 1 game played');
   assert.strictEqual(updatedBoris.winRate, 0, 'Boris winrate must be 0%');
-  assert(updatedBoris.rating < 1000, `Boris rating (${updatedBoris.rating}) must decrease below 1000`);
+  assert.strictEqual(updatedBoris.rating, 0, 'Boris rating must not drop below 0');
   console.log(`✅ Game results recorded: Winner ELO -> ${updatedAlice.rating}, Loser ELO -> ${updatedBoris.rating}`);
 
   // Test 4: Leaderboard Query

@@ -68,6 +68,30 @@ function setupSocketHandlers(io) {
       }
     });
 
+    socket.on('update_nickname', ({ nickname, telegramId }, callback) => {
+      try {
+        const targetId = (currentTelegramUser && currentTelegramUser.telegramId) || telegramId;
+        if (!targetId) {
+          return sendError(callback, 'Вы не авторизованы');
+        }
+        const cleanName = (nickname || '').trim().substring(0, 24);
+        if (!cleanName) {
+          return sendError(callback, 'Имя не может быть пустым');
+        }
+        const updated = database.updateUserNickname(targetId, cleanName);
+        if (updated) {
+          currentTelegramUser = updated;
+          if (typeof callback === 'function') {
+            callback({ success: true, user: updated });
+          }
+        } else {
+          sendError(callback, 'Не удалось обновить профиль');
+        }
+      } catch (err) {
+        sendError(callback, err.message);
+      }
+    });
+
     socket.on('get_leaderboard', ({ limit }, callback) => {
       try {
         const lLimit = Math.min(50, Math.max(5, Number(limit) || 20));

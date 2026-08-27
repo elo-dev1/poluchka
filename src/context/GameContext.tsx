@@ -76,6 +76,7 @@ interface GameContextType {
   authTelegram: (authData: any) => Promise<boolean>;
   authYandex: (authData: any) => Promise<boolean>;
   logoutTelegram: () => void;
+  updateNickname: (newNickname: string) => Promise<boolean>;
   applySettings: (settings: {
     theme?: string;
     is3D?: boolean;
@@ -916,7 +917,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setPlayerName(res.user.firstName || res.user.username);
             safeSetStorage(STORAGE_NAME_KEY, res.user.firstName || res.user.username);
           }
-          showToast(`Добро пожаловать, ${res.user.firstName || res.user.username}! ⭐ Рейтинг: ${res.user.rating || 1000}`, 'success', 3500);
+          showToast(`Добро пожаловать, ${res.user.firstName || res.user.username}! ⭐ Рейтинг: ${res.user.rating ?? 0}`, 'success', 3500);
           closeModal();
           resolve(true);
         } else {
@@ -940,7 +941,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setPlayerName(res.user.firstName || res.user.username);
             safeSetStorage(STORAGE_NAME_KEY, res.user.firstName || res.user.username);
           }
-          showToast(`Добро пожаловать через Яндекс ID, ${res.user.firstName || res.user.username}! ⭐ Рейтинг: ${res.user.rating || 1000}`, 'success', 3500);
+          showToast(`Добро пожаловать через Яндекс ID, ${res.user.firstName || res.user.username}! ⭐ Рейтинг: ${res.user.rating ?? 0}`, 'success', 3500);
           closeModal();
           resolve(true);
         } else {
@@ -959,6 +960,52 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     showToast('Вы вышли из профиля (активен гостевой режим)', 'info', 2000);
     closeModal();
   }, [showToast, closeModal]);
+
+  const updateNickname = useCallback(async (newNickname: string) => {
+    const clean = newNickname.trim().substring(0, 24);
+    if (!clean) {
+      showToast('Имя не может быть пустым', 'warning');
+      return false;
+    }
+
+    if (currentUser) {
+      if (socket) {
+        return new Promise<boolean>((resolve) => {
+          socket.emit('update_nickname', { nickname: clean, telegramId: currentUser.telegramId }, (res: SocketResponse) => {
+            if (res && res.success && res.user) {
+              setCurrentUser(res.user);
+              safeSetStorage(STORAGE_TG_USER_KEY, JSON.stringify(res.user));
+              setPlayerName(clean);
+              safeSetStorage(STORAGE_NAME_KEY, clean);
+              showToast('Никнейм успешно изменён!', 'success');
+              resolve(true);
+            } else {
+              const updated = { ...currentUser, firstName: clean };
+              setCurrentUser(updated);
+              safeSetStorage(STORAGE_TG_USER_KEY, JSON.stringify(updated));
+              setPlayerName(clean);
+              safeSetStorage(STORAGE_NAME_KEY, clean);
+              showToast('Никнейм изменён!', 'success');
+              resolve(true);
+            }
+          });
+        });
+      } else {
+        const updated = { ...currentUser, firstName: clean };
+        setCurrentUser(updated);
+        safeSetStorage(STORAGE_TG_USER_KEY, JSON.stringify(updated));
+        setPlayerName(clean);
+        safeSetStorage(STORAGE_NAME_KEY, clean);
+        showToast('Никнейм изменён!', 'success');
+        return true;
+      }
+    }
+
+    setPlayerName(clean);
+    safeSetStorage(STORAGE_NAME_KEY, clean);
+    showToast('Имя игрока изменено!', 'success');
+    return true;
+  }, [socket, currentUser, showToast]);
 
   return (
     <GameContext.Provider
@@ -1025,6 +1072,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authTelegram,
         authYandex,
         logoutTelegram,
+        updateNickname,
         applySettings,
       }}
     >

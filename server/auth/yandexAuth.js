@@ -4,7 +4,7 @@ const database = require('../db/Database');
 
 class YandexAuth {
   constructor() {
-    this.clientId = process.env.YANDEX_CLIENT_ID || '';
+    this.clientId = process.env.YANDEX_CLIENT_ID || process.env.VITE_YANDEX_CLIENT_ID || '';
     this.clientSecret = process.env.YANDEX_CLIENT_SECRET || '';
   }
 

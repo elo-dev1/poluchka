@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { formatMoney, cn } from "@/lib/utils";
 import { TileData } from "@/types/game";
+import { TileIconImage } from "@/lib/pixelIcons";
 
 interface RightPanelProps {
   selectedTile: TileData | null;
@@ -292,6 +293,9 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                 ? displayTile.groupName || "Недвижимость"
                 : specialInfo?.category || "Специальное поле"}
             </span>
+            <div className="w-8 h-8 my-1 flex items-center justify-center">
+              <TileIconImage tile={displayTile} className="w-full h-full object-contain drop-shadow-md" />
+            </div>
             <span className="text-sm sm:text-base font-black tracking-wide drop-shadow-md leading-tight">
               {displayTile.name}
             </span>
@@ -330,7 +334,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           )}
 
           {/* =========================================================
-              B. TRANSPORT HUB (Citymapper, DoorDash, Booking, Expedia)
+              B. TRANSPORT HUB (Uber, Bolt, Lyft, Gett)
               ========================================================= */}
           {isTransport && (
             <>

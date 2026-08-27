@@ -173,8 +173,13 @@ export const BoardTile: React.FC<BoardTileProps> = ({
             <span className="text-[10px] sm:text-xs font-black text-muted-foreground tracking-tight self-start px-0.5">
               ПРОСТО
             </span>
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-red-950/40 border border-red-500/30 flex items-center justify-center my-auto shadow-inner">
-              <span className="text-2xl sm:text-3xl">⛓️</span>
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center my-auto">
+              <img
+                src="/assets/tiles/jail_64px.png"
+                alt="Тюрьма"
+                className="w-full h-full object-contain drop-shadow-md"
+                style={{ imageRendering: 'pixelated' }}
+              />
             </div>
             <div className="w-full flex items-center justify-between px-0.5">
               <span className="text-xs sm:text-sm font-black text-amber-400">
@@ -193,8 +198,13 @@ export const BoardTile: React.FC<BoardTileProps> = ({
             <span className="text-[11px] sm:text-xs font-black text-blue-300 uppercase text-center leading-tight">
               Парковка
             </span>
-            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-blue-600 border border-white/40 flex items-center justify-center shadow-lg my-auto text-white font-black text-base sm:text-lg">
-              P
+            <div className="w-9 h-9 sm:w-11 sm:h-11 flex items-center justify-center my-auto">
+              <img
+                src="/assets/tiles/free_parking_64px.png"
+                alt="Парковка"
+                className="w-full h-full object-contain drop-shadow-md"
+                style={{ imageRendering: 'pixelated' }}
+              />
             </div>
             <span className="text-[10px] sm:text-xs text-muted-foreground font-bold">
               Отдых
@@ -209,7 +219,12 @@ export const BoardTile: React.FC<BoardTileProps> = ({
               В тюрьму
             </span>
             <div className="w-9 h-9 sm:w-11 sm:h-11 flex items-center justify-center my-auto">
-              <span className="text-2xl sm:text-3xl">👮‍♂️</span>
+              <img
+                src="/assets/tiles/police_64px.png"
+                alt="Арест"
+                className="w-full h-full object-contain drop-shadow-md"
+                style={{ imageRendering: 'pixelated' }}
+              />
             </div>
             <span className="text-[10px] sm:text-xs font-black text-red-400">
               Арест
@@ -309,13 +324,7 @@ export const BoardTile: React.FC<BoardTileProps> = ({
               {tile.name}
             </span>
             <div className="flex-1 flex items-center justify-center min-h-0 w-full my-auto p-0.5">
-              {tile.type === 'chance' ? (
-                <span className="text-2xl sm:text-3xl font-black text-purple-400 drop-shadow-[0_0_8px_#c084fc]">?</span>
-              ) : tile.type === 'chest' ? (
-                <span className="text-xl sm:text-2xl">🎁</span>
-              ) : (
-                <TileIconImage tile={tile} className="w-full h-full max-w-[36px] max-h-[36px] sm:max-w-[42px] sm:max-h-[42px] object-contain drop-shadow-md" />
-              )}
+              <TileIconImage tile={tile} className="w-full h-full max-w-[36px] max-h-[36px] sm:max-w-[42px] sm:max-h-[42px] object-contain drop-shadow-md" />
             </div>
             {(tile.price || tile.amount || tile.bonus) && (
               <div className="flex items-center justify-center gap-1">
@@ -358,13 +367,7 @@ export const BoardTile: React.FC<BoardTileProps> = ({
             {tile.name}
           </span>
           <div className="flex-1 flex items-center justify-center my-auto min-h-0 w-full p-0.5">
-            {tile.type === 'chance' ? (
-              <span className="text-2xl sm:text-3xl font-black text-purple-400 drop-shadow-[0_0_8px_#c084fc]">?</span>
-            ) : tile.type === 'chest' ? (
-              <span className="text-xl sm:text-2xl">🎁</span>
-            ) : (
-              <TileIconImage tile={tile} className="w-full h-full max-w-[36px] max-h-[36px] sm:max-w-[44px] sm:max-h-[44px] object-contain drop-shadow-md" />
-            )}
+            <TileIconImage tile={tile} className="w-full h-full max-w-[36px] max-h-[36px] sm:max-w-[44px] sm:max-h-[44px] object-contain drop-shadow-md" />
           </div>
           {(tile.price || tile.amount || tile.bonus) && (
             <div className="flex items-center justify-center gap-1 pb-0.5">
@@ -428,13 +431,7 @@ export const BoardTile: React.FC<BoardTileProps> = ({
               {tile.name}
             </span>
             <div className="flex-1 flex items-center justify-center min-h-0 w-full my-auto p-0.5">
-              {tile.type === 'chance' ? (
-                <span className="text-2xl sm:text-3xl font-black text-purple-400 drop-shadow-[0_0_8px_#c084fc]">?</span>
-              ) : tile.type === 'chest' ? (
-                <span className="text-xl sm:text-2xl">🎁</span>
-              ) : (
-                <TileIconImage tile={tile} className="w-full h-full max-w-[36px] max-h-[36px] sm:max-w-[42px] sm:max-h-[42px] object-contain drop-shadow-md" />
-              )}
+              <TileIconImage tile={tile} className="w-full h-full max-w-[36px] max-h-[36px] sm:max-w-[42px] sm:max-h-[42px] object-contain drop-shadow-md" />
             </div>
             {(tile.price || tile.amount || tile.bonus) && (
               <div className="flex items-center justify-center gap-1">
@@ -481,13 +478,7 @@ export const BoardTile: React.FC<BoardTileProps> = ({
             </div>
           )}
           <div className="flex-1 flex items-center justify-center my-auto min-h-0 w-full p-0.5">
-            {tile.type === 'chance' ? (
-              <span className="text-2xl sm:text-3xl font-black text-purple-400 drop-shadow-[0_0_8px_#c084fc]">?</span>
-            ) : tile.type === 'chest' ? (
-              <span className="text-xl sm:text-2xl">🎁</span>
-            ) : (
-              <TileIconImage tile={tile} className="w-full h-full max-w-[36px] max-h-[36px] sm:max-w-[44px] sm:max-h-[44px] object-contain drop-shadow-md" />
-            )}
+            <TileIconImage tile={tile} className="w-full h-full max-w-[36px] max-h-[36px] sm:max-w-[44px] sm:max-h-[44px] object-contain drop-shadow-md" />
           </div>
           <span className="font-black leading-tight tracking-tight text-white text-center w-full text-[11px] sm:text-[13px] truncate pb-0.5 px-0.5">
             {tile.name}

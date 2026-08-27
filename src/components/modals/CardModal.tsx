@@ -111,7 +111,12 @@ export const CardModal: React.FC = () => {
         <DialogHeader className="flex flex-col items-center">
           {/* Deck Badge */}
           <div className="flex items-center gap-1.5 mb-2">
-            <span className="text-2xl">{card.icon || (isChance ? '❓' : '🎁')}</span>
+            <img
+              src={isChance ? '/assets/tiles/chance_64px.png' : '/assets/tiles/chest_64px.png'}
+              alt={isChance ? 'Шанс' : 'Казна'}
+              className="w-7 h-7 object-contain drop-shadow-md"
+              style={{ imageRendering: 'pixelated' }}
+            />
             <Badge
               variant="outline"
               className={cn(

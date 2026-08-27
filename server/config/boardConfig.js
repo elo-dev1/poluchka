@@ -33,7 +33,8 @@ const BOARD_TILES_40 = [
     name: 'Казна',
     type: 'chest',
     description: 'Тяните карту городской казны',
-    icon: '🎁'
+    icon: '🎁',
+    iconUrl: '/assets/tiles/chest_64px.png'
   },
   {
     id: 3,
@@ -59,7 +60,7 @@ const BOARD_TILES_40 = [
   },
   {
     id: 5,
-    name: 'Citymapper',
+    name: 'Uber',
     type: 'property',
     group: 'transport',
     groupName: 'Транспортная сеть',
@@ -68,7 +69,7 @@ const BOARD_TILES_40 = [
     mortgageValue: 100,
     rents: [25, 50, 100, 200],
     icon: '🚗',
-    iconUrl: '/assets/tiles/citymapper_64px.png'
+    iconUrl: '/assets/tiles/uber_64px.png'
   },
   {
     id: 6,
@@ -89,7 +90,8 @@ const BOARD_TILES_40 = [
     name: 'Шанс',
     type: 'chance',
     description: 'Тяните карту удачи',
-    icon: '❓'
+    icon: '❓',
+    iconUrl: '/assets/tiles/chance_64px.png'
   },
   {
     id: 8,
@@ -124,7 +126,8 @@ const BOARD_TILES_40 = [
     name: 'Тюрьма',
     type: 'jail',
     description: 'Просто посещение / Отбывание наказания',
-    icon: '⛓️'
+    icon: '⛓️',
+    iconUrl: '/assets/tiles/jail_64px.png'
   },
 
   // --- RIGHT ROW (Tiles 11 to 20) ---
@@ -185,7 +188,7 @@ const BOARD_TILES_40 = [
   },
   {
     id: 15,
-    name: 'DoorDash',
+    name: 'Bolt',
     type: 'property',
     group: 'transport',
     groupName: 'Транспортная сеть',
@@ -193,8 +196,8 @@ const BOARD_TILES_40 = [
     price: 200,
     mortgageValue: 100,
     rents: [25, 50, 100, 200],
-    icon: '🚗',
-    iconUrl: '/assets/tiles/doordash_64px.png'
+    icon: '⚡',
+    iconUrl: '/assets/tiles/bolt_64px.png'
   },
   {
     id: 16,
@@ -215,7 +218,8 @@ const BOARD_TILES_40 = [
     name: 'Казна',
     type: 'chest',
     description: 'Тяните карту городской казны',
-    icon: '🎁'
+    icon: '🎁',
+    iconUrl: '/assets/tiles/chest_64px.png'
   },
   {
     id: 18,
@@ -250,7 +254,8 @@ const BOARD_TILES_40 = [
     name: 'Парковка',
     type: 'free_parking',
     description: 'Бесплатная стоянка и отдых',
-    icon: '🅿️'
+    icon: '🅿️',
+    iconUrl: '/assets/tiles/free_parking_64px.png'
   },
 
   // --- TOP ROW (Tiles 21 to 30) ---
@@ -273,7 +278,8 @@ const BOARD_TILES_40 = [
     name: 'Шанс',
     type: 'chance',
     description: 'Тяните карту удачи',
-    icon: '❓'
+    icon: '❓',
+    iconUrl: '/assets/tiles/chance_64px.png'
   },
   {
     id: 23,
@@ -305,7 +311,7 @@ const BOARD_TILES_40 = [
   },
   {
     id: 25,
-    name: 'Booking.com',
+    name: 'Lyft',
     type: 'property',
     group: 'transport',
     groupName: 'Транспортная сеть',
@@ -313,8 +319,8 @@ const BOARD_TILES_40 = [
     price: 200,
     mortgageValue: 100,
     rents: [25, 50, 100, 200],
-    icon: '✈️',
-    iconUrl: '/assets/tiles/booking_com_64px.png'
+    icon: '🚕',
+    iconUrl: '/assets/tiles/lyft_64px.png'
   },
   {
     id: 26,
@@ -377,7 +383,8 @@ const BOARD_TILES_40 = [
     type: 'go_to_jail',
     targetJailIndex: 10,
     description: 'Отправляйтесь в тюрьму!',
-    icon: '👮'
+    icon: '👮',
+    iconUrl: '/assets/tiles/police_64px.png'
   },
 
   // --- LEFT ROW (Tiles 31 to 39) ---
@@ -414,7 +421,8 @@ const BOARD_TILES_40 = [
     name: 'Казна',
     type: 'chest',
     description: 'Тяните карту городской казны',
-    icon: '🎁'
+    icon: '🎁',
+    iconUrl: '/assets/tiles/chest_64px.png'
   },
   {
     id: 34,
@@ -432,7 +440,7 @@ const BOARD_TILES_40 = [
   },
   {
     id: 35,
-    name: 'Expedia',
+    name: 'Gett',
     type: 'property',
     group: 'transport',
     groupName: 'Транспортная сеть',
@@ -440,15 +448,16 @@ const BOARD_TILES_40 = [
     price: 200,
     mortgageValue: 100,
     rents: [25, 50, 100, 200],
-    icon: '🌍',
-    iconUrl: '/assets/tiles/expedia_64px.png'
+    icon: '🚖',
+    iconUrl: '/assets/tiles/gett_64px.png'
   },
   {
     id: 36,
     name: 'Шанс',
     type: 'chance',
     description: 'Тяните карту удачи',
-    icon: '❓'
+    icon: '❓',
+    iconUrl: '/assets/tiles/chance_64px.png'
   },
   {
     id: 37,
@@ -516,7 +525,8 @@ const BOARD_TILES_24 = [
     name: 'Шанс',
     type: 'chance',
     description: 'Тяните карту удачи',
-    icon: '❓'
+    icon: '❓',
+    iconUrl: '/assets/tiles/chance_64px.png'
   },
   {
     id: 3,
@@ -559,7 +569,8 @@ const BOARD_TILES_24 = [
     name: 'Тюрьма',
     type: 'jail',
     description: 'Просто посещение / Отбывание наказания',
-    icon: '⛓️'
+    icon: '⛓️',
+    iconUrl: '/assets/tiles/jail_64px.png'
   },
   {
     id: 7,
@@ -580,7 +591,8 @@ const BOARD_TILES_24 = [
     name: 'Казна',
     type: 'chest',
     description: 'Тяните карту городской казны',
-    icon: '🎁'
+    icon: '🎁',
+    iconUrl: '/assets/tiles/chest_64px.png'
   },
   {
     id: 9,
@@ -629,7 +641,8 @@ const BOARD_TILES_24 = [
     name: 'Парковка',
     type: 'free_parking',
     description: 'Бесплатная стоянка и отдых',
-    icon: '🅿️'
+    icon: '🅿️',
+    iconUrl: '/assets/tiles/free_parking_64px.png'
   },
   {
     id: 13,
@@ -650,7 +663,8 @@ const BOARD_TILES_24 = [
     name: 'Шанс',
     type: 'chance',
     description: 'Тяните карту удачи',
-    icon: '❓'
+    icon: '❓',
+    iconUrl: '/assets/tiles/chance_64px.png'
   },
   {
     id: 15,
@@ -693,7 +707,8 @@ const BOARD_TILES_24 = [
     name: 'Арест',
     type: 'go_to_jail',
     description: 'Отправляйтесь прямо в тюрьму!',
-    icon: '👮'
+    icon: '👮',
+    iconUrl: '/assets/tiles/police_64px.png'
   },
   {
     id: 19,
@@ -728,7 +743,8 @@ const BOARD_TILES_24 = [
     name: 'Казна',
     type: 'chest',
     description: 'Тяните карту городской казны',
-    icon: '🎁'
+    icon: '🎁',
+    iconUrl: '/assets/tiles/chest_64px.png'
   },
   {
     id: 22,

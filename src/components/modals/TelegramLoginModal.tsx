@@ -15,7 +15,9 @@ export const TelegramLoginModal: React.FC = () => {
   const isOpen = activeModal === 'telegramLogin' || (activeModal as string) === 'auth';
 
   const [activeTab, setActiveTab] = useState<string>('yandex');
-  const [yandexClientId, setYandexClientId] = useState<string>('');
+  const [yandexClientId, setYandexClientId] = useState<string>(
+    (import.meta as any).env?.VITE_YANDEX_CLIENT_ID || ''
+  );
   const [botUsername, setBotUsername] = useState<string>('MonopolyWebGameBot');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const widgetContainerRef = useRef<HTMLDivElement | null>(null);
@@ -93,7 +95,11 @@ export const TelegramLoginModal: React.FC = () => {
 
   // Handle Official Yandex ID Popup Open
   const handleOpenYandexOAuth = () => {
-    const clientId = yandexClientId || 'c04c05877f0a4f5f9a65d6e2467d3bdf';
+    const clientId = yandexClientId;
+    if (!clientId) {
+      showToast('Укажите YANDEX_CLIENT_ID в файле .env и перезапустите сервер', 'error', 5000);
+      return;
+    }
     const redirectUri = window.location.origin + '/yandex-callback.html';
     const authUrl = `https://oauth.yandex.ru/authorize?response_type=token&client_id=${clientId}&redirect_uri=${encodeURIComponent(
       redirectUri

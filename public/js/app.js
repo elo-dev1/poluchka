@@ -397,7 +397,7 @@
     if (elements.modalTelegramLogin) elements.modalTelegramLogin.style.display = 'none';
 
     if (showGreeting) {
-      showToast(`Добро пожаловать, ${user.firstName || user.username}! ⭐ Рейтинг: ${user.rating || 1000}`, 'success', 3000);
+      showToast(`Добро пожаловать, ${user.firstName || user.username}! ⭐ Рейтинг: ${user.rating !== undefined ? user.rating : 0}`, 'success', 3000);
     }
   }
 
@@ -408,7 +408,7 @@
       if (elements.userProfileBadge) {
         elements.userProfileBadge.style.display = 'flex';
         elements.userBadgeName.textContent = user.firstName || user.username || 'Игрок';
-        elements.userBadgeRating.textContent = `⭐ ${user.rating || 1000}`;
+        elements.userBadgeRating.textContent = `⭐ ${user.rating !== undefined ? user.rating : 0}`;
         if (user.avatarUrl) {
           elements.userBadgeAvatar.src = user.avatarUrl;
           elements.userBadgeAvatar.style.display = 'block';
@@ -462,7 +462,7 @@
     if (!user) {
       if (elements.profileFullName) elements.profileFullName.textContent = 'Гость';
       if (elements.profileUsername) elements.profileUsername.textContent = 'Авторизация не выполнена';
-      if (elements.profileRatingVal) elements.profileRatingVal.textContent = '⭐ 1000';
+      if (elements.profileRatingVal) elements.profileRatingVal.textContent = '⭐ 0';
       if (elements.statWins) elements.statWins.textContent = '0';
       if (elements.statGames) elements.statGames.textContent = '0';
       if (elements.statWinrate) elements.statWinrate.textContent = '0%';
@@ -480,7 +480,7 @@
 
     if (elements.profileFullName) elements.profileFullName.textContent = user.firstName + (user.lastName ? ` ${user.lastName}` : '');
     if (elements.profileUsername) elements.profileUsername.textContent = user.username ? `@${user.username}` : `ID: ${user.telegramId}`;
-    if (elements.profileRatingVal) elements.profileRatingVal.textContent = `⭐ ${user.rating || 1000}`;
+    if (elements.profileRatingVal) elements.profileRatingVal.textContent = `⭐ ${user.rating !== undefined ? user.rating : 0}`;
     if (elements.statWins) elements.statWins.textContent = user.wins || 0;
     if (elements.statGames) elements.statGames.textContent = user.gamesPlayed || 0;
     if (elements.statWinrate) elements.statWinrate.textContent = `${user.winRate || 0}%`;

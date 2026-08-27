@@ -159,17 +159,17 @@ export const WelcomeScreen: React.FC = () => {
   };
 
   const getRankTitle = (rating: number) => {
-    if (rating >= 1400)
+    if (rating >= 300)
       return {
         title: "👑 Гроссмейстер",
         color: "text-amber-400 border-amber-400/40 bg-amber-500/10",
       };
-    if (rating >= 1200)
+    if (rating >= 150)
       return {
         title: "🥇 Магистр",
         color: "text-purple-400 border-purple-400/40 bg-purple-500/10",
       };
-    if (rating >= 1100)
+    if (rating >= 50)
       return {
         title: "🥈 Опытный",
         color: "text-blue-400 border-blue-400/40 bg-blue-500/10",
@@ -216,9 +216,9 @@ export const WelcomeScreen: React.FC = () => {
               {currentUser ? (
                 <Badge
                   variant="outline"
-                  className={`text-[10px] font-bold px-2 py-0.5 ${getRankTitle(currentUser.rating || 1000).color}`}
+                  className={`text-[10px] font-bold px-2 py-0.5 ${getRankTitle(currentUser.rating ?? 0).color}`}
                 >
-                  {getRankTitle(currentUser.rating || 1000).title}
+                  {getRankTitle(currentUser.rating ?? 0).title}
                 </Badge>
               ) : (
                 <Badge
@@ -234,7 +234,7 @@ export const WelcomeScreen: React.FC = () => {
               {currentUser ? (
                 <>
                   <span className="font-bold text-amber-400 flex items-center gap-1">
-                    ⭐ {currentUser.rating || 1000} ELO
+                    ⭐ {currentUser.rating ?? 0} ELO
                   </span>
                   <span>•</span>
                   <span className="text-[11px]">
@@ -1026,7 +1026,7 @@ export const WelcomeScreen: React.FC = () => {
                             variant="gold"
                             className="text-xs font-black px-2.5 py-0.5"
                           >
-                            ⭐ {user.rating || 1000} ELO
+                            ⭐ {user.rating ?? 0} ELO
                           </Badge>
                         </div>
                       </div>

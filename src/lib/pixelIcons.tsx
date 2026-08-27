@@ -383,7 +383,14 @@ export const BRAND_NAME_ICONS: Record<string, string> = {
   'клод': '/assets/tiles/claude_64px.png',
   'apple': '/assets/tiles/apple_black_64px.png',
   'эппл': '/assets/tiles/apple_black_64px.png',
-  'uber': '/assets/tiles/citymapper_64px.png',
+  'uber': '/assets/tiles/uber_64px.png',
+  'убер': '/assets/tiles/uber_64px.png',
+  'bolt': '/assets/tiles/bolt_64px.png',
+  'болт': '/assets/tiles/bolt_64px.png',
+  'lyft': '/assets/tiles/lyft_64px.png',
+  'лифт': '/assets/tiles/lyft_64px.png',
+  'gett': '/assets/tiles/gett_64px.png',
+  'гетт': '/assets/tiles/gett_64px.png',
   'tesla': '/assets/tiles/speedtest_by_ookla_64px.png',
   'spacex': '/assets/tiles/booking_com_64px.png',
   'boeing': '/assets/tiles/expedia_64px.png',
@@ -398,9 +405,27 @@ export const BRAND_NAME_ICONS: Record<string, string> = {
   'вайлдберриз': '/assets/tiles/aliexpress_64px.png',
   'starbucks': '/assets/tiles/mcdonalds_64px.png',
   'старбакс': '/assets/tiles/mcdonalds_64px.png',
+
+  // Special tiles
+  'chance': '/assets/tiles/chance_64px.png',
+  'шанс': '/assets/tiles/chance_64px.png',
+  'chest': '/assets/tiles/chest_64px.png',
+  'казна': '/assets/tiles/chest_64px.png',
+  'community_chest': '/assets/tiles/chest_64px.png',
+  'jail': '/assets/tiles/jail_64px.png',
+  'тюрьма': '/assets/tiles/jail_64px.png',
+  'police': '/assets/tiles/police_64px.png',
+  'полицейский': '/assets/tiles/police_64px.png',
+  'go_to_jail': '/assets/tiles/police_64px.png',
+  'арест': '/assets/tiles/police_64px.png',
+  'в тюрьму': '/assets/tiles/police_64px.png',
+  'free_parking': '/assets/tiles/free_parking_64px.png',
+  'parking': '/assets/tiles/free_parking_64px.png',
+  'парковка': '/assets/tiles/free_parking_64px.png',
+  'бесплатная парковка': '/assets/tiles/free_parking_64px.png',
 };
 
-// Component that renders the real brand PNG icon with pixelated styling and crisp fallback
+// Component that renders the real brand / special tile PNG icon with pixelated styling and crisp fallback
 export const TileIconImage: React.FC<{
   tile: { id?: number; iconUrl?: string; name?: string; type?: string };
   className?: string;
@@ -410,16 +435,11 @@ export const TileIconImage: React.FC<{
   className = 'w-6 h-6 sm:w-7 sm:h-7',
   style,
 }) => {
-  const isSpecialTile = tile.type && tile.type !== 'property';
-
-  if (isSpecialTile) {
-    const Fallback = getTileIconComponent(tile);
-    return <div className={className} style={style}><Fallback /></div>;
-  }
-
+  const typeKey = (tile.type || '').trim().toLowerCase();
   const nameKey = (tile.name || '').trim().toLowerCase();
   const iconUrl =
     tile.iconUrl ||
+    BRAND_NAME_ICONS[typeKey] ||
     BRAND_NAME_ICONS[nameKey] ||
     (tile.id !== undefined ? BRAND_NAME_ICONS[String(tile.id)] : undefined);
 

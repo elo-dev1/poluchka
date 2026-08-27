@@ -65,7 +65,7 @@ app.get('/api/auth/config', (req, res) => {
   res.json({
     botUsername: process.env.TELEGRAM_BOT_NAME || 'MonopolyWebGameBot',
     hasToken: !!process.env.TELEGRAM_BOT_TOKEN,
-    yandexClientId: process.env.YANDEX_CLIENT_ID || ''
+    yandexClientId: process.env.YANDEX_CLIENT_ID || process.env.VITE_YANDEX_CLIENT_ID || ''
   });
 });
 
@@ -122,6 +122,23 @@ app.get('/api/user/:telegramId', (req, res) => {
       return res.status(404).json({ success: false, error: 'Пользователь не найден' });
     }
     res.json({ success: true, user });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Update nickname endpoint
+app.post('/api/user/nickname', (req, res) => {
+  try {
+    const { telegramId, nickname } = req.body;
+    if (!telegramId || !nickname) {
+      return res.status(400).json({ success: false, error: 'Параметры не указаны' });
+    }
+    const updated = database.updateUserNickname(telegramId, nickname);
+    if (!updated) {
+      return res.status(404).json({ success: false, error: 'Пользователь не найден' });
+    }
+    res.json({ success: true, user: updated });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

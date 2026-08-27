@@ -89,7 +89,7 @@ export const TopBar: React.FC = () => {
                   {currentUser.firstName}
                 </span>
                 <span className="text-[9px] font-black text-amber-400 leading-none">
-                  ⭐ {currentUser.rating || 1000} ELO
+                  ⭐ {currentUser.rating ?? 0} ELO
                 </span>
               </div>
             </button>

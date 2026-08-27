@@ -205,7 +205,7 @@ export const TileDetailsModal: React.FC = () => {
           </div>
         )}
 
-        {/* 2. TRANSPORT HUB (Citymapper, DoorDash, Booking, Expedia) */}
+        {/* 2. TRANSPORT HUB (Uber, Bolt, Lyft, Gett) */}
         {isTransport && (
           <div className="flex flex-col gap-2.5 py-2 text-xs sm:text-sm">
             {/* Owner Info */}

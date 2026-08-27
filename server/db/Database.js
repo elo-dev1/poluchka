@@ -76,7 +76,7 @@ class Database {
         firstName: tgData.first_name || 'Игрок',
         lastName: tgData.last_name || '',
         avatarUrl: tgData.photo_url || '',
-        rating: 1000,
+        rating: 0,
         gamesPlayed: 0,
         wins: 0,
         losses: 0,
@@ -118,7 +118,7 @@ class Database {
         firstName: yandexData.first_name || yandexData.display_name || yandexData.login || 'Игрок Яндекс',
         lastName: yandexData.last_name || '',
         avatarUrl: yandexData.avatar_url || yandexData.photo_url || '',
-        rating: 1000,
+        rating: 0,
         gamesPlayed: 0,
         wins: 0,
         losses: 0,
@@ -147,6 +147,22 @@ class Database {
     if (!telegramId) return null;
     const user = this.users.get(String(telegramId));
     return user ? { ...user } : null;
+  }
+
+  /**
+   * Update user nickname (firstName / display name)
+   */
+  updateUserNickname(telegramId, newNickname) {
+    if (!telegramId) return null;
+    const clean = String(newNickname || '').trim().substring(0, 24);
+    if (!clean) return null;
+
+    const user = this.users.get(String(telegramId));
+    if (!user) return null;
+
+    user.firstName = clean;
+    this.saveUsers();
+    return { ...user };
   }
 
   /**
@@ -203,9 +219,9 @@ class Database {
           user.rating = Math.round(user.rating + ratingGain);
         } else {
           user.losses = (user.losses || 0) + 1;
-          // Rating loss (-10 to -20, min rating 100)
+          // Rating loss (-8 to -22, min rating 0)
           const ratingLoss = Math.max(8, 22 - (rankedPlayer.rank || 2) * 3);
-          user.rating = Math.max(100, Math.round(user.rating - ratingLoss));
+          user.rating = Math.max(0, Math.round(user.rating - ratingLoss));
         }
 
         user.winRate = Math.round((user.wins / user.gamesPlayed) * 100);
@@ -224,7 +240,7 @@ class Database {
       username: u.username,
       displayName: u.firstName + (u.lastName ? ` ${u.lastName}` : ''),
       avatarUrl: u.avatarUrl,
-      rating: u.rating || 1000,
+      rating: u.rating !== undefined ? u.rating : 0,
       wins: u.wins || 0,
       gamesPlayed: u.gamesPlayed || 0,
       winRate: u.gamesPlayed ? Math.round((u.wins / u.gamesPlayed) * 100) : 0,
