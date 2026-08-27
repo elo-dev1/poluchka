@@ -5,6 +5,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -216,16 +217,16 @@ export const TelegramLoginModal: React.FC = () => {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && closeModal()}>
       <DialogContent className="max-w-sm text-center">
-        <DialogHeader className="flex flex-col items-center">
-          <div className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-amber-500/20 via-primary/20 to-blue-500/20 border border-white/15 flex items-center justify-center text-primary shadow-xl mb-1.5">
+        <DialogHeader className="flex flex-col items-center justify-center text-center w-full pb-1">
+          <div className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-amber-500/20 via-primary/20 to-blue-500/20 border border-white/15 flex items-center justify-center text-primary shadow-xl mb-2 mx-auto">
             <KeyRound className="w-6 h-6" />
           </div>
-          <DialogTitle className="text-xl font-black justify-center">
+          <DialogTitle className="text-xl font-black text-center justify-center w-full">
             Вход в профиль игрока
           </DialogTitle>
-          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+          <DialogDescription className="text-xs text-muted-foreground mt-1 leading-relaxed text-center w-full max-w-xs mx-auto">
             Официальная авторизация для сохранения ELO-рейтинга, статистики побед и лидерборда.
-          </p>
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-3 py-1">
