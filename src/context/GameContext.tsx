@@ -952,6 +952,71 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   }, [socket, showToast, closeModal]);
 
+  // Auto-consume OAuth parameters from URL (Telegram or Yandex redirects)
+  useEffect(() => {
+    if (!socket) return;
+
+    const processUrlAuth = async () => {
+      try {
+        let tgData: any = null;
+
+        // 1. Check URL Hash for #tgAuthResult=...
+        if (window.location.hash) {
+          const hash = window.location.hash.substring(1);
+          if (hash.startsWith('tgAuthResult=')) {
+            const base64 = hash.replace('tgAuthResult=', '');
+            const jsonStr = decodeURIComponent(escape(atob(base64)));
+            tgData = JSON.parse(jsonStr);
+          }
+        }
+
+        // 2. Check URL Search Query for ?id=...&hash=...
+        if (!tgData && window.location.search) {
+          const params = new URLSearchParams(window.location.search);
+          if (params.get('id') && params.get('hash')) {
+            tgData = {
+              id: params.get('id'),
+              first_name: params.get('first_name') || '',
+              last_name: params.get('last_name') || '',
+              username: params.get('username') || '',
+              photo_url: params.get('photo_url') || '',
+              auth_date: params.get('auth_date') || '',
+              hash: params.get('hash') || ''
+            };
+          }
+        }
+
+        // 3. Check localStorage pending tg data
+        if (!tgData) {
+          const pending = localStorage.getItem('pending_tg_auth_data');
+          if (pending) {
+            localStorage.removeItem('pending_tg_auth_data');
+            try {
+              tgData = JSON.parse(pending);
+            } catch {}
+          }
+        }
+
+        if (tgData && tgData.id) {
+          window.history.replaceState({}, document.title, window.location.pathname);
+          await authTelegram(tgData);
+          return;
+        }
+
+        // 4. Check localStorage pending Yandex token
+        const yaToken = localStorage.getItem('yandex_oauth_token');
+        if (yaToken) {
+          localStorage.removeItem('yandex_oauth_token');
+          await authYandex({ token: yaToken });
+        }
+      } catch (err) {
+        console.error('Error processing URL OAuth data:', err);
+      }
+    };
+
+    processUrlAuth();
+  }, [socket, authTelegram, authYandex]);
+
   const logoutTelegram = useCallback(() => {
     setCurrentUser(null);
     setAuthToken(null);

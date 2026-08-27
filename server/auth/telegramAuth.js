@@ -6,6 +6,10 @@ class TelegramAuth {
     this.botToken = process.env.TELEGRAM_BOT_TOKEN || '';
   }
 
+  getBotToken() {
+    return process.env.TELEGRAM_BOT_TOKEN || this.botToken || '';
+  }
+
   setBotToken(token) {
     this.botToken = token;
   }
@@ -18,8 +22,10 @@ class TelegramAuth {
   verifyWidgetAuth(authData) {
     if (!authData || !authData.id) return null;
 
+    const botToken = this.getBotToken();
+
     // 1. Direct login & dev support (when hash is not provided or bot token is empty)
-    if (authData.isDirect || authData.isDemo || !this.botToken || this.botToken === 'demo' || !authData.hash) {
+    if (authData.isDirect || authData.isDemo || !botToken || botToken === 'demo' || !authData.hash) {
       const cleanUsername = authData.username ? authData.username.trim().replace(/^@/, '') : '';
       const cleanName = authData.first_name ? authData.first_name.trim() : (cleanUsername || 'Игрок');
       const tgId = authData.id
@@ -57,11 +63,11 @@ class TelegramAuth {
       const dataCheckString = dataCheckArr.join('\n');
 
       // secret_key = SHA256(bot_token)
-      const secretKey = crypto.createHash('sha256').update(this.botToken).digest();
+      const secretKey = crypto.createHash('sha256').update(botToken).digest();
       const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
 
       if (calculatedHash.toLowerCase() !== String(hash).toLowerCase()) {
-        console.warn('Invalid Telegram hash signature');
+        console.warn('Invalid Telegram hash signature. Expected:', calculatedHash, 'Received:', hash);
         return null;
       }
 

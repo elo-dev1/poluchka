@@ -45,36 +45,85 @@ export const TelegramLoginModal: React.FC = () => {
   // 2. Listen for Yandex and Telegram OAuth Popup Callbacks
   useEffect(() => {
     const handleMessage = async (event: MessageEvent) => {
-      if (event.origin !== window.location.origin && !event.origin.includes('telegram.org')) return;
+      let data = event.data;
+      if (typeof data === 'string') {
+        try {
+          data = JSON.parse(data);
+        } catch {
+          // ignore plain string messages
+        }
+      }
+      if (!data) return;
       
       // Yandex OAuth
-      if (event.data?.type === 'YANDEX_AUTH_SUCCESS' && event.data?.token) {
+      if (data.type === 'YANDEX_AUTH_SUCCESS' && data.token) {
         setIsLoading(true);
         try {
-          await authYandex({ token: event.data.token });
+          await authYandex({ token: data.token });
         } finally {
           setIsLoading(false);
         }
-      } else if (event.data?.type === 'YANDEX_AUTH_ERROR') {
+        return;
+      } else if (data.type === 'YANDEX_AUTH_ERROR') {
         showToast('Вход через Яндекс ID отменён', 'warning');
+        return;
       }
 
-      // Telegram OAuth window message
-      if (event.data && (event.data.event === 'auth_result' || event.data.result)) {
-        const tgData = event.data.result || event.data.data || event.data;
-        if (tgData && tgData.id) {
-          setIsLoading(true);
-          try {
-            await authTelegram(tgData);
-          } finally {
-            setIsLoading(false);
-          }
+      // Telegram OAuth callback window message (type: 'TELEGRAM_AUTH_SUCCESS')
+      if (data.type === 'TELEGRAM_AUTH_SUCCESS' && data.user) {
+        setIsLoading(true);
+        try {
+          await authTelegram(data.user);
+        } finally {
+          setIsLoading(false);
         }
+        return;
+      }
+
+      // Telegram official postMessage (event: 'auth_result')
+      if (data.event === 'auth_result' && data.result) {
+        setIsLoading(true);
+        try {
+          await authTelegram(data.result);
+        } finally {
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      // Direct Telegram user object
+      if (data.id && (data.hash || data.auth_date)) {
+        setIsLoading(true);
+        try {
+          await authTelegram(data);
+        } finally {
+          setIsLoading(false);
+        }
+        return;
       }
     };
 
     window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
+
+    // Poll for pending auth data from localStorage (in case popup redirected)
+    const checkInterval = setInterval(() => {
+      const pendingTg = localStorage.getItem('pending_tg_auth_data');
+      if (pendingTg) {
+        localStorage.removeItem('pending_tg_auth_data');
+        try {
+          const user = JSON.parse(pendingTg);
+          if (user && user.id) {
+            setIsLoading(true);
+            authTelegram(user).finally(() => setIsLoading(false));
+          }
+        } catch {}
+      }
+    }, 500);
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      clearInterval(checkInterval);
+    };
   }, [authYandex, authTelegram, showToast]);
 
   // 3. Mount Telegram Widget on Telegram Tab
@@ -115,10 +164,10 @@ export const TelegramLoginModal: React.FC = () => {
 
   // Handle Telegram OAuth Click
   const handleOpenTelegramOAuth = () => {
-    const targetBot = botUsername || 'monopoly_poluchka_bot';
     const targetBotId = botId || '8950689907';
     const originUrl = encodeURIComponent(window.location.origin);
-    const authUrl = `https://oauth.telegram.org/auth?bot_id=${targetBotId}&origin=${originUrl}&embed=0&request_access=write`;
+    const returnUrl = encodeURIComponent(window.location.origin + '/telegram-callback.html');
+    const authUrl = `https://oauth.telegram.org/auth?bot_id=${targetBotId}&origin=${originUrl}&embed=0&request_access=write&return_to=${returnUrl}`;
 
     const width = 540;
     const height = 620;
