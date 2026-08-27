@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Авторизация Telegram</title>
+</head>
+<body style="font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #0f172a; color: #f8fafc;">
+  <div style="text-align: center; max-width: 320px; padding: 20px;">
+    <div style="width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, #2AABEE, #229ED9); color: white; display: flex; align-items: center; justify-content: center; font-size: 26px; margin: 0 auto 16px auto; box-shadow: 0 8px 24px rgba(34, 158, 217, 0.35);">
+      ✈️
+    </div>
+    <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 800;">Вход через Telegram</h3>
+    <p style="margin: 0; font-size: 13px; color: #94a3b8; line-height: 1.4;">Подтверждаем данные профиля, окно закроется автоматически...</p>
+  </div>
+
+  <script>
+    (function() {
+      try {
+        let tgData = null;
+
+        // 1. Check hash: #tgAuthResult=...
+        if (window.location.hash) {
+          const hash = window.location.hash.substring(1);
+          if (hash.startsWith('tgAuthResult=')) {
+            const base64 = hash.replace('tgAuthResult=', '');
+            const jsonStr = decodeURIComponent(escape(atob(base64)));
+            tgData = JSON.parse(jsonStr);
+          }
+        }
+
+        // 2. Check query params: ?id=...&hash=...
+        if (!tgData && window.location.search) {
+          const params = new URLSearchParams(window.location.search);
+          if (params.get('id')) {
+            tgData = {
+              id: params.get('id'),
+              first_name: params.get('first_name') || '',
+              last_name: params.get('last_name') || '',
+              username: params.get('username') || '',
+              photo_url: params.get('photo_url') || '',
+              auth_date: params.get('auth_date') || '',
+              hash: params.get('hash') || ''
+            };
+          }
+        }
+
+        if (tgData) {
+          if (window.opener && !window.opener.closed) {
+            window.opener.postMessage({ type: 'TELEGRAM_AUTH_SUCCESS', user: tgData }, '*');
+            setTimeout(function() { window.close(); }, 350);
+          } else {
+            localStorage.setItem('pending_tg_auth_data', JSON.stringify(tgData));
+            window.location.href = '/';
+          }
+        } else {
+          setTimeout(function() {
+            if (window.opener && !window.opener.closed) {
+              window.close();
+            } else {
+              window.location.href = '/';
+            }
+          }, 2000);
+        }
+      } catch (err) {
+        console.error('Telegram callback parsing error:', err);
+      }
+    })();
+  </script>
+</body>
+</html>
