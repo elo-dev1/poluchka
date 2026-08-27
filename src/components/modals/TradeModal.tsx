@@ -246,6 +246,30 @@ export const TradeModal: React.FC = () => {
               </div>
             </div>
 
+            {/* Reverse Mode Incoming Asset Balance Indicator */}
+            {gameState.gameMode === 'reverse' && (
+              <div className="p-2.5 rounded-xl bg-purple-950/40 border border-purple-500/30 flex flex-col gap-1 text-left">
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <span className="text-purple-300 flex items-center gap-1">
+                    <span>🔄</span> Изменение вашего капитала при принятии:
+                  </span>
+                  {(() => {
+                    const receivedNominal = tradeOfferProps.reduce((sum, id) => sum + (gameState.board[id]?.price || 0), 0) + (tradeOfferMoney || 0);
+                    const givenNominal = tradeRequestProps.reduce((sum, id) => sum + (gameState.board[id]?.price || 0), 0) + (tradeRequestMoney || 0);
+                    const netChange = receivedNominal - givenNominal;
+                    return (
+                      <span className={netChange < 0 ? 'text-emerald-400 font-mono' : netChange > 0 ? 'text-rose-400 font-mono' : 'text-muted-foreground font-mono'}>
+                        {netChange > 0 ? `+${formatMoney(netChange)} (невыгодно)` : netChange < 0 ? `${formatMoney(netChange)} (выгодно! 📉)` : '$0'}
+                      </span>
+                    );
+                  })()}
+                </div>
+                <span className="text-[10px] text-muted-foreground">
+                  В режиме «Наоборот» побеждает наименьший капитал.
+                </span>
+              </div>
+            )}
+
             {/* Accept / Decline Buttons */}
             <div className="flex gap-2.5 mt-2">
               <Button
@@ -440,6 +464,30 @@ export const TradeModal: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* Reverse Mode Asset Balance Indicator */}
+            {gameState.gameMode === 'reverse' && (
+              <div className="p-2.5 rounded-xl bg-purple-950/40 border border-purple-500/30 flex flex-col gap-1 text-left">
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <span className="text-purple-300 flex items-center gap-1">
+                    <span>🔄</span> Изменение вашего капитала:
+                  </span>
+                  {(() => {
+                    const givenNominal = offerProperties.reduce((sum, id) => sum + (gameState.board[id]?.price || 0), 0) + (offerCash || 0);
+                    const receivedNominal = requestProperties.reduce((sum, id) => sum + (gameState.board[id]?.price || 0), 0) + (requestCash || 0);
+                    const netChange = receivedNominal - givenNominal;
+                    return (
+                      <span className={netChange < 0 ? 'text-emerald-400 font-mono' : netChange > 0 ? 'text-rose-400 font-mono' : 'text-muted-foreground font-mono'}>
+                        {netChange > 0 ? `+${formatMoney(netChange)} (невыгодно)` : netChange < 0 ? `${formatMoney(netChange)} (выгодно! 📉)` : '$0'}
+                      </span>
+                    );
+                  })()}
+                </div>
+                <span className="text-[10px] text-muted-foreground">
+                  В режиме «Наоборот» побеждает наименьший капитал. Сбрасывайте активы и заставляйте соперников богатеть!
+                </span>
+              </div>
+            )}
 
             {/* Trade Limit Status & Warnings */}
             <div className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/10">

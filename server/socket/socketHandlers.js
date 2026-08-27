@@ -117,7 +117,7 @@ function setupSocketHandlers(io) {
     });
 
     // 1. Create Room
-    socket.on('create_room', ({ playerName, playerId, isPrivate, telegramId, avatarUrl, username, characterId, mode, boardSize, startingCash, maxPlayers }, callback) => {
+    socket.on('create_room', ({ playerName, playerId, isPrivate, telegramId, avatarUrl, username, characterId, mode, gameMode, maxRounds, boardSize, startingCash, maxPlayers }, callback) => {
       try {
         const id = playerId || `p_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
         const name = (playerName || '').trim() || 'Игрок 1';
@@ -127,10 +127,19 @@ function setupSocketHandlers(io) {
           username: username || (currentTelegramUser ? currentTelegramUser.username : null),
           characterId: characterId || 'cat',
           mode: mode || 'standard',
+          gameMode: gameMode || (mode === 'reverse' ? 'reverse' : 'classic'),
           boardSize: boardSize || (mode === 'blitz' ? 24 : 40),
+          maxRounds: maxRounds !== undefined ? Number(maxRounds) : (gameMode === 'reverse' || mode === 'reverse' ? ((boardSize === 24 || mode === 'blitz') ? 10 : 20) : 0),
           startingCash: Number(startingCash) || 1500,
           maxPlayers: Number(maxPlayers) || 6
         };
+
+        if (options.gameMode === 'reverse' && !options.telegramId) {
+          return callback?.({
+            success: false,
+            error: 'Режим «Наоборот» доступен только авторизованным игрокам. Пожалуйста, выполните вход.'
+          });
+        }
         
         const game = roomManager.createRoom(id, name, !!isPrivate, options);
         currentRoomId = game.roomId;

@@ -15,9 +15,11 @@ class GameEngine {
     this.status = 'LOBBY'; // LOBBY, ROLLING, AWAITING_ACTION, TURN_END, AUCTION, GAME_OVER
     this.isPrivate = !!options.isPrivate;
     this.maxPlayers = options.maxPlayers || GAME_SETTINGS.MAX_PLAYERS || 6;
-    this.mode = options.mode || 'standard'; // 'standard' (40 tiles) | 'blitz' (24 tiles)
+    this.mode = options.mode || 'standard'; // 'standard' (40 tiles) | 'blitz' (24 tiles) | 'ranked'
     this.boardSize = options.boardSize || (this.mode === 'blitz' ? 24 : 40);
     this.startingCash = options.startingCash || GAME_SETTINGS.STARTING_CASH || 1500;
+    this.gameMode = options.gameMode || (options.mode === 'reverse' ? 'reverse' : 'classic'); // 'classic' | 'reverse'
+    this.maxRounds = options.maxRounds !== undefined ? Number(options.maxRounds) : (this.gameMode === 'reverse' ? (this.boardSize === 24 || this.mode === 'blitz' ? 10 : 20) : 0);
 
     this.players = [];
     this.currentTurnIndex = 0;
@@ -941,6 +943,7 @@ class GameEngine {
       const singleOpponent = opponents[0];
       // Offer single remaining opponent to buy the property directly at base initial price
       this.activeAuction = AuctionManager.initDirectOffer(tile, singleOpponent, player);
+      this.activeAuction.gameMode = this.gameMode;
       this.status = 'AUCTION';
       this.addLog(
         `📢 ${player.name} отказался от покупки "${tile.name}". Предложение выкупа за изначальную стоимость ($${tile.price}) направлено игроку ${singleOpponent.name}!`,
@@ -949,7 +952,10 @@ class GameEngine {
       );
       this.startAuctionTimer();
     } else if (opponents.length >= 2) {
-      this.activeAuction = AuctionManager.initAuction(tile, this.players, requestingPlayerId);
+      this.activeAuction = AuctionManager.initAuction(tile, this.players, requestingPlayerId, {
+        gameMode: this.gameMode,
+        turnNumber: this.turnNumber
+      });
       this.status = 'AUCTION';
       this.addLog(
         `🔨 ${player.name} отказался от покупки "${tile.name}". Объявлен аукцион (таймер: 10с на ставку)! Стартовая цена: $${this.activeAuction.currentBid}`,
@@ -958,6 +964,20 @@ class GameEngine {
       );
       this.startAuctionTimer();
     } else {
+      if (this.gameMode === 'reverse') {
+        const startingBid = Math.max(10, Math.ceil((tile.price || 100) * 0.10));
+        const cost = Math.min(player.money > 0 ? player.money : startingBid, startingBid);
+        player.money -= cost;
+        tile.ownerId = player.id;
+        if (!player.properties.includes(tile.id)) {
+          player.properties.push(tile.id);
+        }
+        this.addLog(
+          `📦 В режиме "Наоборот" нет соперников: "${tile.name}" принудительно достаётся ${player.name} за $${cost}!`,
+          'warning',
+          '📦'
+        );
+      }
       this.status = 'TURN_END';
       const resumeSeconds = this.pausedTurnRemainingSeconds !== undefined ? this.pausedTurnRemainingSeconds : 60;
       this.pausedTurnRemainingSeconds = undefined;
@@ -1014,7 +1034,10 @@ class GameEngine {
     }
     this.clearTurnTimer();
 
-    this.activeAuction = AuctionManager.initAuction(tile, this.players, initiatorId);
+    this.activeAuction = AuctionManager.initAuction(tile, this.players, initiatorId, {
+      gameMode: this.gameMode,
+      turnNumber: this.turnNumber
+    });
     this.status = 'AUCTION';
     this.addLog(`🔨 Объявлен аукцион на "${tile.name}" (10с на ставку)! Стартовая цена: $${this.activeAuction.currentBid}`, 'warning', '🏷️');
     this.startAuctionTimer();
@@ -1088,9 +1111,14 @@ class GameEngine {
     this.stats.totalAuctionsCompleted++;
     const isDirect = this.activeAuction.isDirectOffer;
     const tileName = this.activeAuction.tileName;
+    const initiatorId = this.activeAuction.initiatorId;
+    const tileId = this.activeAuction.tileId;
     const result = AuctionManager.resolveAuction(this.activeAuction, this.board, this.players);
 
     if (result && result.winner) {
+      if (this.gameMode === 'reverse') {
+        result.winner.auctionCooldownUntilTurn = (this.turnNumber || 1) + 1;
+      }
       if (isDirect) {
         this.addLog(
           `🎉 ${result.winner.name} выкупил "${result.tileName}" за $${result.winningBid}!`,
@@ -1105,10 +1133,32 @@ class GameEngine {
         );
       }
     } else {
-      if (isDirect) {
-        this.addLog(`Недвижимость "${tileName}" осталась в банке`, 'info', '🏷️');
+      if (this.gameMode === 'reverse' && initiatorId) {
+        // Reverse mode rule: If nobody bids on the auction, the property is forcibly given to the player who landed on it for starting bid
+        const initiator = this.players.find(p => p.id === initiatorId && !p.isBankrupt);
+        const tile = this.board[tileId];
+        if (initiator && tile) {
+          const startingBid = Math.max(10, Math.ceil((tile.price || 100) * 0.10));
+          const cost = Math.min(initiator.money > 0 ? initiator.money : startingBid, startingBid);
+          initiator.money -= cost;
+          tile.ownerId = initiator.id;
+          if (!initiator.properties.includes(tile.id)) {
+            initiator.properties.push(tile.id);
+          }
+          this.addLog(
+            `📦 В режиме "Наоборот" никто не сделал ставку: "${tileName}" принудительно достаётся ${initiator.name} за $${cost}!`,
+            'warning',
+            '📦'
+          );
+        } else {
+          this.addLog(`Аукцион на "${tileName}" завершён без победителя`, 'info', '🏷️');
+        }
       } else {
-        this.addLog(`Аукцион на "${tileName}" завершён без победителя`, 'info', '🏷️');
+        if (isDirect) {
+          this.addLog(`Недвижимость "${tileName}" осталась в банке`, 'info', '🏷️');
+        } else {
+          this.addLog(`Аукцион на "${tileName}" завершён без победителя`, 'info', '🏷️');
+        }
       }
     }
 
@@ -1156,6 +1206,15 @@ class GameEngine {
   sellHouse(requestingPlayerId, tileId) {
     const player = this.players.find(p => p.id === requestingPlayerId);
     if (!player) throw new Error('Игрок не найден');
+    if (player.isBankrupt) throw new Error('Банкрот не может совершать операции');
+
+    const currentPlayer = this.getCurrentPlayer();
+    if (!currentPlayer || currentPlayer.id !== requestingPlayerId) {
+      throw new Error('Продавать постройки можно только во время своего хода');
+    }
+    if (this.status === 'GAME_OVER' || this.status === 'LOBBY') {
+      throw new Error('Сейчас нельзя продавать постройки');
+    }
 
     const result = MonopolyManager.sellHouse(player, this.board, tileId);
     this.addLog(
@@ -1171,6 +1230,15 @@ class GameEngine {
   mortgageProperty(requestingPlayerId, tileId) {
     const player = this.players.find(p => p.id === requestingPlayerId);
     if (!player) throw new Error('Игрок не найден');
+    if (player.isBankrupt) throw new Error('Банкрот не может совершать операции с недвижимостью');
+
+    const currentPlayer = this.getCurrentPlayer();
+    if (!currentPlayer || currentPlayer.id !== requestingPlayerId) {
+      throw new Error('Закладывать недвижимость можно только во время своего хода');
+    }
+    if (this.status === 'GAME_OVER' || this.status === 'LOBBY') {
+      throw new Error('Сейчас нельзя закладывать недвижимость');
+    }
 
     const result = MortgageManager.mortgageProperty(player, this.board, tileId);
     this.addLog(
@@ -1185,6 +1253,15 @@ class GameEngine {
   unmortgageProperty(requestingPlayerId, tileId) {
     const player = this.players.find(p => p.id === requestingPlayerId);
     if (!player) throw new Error('Игрок не найден');
+    if (player.isBankrupt) throw new Error('Банкрот не может совершать операции с недвижимостью');
+
+    const currentPlayer = this.getCurrentPlayer();
+    if (!currentPlayer || currentPlayer.id !== requestingPlayerId) {
+      throw new Error('Выкупать недвижимость из залога можно только во время своего хода');
+    }
+    if (this.status === 'GAME_OVER' || this.status === 'LOBBY') {
+      throw new Error('Сейчас нельзя выкупать недвижимость');
+    }
 
     const result = MortgageManager.unmortgageProperty(player, this.board, tileId);
     this.addLog(
@@ -1273,10 +1350,16 @@ class GameEngine {
     );
 
     player.money -= rent;
-    owner.money += rent;
+    if (this.gameMode !== 'reverse') {
+      owner.money += rent;
+    }
 
     if (player.money >= 0) {
-      this.addLog(`${player.name} заплатил $${rent} ренты игроку ${owner.name}`, 'money', '💸');
+      if (this.gameMode === 'reverse') {
+        this.addLog(`${player.name} оплатил $${rent} ренты в Банк (в режиме «Наоборот» рента уходит банку)`, 'money', '🏛️');
+      } else {
+        this.addLog(`${player.name} заплатил $${rent} ренты игроку ${owner.name}`, 'money', '💸');
+      }
       this.status = 'TURN_END';
     } else {
       const debt = Math.abs(player.money);
@@ -1432,6 +1515,29 @@ class GameEngine {
           }
         }
         break;
+
+      case 'random_free_property':
+        const unownedProperties = this.board.filter(t => t.type === 'property' && t.ownerId === null);
+        if (unownedProperties.length > 0) {
+          const giftTile = unownedProperties[Math.floor(Math.random() * unownedProperties.length)];
+          giftTile.ownerId = player.id;
+          if (!player.properties.includes(giftTile.id)) {
+            player.properties.push(giftTile.id);
+          }
+          this.addLog(
+            `🎁 ${player.name} бесплатно получил недвижимость "${giftTile.name}" по карте [${deckName}]!`,
+            'warning',
+            '🎁'
+          );
+        } else {
+          player.money += 100;
+          this.addLog(
+            `🎁 Все улицы уже заняты: ${player.name} получает компенсацию +$100 по карте [${deckName}]`,
+            'info',
+            '💰'
+          );
+        }
+        break;
     }
 
     this.status = 'TURN_END';
@@ -1582,6 +1688,10 @@ class GameEngine {
       this.turnNumber = (this.turnNumber || 1) + 1;
       this.roundNumber = (this.roundNumber || 1) + 1;
       this.tradeOffersThisRound = {}; // Reset 2 trades/round limit on new round
+
+      if (this.checkRoundLimit()) {
+        return;
+      }
     }
 
     this.currentTurnIndex = nextIndex;
@@ -1590,6 +1700,37 @@ class GameEngine {
     const nextPlayer = this.getCurrentPlayer();
     this.addLog(`➡️ Ход ${this.turnNumber || 1}: очередь переходит к ${nextPlayer.name}`, 'info', nextPlayer.color.icon);
     this.resetTurnTimer();
+  }
+
+  checkRoundLimit() {
+    if (this.maxRounds && this.roundNumber > this.maxRounds) {
+      this.roundNumber = this.maxRounds;
+      this.status = 'GAME_OVER';
+      this.endedAt = Date.now();
+      this.clearTurnTimer();
+      this.stopDisconnectWaitingTimer();
+      this.stopActivePlayTracker();
+
+      const ranked = this.calculateRankings();
+      const activeRanked = ranked.filter(p => !p.isBankrupt);
+      this.winner = activeRanked[0] || ranked[0] || null;
+      this.recordFinalGameResults();
+      if (this.gameMode === 'reverse') {
+        this.addLog(
+          `🏁 Партия завершена по лимиту в ${this.maxRounds} раундов! Победитель режима "Наоборот" с наименьшим капиталом ($${this.winner ? this.winner.netWorth : 0}): ${this.winner ? this.winner.name : 'Ничья'}! 🏆`,
+          'success',
+          '👑'
+        );
+      } else {
+        this.addLog(
+          `🏁 Партия завершена по лимиту в ${this.maxRounds} раундов! Победитель по капиталу ($${this.winner ? this.winner.netWorth : 0}): ${this.winner ? this.winner.name : 'Ничья'}! 🏆`,
+          'success',
+          '👑'
+        );
+      }
+      return true;
+    }
+    return false;
   }
 
   endGameByHost(requestingPlayerId) {
@@ -1604,9 +1745,14 @@ class GameEngine {
     this.stopActivePlayTracker();
 
     const ranked = this.calculateRankings();
-    this.winner = ranked[0] || null;
+    const activeRanked = ranked.filter(p => !p.isBankrupt);
+    this.winner = activeRanked[0] || ranked[0] || null;
     this.recordFinalGameResults();
-    this.addLog(`🛑 Хост завершил игру. Победитель по капиталу: ${this.winner ? this.winner.name : 'Ничья'}!`, 'success', '🏆');
+    if (this.gameMode === 'reverse') {
+      this.addLog(`🛑 Хост завершил игру. Победитель режима "Наоборот" с наименьшим капиталом: ${this.winner ? this.winner.name : 'Ничья'}!`, 'success', '🏆');
+    } else {
+      this.addLog(`🛑 Хост завершил игру. Победитель по капиталу: ${this.winner ? this.winner.name : 'Ничья'}!`, 'success', '🏆');
+    }
     return this.getPublicState();
   }
 
@@ -1658,12 +1804,21 @@ class GameEngine {
 
   calculateRankings() {
     const sorted = [...this.players].map(p => {
-      const propertyValue = p.properties.reduce((sum, tileId) => {
+      let propertyNominalValue = 0;
+      let buildingsValue = 0;
+
+      p.properties.forEach(tileId => {
         const t = this.board[tileId];
-        if (!t) return sum;
-        const housesValue = (t.houses || 0) * (t.housePrice || 50);
-        return sum + t.price + housesValue;
-      }, 0);
+        if (!t) return;
+        // Full nominal price of each property regardless of mortgage
+        propertyNominalValue += (t.price || 0);
+        // Half price of house/hotel buyback value
+        if (t.houses && t.houses > 0) {
+          buildingsValue += t.houses * Math.floor((t.housePrice || 50) / 2);
+        }
+      });
+
+      const propertyValue = propertyNominalValue + buildingsValue;
 
       const allGroups = [...new Set(this.board.filter(t => t.group).map(t => t.group))];
       const monopoliesCount = allGroups.filter(g =>
@@ -1680,10 +1835,14 @@ class GameEngine {
         return sum + (t && t.houses === 5 ? 1 : 0);
       }, 0);
 
+      const netWorth = p.money + propertyNominalValue + buildingsValue;
+
       return {
         ...p,
-        totalCapital: p.money + propertyValue,
-        netWorth: p.money + propertyValue,
+        totalCapital: netWorth,
+        netWorth,
+        propertyNominalValue,
+        buildingsValue,
         propertyValue,
         monopoliesCount,
         housesCount,
@@ -1692,6 +1851,10 @@ class GameEngine {
     }).sort((a, b) => {
       if (a.isBankrupt && !b.isBankrupt) return 1;
       if (!a.isBankrupt && b.isBankrupt) return -1;
+      if (a.isBankrupt && b.isBankrupt) return 0;
+      if (this.gameMode === 'reverse') {
+        return a.netWorth - b.netWorth;
+      }
       return b.netWorth - a.netWorth;
     });
     return sorted.map((p, idx) => ({
@@ -1723,11 +1886,13 @@ class GameEngine {
       hostId: this.hostId,
       status: this.status,
       mode: this.mode,
+      gameMode: this.gameMode || 'classic',
+      maxRounds: this.maxRounds,
       isPrivate: this.isPrivate,
       hasBots: Boolean(this.everHadBot || this.players.some(p => p.isBot)),
       currentTurnIndex: this.currentTurnIndex,
       turnNumber: this.turnNumber || 1,
-      roundNumber: this.roundNumber || 1,
+      roundNumber: this.maxRounds ? Math.min(this.roundNumber || 1, this.maxRounds) : (this.roundNumber || 1),
       currentPlayerId: this.getCurrentPlayer() ? this.getCurrentPlayer().id : null,
       lastDice: this.lastDice,
       lastDrawnCard: this.lastDrawnCard,

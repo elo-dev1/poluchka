@@ -34,7 +34,7 @@ export const PropertyManagerModal: React.FC = () => {
             </DialogTitle>
             {!isMyTurn && (
               <Badge variant="outline" className="text-[10px] text-amber-400 border-amber-500/30">
-                ⏳ Улучшения только в свой ход
+                ⏳ Операции только в свой ход
               </Badge>
             )}
           </div>
@@ -124,6 +124,8 @@ export const PropertyManagerModal: React.FC = () => {
                           size="sm"
                           className="h-7 text-[11px] px-2 text-destructive hover:bg-destructive/10 cursor-pointer active:scale-98"
                           onClick={() => sellHouse(tile.id)}
+                          disabled={!isMyTurn}
+                          title={!isMyTurn ? 'Продавать постройки можно только во время своего хода' : undefined}
                         >
                           <Minus className="w-3 h-3 mr-0.5" />
                           Разрушить (+{formatMoney(sellRefund)})
@@ -136,6 +138,8 @@ export const PropertyManagerModal: React.FC = () => {
                           size="sm"
                           className="h-7 text-[11px] px-2"
                           onClick={() => mortgageProperty(tile.id)}
+                          disabled={!isMyTurn}
+                          title={!isMyTurn ? 'Закладывать недвижимость можно только во время своего хода' : undefined}
                         >
                           <Landmark className="w-3 h-3 mr-0.5" />
                           Залог (+{formatMoney(tile.mortgageValue)})
@@ -148,7 +152,8 @@ export const PropertyManagerModal: React.FC = () => {
                           size="sm"
                           className="h-7 text-[11px] px-2"
                           onClick={() => unmortgageProperty(tile.id)}
-                          disabled={!myPlayer || myPlayer.money < Math.round(tile.mortgageValue * 1.1)}
+                          disabled={!isMyTurn || !myPlayer || myPlayer.money < Math.round(tile.mortgageValue * 1.1)}
+                          title={!isMyTurn ? 'Выкупать из залога можно только во время своего хода' : undefined}
                         >
                           <Unlock className="w-3 h-3 mr-0.5" />
                           Выкуп ({formatMoney(Math.round(tile.mortgageValue * 1.1))})

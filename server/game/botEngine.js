@@ -98,6 +98,11 @@ class BotEngine {
       return { type: 'PASS_PROPERTY', tileId };
     }
 
+    // In reverse mode, hoarding properties is counter-productive to winning
+    if (gameState.gameMode === 'reverse') {
+      return { type: 'PASS_PROPERTY', tileId };
+    }
+
     const price = tile.price;
     if (bot.money < price) {
       return { type: 'PASS_PROPERTY', tileId };
@@ -135,6 +140,11 @@ class BotEngine {
   // 2. BUILDING / IMPROVEMENTS DECISION
   // =========================================================================
   static decideBuildingAction(gameState, bot, difficulty) {
+    // In reverse mode, building increases net worth asset score, so bots avoid building
+    if (gameState.gameMode === 'reverse') {
+      return null;
+    }
+
     const mode = gameState.mode || 'standard';
     const builtThisTurn = gameState.builtTilesThisTurn || [];
 
@@ -195,6 +205,11 @@ class BotEngine {
     // If bot is not in active bidders list, wait
     if (Array.isArray(auction.activeBidders) && !auction.activeBidders.includes(bot.id)) {
       return null;
+    }
+
+    // In reverse mode, bots avoid acquiring properties from auctions
+    if (gameState.gameMode === 'reverse') {
+      return { type: 'PASS_AUCTION' };
     }
 
     const tile = gameState.board[auction.tileId];
@@ -306,6 +321,19 @@ class BotEngine {
       return { type: 'REJECT_TRADE' };
     }
 
+    // In reverse mode, shedding properties is a winning move
+    if (gameState.gameMode === 'reverse') {
+      const givenPropsNominal = requestProps.reduce((sum, tId) => sum + (gameState.board[tId]?.price || 0), 0);
+      const receivedPropsNominal = offerProps.reduce((sum, tId) => sum + (gameState.board[tId]?.price || 0), 0);
+      const netWorthChange = (offerMoney + receivedPropsNominal) - (requestMoney + givenPropsNominal);
+
+      // If trade reduces or does not increase bot's assets, or sheds properties
+      if (netWorthChange <= 0 || (givenPropsNominal > 0 && receivedPropsNominal === 0)) {
+        return { type: 'ACCEPT_TRADE' };
+      }
+      return { type: 'REJECT_TRADE' };
+    }
+
     // Valuation of what bot receives (the trade offer from the other player)
     let receivedVal = offerMoney;
     offerProps.forEach(tId => {
@@ -346,6 +374,27 @@ class BotEngine {
   static decideProactiveTrade(gameState, bot, difficulty) {
     // 25% chance to consider proposing a trade during turn end
     if (Math.random() > 0.28) return null;
+
+    if (gameState.gameMode === 'reverse') {
+      // In reverse mode, proactively try to dump owned properties to opponents
+      const botProperties = gameState.board.filter(t => t.ownerId === bot.id && (t.houses || 0) === 0);
+      if (botProperties.length === 0) return null;
+
+      const opponents = gameState.players.filter(p => p.id !== bot.id && !p.isBankrupt);
+      if (opponents.length === 0) return null;
+
+      const targetOpponent = opponents[Math.floor(Math.random() * opponents.length)];
+      const tileToDump = botProperties[0];
+
+      return {
+        type: 'PROPOSE_TRADE',
+        targetId: targetOpponent.id,
+        offerMoney: 0,
+        offerProperties: [tileToDump.id],
+        requestMoney: 0,
+        requestProperties: []
+      };
+    }
 
     // Find if bot is missing exactly 1 property to complete a monopoly
     const candidateGroups = [];

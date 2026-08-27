@@ -18,6 +18,7 @@ import {
   Shield,
   Scale,
   Zap,
+  RotateCw,
 } from 'lucide-react';
 import { PetAvatar } from '@/components/common/PetAvatar';
 import { getPetCharacter } from '@/lib/petCharacters';
@@ -77,34 +78,57 @@ export const LobbyScreen: React.FC = () => {
             Отправьте код или ссылку друзьям, либо добавьте ботов-соперников.
           </CardDescription>
 
-          {/* Room Code Banner */}
-          <div className="flex items-center justify-center gap-3 mt-3 flex-wrap">
-            <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-black/40 border border-white/10 shadow-inner">
-              <span className="text-xs text-muted-foreground uppercase font-bold">Код стола:</span>
-              <span className="font-mono text-xl font-black text-amber-400 tracking-widest">
-                {roomId}
-              </span>
+          {/* Room Mode Badge & Code Banner */}
+          <div className="flex flex-col items-center gap-2 mt-3">
+            {gameState.gameMode === 'reverse' && (
+              <div className="w-full p-2.5 rounded-2xl bg-purple-500/20 border border-purple-400/40 flex items-center justify-between gap-2 text-left">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-xl bg-purple-400/20 border border-purple-400/40 flex items-center justify-center shrink-0">
+                    <RotateCw className="w-4 h-4 text-purple-300" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-black text-purple-200">
+                      Режим «Наоборот» (Reverse) 🔄
+                    </span>
+                    <span className="text-[10px] text-purple-300">
+                      Побеждает игрок с МЕНЬШИМ капиталом • Лимит: {gameState.maxRounds || 20} раундов
+                    </span>
+                  </div>
+                </div>
+                <Badge className="bg-purple-500/30 text-purple-200 border-purple-400/50 text-[10px] font-black px-2 py-0.5 shrink-0">
+                  {gameState.maxRounds || 20} РАУНДОВ
+                </Badge>
+              </div>
+            )}
+
+            <div className="flex items-center justify-center gap-3 flex-wrap">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-black/40 border border-white/10 shadow-inner">
+                <span className="text-xs text-muted-foreground uppercase font-bold">Код стола:</span>
+                <span className="font-mono text-xl font-black text-amber-400 tracking-widest">
+                  {roomId}
+                </span>
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-10 text-xs font-semibold flex items-center gap-1.5"
+                onClick={handleCopyCode}
+              >
+                {copiedCode ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
+                {copiedCode ? 'Скопировано' : 'Копировать код'}
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-10 text-xs font-semibold flex items-center gap-1.5"
+                onClick={handleCopyLink}
+              >
+                {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <LinkIcon className="w-4 h-4 text-muted-foreground" />}
+                {copiedLink ? 'Скопировано' : 'Ссылка'}
+              </Button>
             </div>
-
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-10 text-xs font-semibold flex items-center gap-1.5"
-              onClick={handleCopyCode}
-            >
-              {copiedCode ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
-              {copiedCode ? 'Скопировано' : 'Копировать код'}
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-10 text-xs font-semibold flex items-center gap-1.5"
-              onClick={handleCopyLink}
-            >
-              {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <LinkIcon className="w-4 h-4 text-muted-foreground" />}
-              {copiedLink ? 'Скопировано' : 'Ссылка'}
-            </Button>
           </div>
         </CardHeader>
 

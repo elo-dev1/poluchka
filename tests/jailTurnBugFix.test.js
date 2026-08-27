@@ -25,8 +25,13 @@ console.log('\nTest 1: Bot in Jail rolls non-doubles');
   let decision = BotEngine.getDecision(game, bot.id);
   assert.strictEqual(decision.type, 'ROLL_JAIL_DICE');
 
-  // Execute bot jail action via BotManager method
+  // Execute bot jail action with non-doubles (die1=1, die2=2)
+  const originalRandom = Math.random;
+  let callCount = 0;
+  Math.random = () => (callCount++ % 2 === 0 ? 0.1 : 0.3); // yields 1 and 2
   game.rollJailDice(bot.id);
+  Math.random = originalRandom;
+
   assert.strictEqual(game.status, 'TURN_END', 'Status must be TURN_END after failing jail doubles roll');
 
   // Next decision in TURN_END must be END_TURN

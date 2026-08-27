@@ -83,6 +83,11 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   const ownerPlayer = displayTile?.ownerId
     ? gameState.players.find((p) => p.id === displayTile.ownerId)
     : null;
+  const isMyTurn = Boolean(
+    gameState.players[gameState.currentTurnIndex]?.id === playerId &&
+    gameState.status !== "GAME_OVER" &&
+    gameState.status !== "LOBBY"
+  );
   const housesCount = displayTile?.houses || 0;
   const isMaxHouses = housesCount >= 5;
   const currentUpgradeCost = displayTile
@@ -393,7 +398,9 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                     <Button
                       size="sm"
                       className="w-full h-8 text-xs font-black bg-amber-600 hover:bg-amber-500 text-white rounded-xl flex items-center justify-center gap-1.5 shadow-sm"
+                      disabled={!isMyTurn || myMoney < Math.round((displayTile.mortgageValue || 100) * 1.1)}
                       onClick={() => unmortgageProperty(displayTile.id)}
+                      title={!isMyTurn ? 'Выкупать из залога можно только в свой ход' : undefined}
                     >
                       <Banknote className="w-4 h-4" />
                       <span>
@@ -406,7 +413,9 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                       size="sm"
                       variant="outline"
                       className="w-full h-8 text-xs font-black bg-red-950/40 hover:bg-red-900/60 border-red-500/40 text-red-300 rounded-xl flex items-center justify-center gap-1.5"
+                      disabled={!isMyTurn}
                       onClick={() => mortgageProperty(displayTile.id)}
+                      title={!isMyTurn ? 'Закладывать недвижимость можно только в свой ход' : undefined}
                     >
                       <ShieldAlert className="w-4 h-4 text-red-400" />
                       <span>
@@ -493,7 +502,9 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                     <Button
                       size="sm"
                       className="w-full h-8 text-xs font-black bg-amber-600 hover:bg-amber-500 text-white rounded-xl flex items-center justify-center gap-1.5 shadow-sm"
+                      disabled={!isMyTurn || myMoney < Math.round((displayTile.mortgageValue || 75) * 1.1)}
                       onClick={() => unmortgageProperty(displayTile.id)}
+                      title={!isMyTurn ? 'Выкупать из залога можно только в свой ход' : undefined}
                     >
                       <Banknote className="w-4 h-4" />
                       <span>
@@ -506,7 +517,9 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                       size="sm"
                       variant="outline"
                       className="w-full h-8 text-xs font-black bg-red-950/40 hover:bg-red-900/60 border-red-500/40 text-red-300 rounded-xl flex items-center justify-center gap-1.5"
+                      disabled={!isMyTurn}
                       onClick={() => mortgageProperty(displayTile.id)}
+                      title={!isMyTurn ? 'Закладывать недвижимость можно только в свой ход' : undefined}
                     >
                       <ShieldAlert className="w-4 h-4 text-red-400" />
                       <span>
@@ -744,9 +757,13 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                               size="sm"
                               variant="outline"
                               className="h-8 text-xs font-bold bg-white/5 hover:bg-white/10 border-white/10 text-muted-foreground hover:text-white rounded-xl flex items-center justify-center gap-1 cursor-pointer active:scale-98"
-                              disabled={housesCount === 0}
+                              disabled={!isMyTurn || housesCount === 0}
                               onClick={() => sellHouse(displayTile.id)}
-                              title={`Разрушить (${housesCount === 5 ? "отель" : "дом"}) за +$${currentSellRefund}`}
+                              title={
+                                !isMyTurn
+                                  ? "Продавать постройки можно только во время своего хода"
+                                  : `Разрушить (${housesCount === 5 ? "отель" : "дом"}) за +$${currentSellRefund}`
+                              }
                             >
                               <ArrowDownCircle className="w-3.5 h-3.5 text-amber-400" />
                               <span>Разрушить (+${currentSellRefund})</span>
@@ -762,7 +779,9 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                     <Button
                       size="sm"
                       className="w-full h-8 text-xs font-black bg-amber-600 hover:bg-amber-500 text-white rounded-xl flex items-center justify-center gap-1.5 shadow-sm"
+                      disabled={!isMyTurn || myMoney < Math.round((displayTile.mortgageValue || 30) * 1.1)}
                       onClick={() => unmortgageProperty(displayTile.id)}
+                      title={!isMyTurn ? 'Выкупать из залога можно только в свой ход' : undefined}
                     >
                       <Banknote className="w-4 h-4" />
                       <span>
@@ -775,10 +794,12 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                       size="sm"
                       variant="outline"
                       className="w-full h-8 text-xs font-black bg-red-950/40 hover:bg-red-900/60 border-red-500/40 text-red-300 rounded-xl flex items-center justify-center gap-1.5"
-                      disabled={housesCount > 0}
+                      disabled={!isMyTurn || housesCount > 0}
                       onClick={() => mortgageProperty(displayTile.id)}
                       title={
-                        housesCount > 0
+                        !isMyTurn
+                          ? "Закладывать недвижимость можно только в свой ход"
+                          : housesCount > 0
                           ? "Сначала продайте офисы"
                           : "Заложить поле в банк"
                       }

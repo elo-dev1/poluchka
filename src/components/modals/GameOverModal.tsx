@@ -60,11 +60,18 @@ export const GameOverModal: React.FC = () => {
           <DialogHeader className="flex flex-col items-center">
             <div className="text-5xl mb-2 animate-bounce">🏆</div>
             <DialogTitle className="text-2xl justify-center text-amber-400 font-black">
-              ИГРА ЗАВЕРШЕНА!
+              {gameState.gameMode === 'reverse' ? 'РЕЖИМ «НАОБОРОТ» ЗАВЕРШЁН!' : 'ИГРА ЗАВЕРШЕНА!'}
             </DialogTitle>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
-              <Clock className="w-3.5 h-3.5" />
-              Длительность партии: {formatTime(gameState.gameDurationSeconds || 0)}
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1 flex-wrap justify-center">
+              <span className="flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5" />
+                Длительность: {formatTime(gameState.gameDurationSeconds || 0)}
+              </span>
+              {gameState.gameMode === 'reverse' && (
+                <span className="text-purple-300 font-semibold">
+                  • 🔄 Раунды: {Math.min(gameState.roundNumber || 1, gameState.maxRounds || 20)}/{gameState.maxRounds || 20}
+                </span>
+              )}
             </div>
           </DialogHeader>
 
@@ -86,16 +93,25 @@ export const GameOverModal: React.FC = () => {
                   {winnerPet?.name} {winnerPet?.emoji}
                 </span>
                 <Badge variant="gold" className="mt-2 font-bold text-xs">
-                  Победитель Монополии! 👑
+                  {gameState.gameMode === 'reverse'
+                    ? `Победитель «Наоборот» ($${winner.netWorth || winner.money || 0})! 👑`
+                    : 'Победитель Монополии! 👑'}
                 </Badge>
               </div>
             )}
 
             {/* Player Rankings List */}
             <div className="flex flex-col gap-2 text-left">
-              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                Итоговый рейтинг игроков:
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                  Итоговый рейтинг игроков:
+                </span>
+                {gameState.gameMode === 'reverse' && (
+                  <span className="text-[10px] text-purple-300 font-bold">
+                    Меньше активов = выше место
+                  </span>
+                )}
+              </div>
               <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto pr-1">
                 {gameState.rankings.map((p, idx) => (
                   <div
@@ -117,18 +133,25 @@ export const GameOverModal: React.FC = () => {
                           size="sm"
                         />
                       </div>
-                      <span className="font-bold text-foreground max-w-[100px] truncate">
-                        {p.name}
-                      </span>
+                      <div className="flex flex-col">
+                        <span className="font-bold text-foreground max-w-[110px] truncate">
+                          {p.name}
+                        </span>
+                        {gameState.gameMode === 'reverse' && !p.isBankrupt && (
+                          <span className="text-[9px] text-muted-foreground">
+                            нал: ${p.money} | недвиж: ${p.propertyNominalValue || p.propertyValue || 0}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-3 font-mono font-bold">
-                      <span className="text-muted-foreground">
+                    <div className="flex items-center gap-2 font-mono font-bold">
+                      <span className="text-foreground">
                         {formatMoney(p.netWorth || p.money || 0)}
                       </span>
                       {p.isBankrupt && (
                         <Badge variant="destructive" className="text-[9px] px-1 py-0">
-                          БАНКРОТ
+                          ВЫБЫЛ
                         </Badge>
                       )}
                     </div>

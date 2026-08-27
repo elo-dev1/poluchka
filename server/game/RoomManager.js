@@ -30,7 +30,9 @@ class RoomManager {
       mode: options.mode || 'standard',
       boardSize: options.boardSize || (options.mode === 'blitz' ? 24 : 40),
       startingCash: options.startingCash || 1500,
-      maxPlayers: options.maxPlayers || 6
+      maxPlayers: options.maxPlayers || 6,
+      gameMode: options.gameMode || (options.mode === 'reverse' ? 'reverse' : 'classic'),
+      maxRounds: options.maxRounds
     });
     game.addPlayer(hostPlayerId, hostPlayerName, options);
     this.rooms.set(roomId, game);
@@ -75,6 +77,8 @@ class RoomManager {
           roomId: game.roomId,
           hostName: host ? host.name : 'Хост',
           mode: game.mode || 'standard',
+          gameMode: game.gameMode || 'classic',
+          maxRounds: game.maxRounds,
           boardSize: game.boardSize || (game.mode === 'blitz' ? 24 : 40),
           playersCount: activePlayers.length,
           maxPlayers: game.maxPlayers || 6,

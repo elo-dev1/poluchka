@@ -32,9 +32,21 @@ class AuctionManager {
   /**
    * Initialize a new competitive auction for an unowned property
    */
-  static initAuction(tile, activePlayers, initiatorId = null) {
+  static initAuction(tile, activePlayers, initiatorId = null, options = {}) {
     const startingBid = Math.max(10, Math.ceil((tile.price || 100) * 0.10));
-    const eligiblePlayers = activePlayers.filter(p => !p.isBankrupt && (!initiatorId || p.id !== initiatorId));
+    const isReverse = options.gameMode === 'reverse';
+    const turnNumber = options.turnNumber || 1;
+
+    let eligiblePlayers = activePlayers.filter(p => !p.isBankrupt && (!initiatorId || p.id !== initiatorId));
+    
+    // In reverse mode, check for auction cooldown if there are other candidates
+    if (isReverse) {
+      const nonCooldown = eligiblePlayers.filter(p => !(p.auctionCooldownUntilTurn && turnNumber <= p.auctionCooldownUntilTurn));
+      if (nonCooldown.length > 0) {
+        eligiblePlayers = nonCooldown;
+      }
+    }
+
     const passedBidders = initiatorId ? [initiatorId] : [];
 
     return {
@@ -45,13 +57,14 @@ class AuctionManager {
       groupName: tile.groupName || '',
       currentBid: startingBid,
       isDirectOffer: false,
+      gameMode: options.gameMode || 'classic',
       initiatorId: initiatorId || null,
       highestBidderId: null,
       highestBidderName: null,
       highestBidderColor: null,
       activeBidders: eligiblePlayers.map(p => p.id),
       passedBidders,
-      minIncrement: 10,
+      minIncrement: Math.max(10, Math.ceil(startingBid * 0.10)),
       isCompleted: false,
       startedAt: Date.now(),
       timerSeconds: 10,

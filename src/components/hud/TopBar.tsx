@@ -2,7 +2,7 @@ import React from 'react';
 import { useGame } from '@/context/GameContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Volume2, VolumeX, Sliders, Trophy, LogOut, Copy, Check, LogIn } from 'lucide-react';
+import { Volume2, VolumeX, Sliders, Trophy, LogOut, Copy, Check, LogIn, Maximize, Minimize } from 'lucide-react';
 import { soundEngine } from '@/lib/soundEngine';
 
 import { UserAvatar } from '@/components/ui/UserAvatar';
@@ -20,6 +20,30 @@ export const TopBar: React.FC = () => {
   } = useGame();
 
   const [copied, setCopied] = React.useState(false);
+  const [isFullscreen, setIsFullscreen] = React.useState<boolean>(() => {
+    return typeof document !== 'undefined' ? Boolean(document.fullscreenElement) : false;
+  });
+
+  React.useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  const toggleFullscreen = () => {
+    soundEngine.playClick();
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.().catch(() => {});
+    } else {
+      document.exitFullscreen?.().catch(() => {});
+    }
+  };
 
   const handleCopyCode = () => {
     if (!roomId) return;
@@ -60,8 +84,19 @@ export const TopBar: React.FC = () => {
         )}
 
         {gameState && gameState.status !== 'LOBBY' && (
-          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-indigo-950/50 border border-indigo-500/30 text-xs font-black text-indigo-200 shadow-sm">
-            <span>🎲 Ход #{gameState.turnNumber || 1}</span>
+          <div className="flex items-center gap-1.5">
+            {gameState.gameMode === 'reverse' ? (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-purple-950/60 border border-purple-500/40 text-xs font-black text-purple-200 shadow-sm" title="Круг стола: завершается после хода каждого игрока">
+                <span>🔄 Наоборот</span>
+                <span className="text-[11px] text-purple-300 font-bold">
+                  • Раунд {Math.min(gameState.roundNumber || 1, gameState.maxRounds || (gameState.boardSize === 24 ? 10 : 20))}/{gameState.maxRounds || (gameState.boardSize === 24 ? 10 : 20)}
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-indigo-950/50 border border-indigo-500/30 text-xs font-black text-indigo-200 shadow-sm">
+                <span>🎲 Раунд #{gameState.roundNumber || gameState.turnNumber || 1}</span>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -122,6 +157,21 @@ export const TopBar: React.FC = () => {
           title="Настройки игры"
         >
           <Sliders className="w-4 h-4" />
+        </Button>
+
+        {/* Fullscreen Toggle Button */}
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-8 w-8 sm:h-9 sm:w-9"
+          onClick={toggleFullscreen}
+          title={isFullscreen ? "Выйти из полноэкранного режима" : "Во весь экран"}
+        >
+          {isFullscreen ? (
+            <Minimize className="w-4 h-4 text-amber-400" />
+          ) : (
+            <Maximize className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+          )}
         </Button>
 
         {/* Leave Room Button (if in game or lobby) */}

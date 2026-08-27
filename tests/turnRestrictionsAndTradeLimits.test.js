@@ -90,8 +90,59 @@ game2.buildHouse('p2', 1);
 assert.strictEqual(game2.board[1].houses, 1);
 console.log('✅ Current turn player can build property improvements');
 
-// 3. Test Bot Bankruptcy Turn Auto-Advance
-console.log('\nTest 3: Bot bankruptcy immediately advances turn to next active player');
+// 3. Test Mortgage & Unmortgage Restrictions Out of Turn
+console.log('\nTest 3: Cannot mortgage or unmortgage properties out of turn');
+const gameMortgage = roomManager.createRoom('p1', 'Alice');
+gameMortgage.addPlayer('p2', 'Bob');
+gameMortgage.startGame('p1');
+
+// Setup property for Bob (p2)
+gameMortgage.board[3].ownerId = 'p2';
+gameMortgage.players[1].properties = [3];
+
+// Currently it is Alice's turn (p1)
+assert.strictEqual(gameMortgage.getCurrentPlayer().id, 'p1');
+
+// Bob (p2) tries to mortgage out of turn -> MUST THROW!
+assert.throws(() => {
+  gameMortgage.mortgageProperty('p2', 3);
+}, /Закладывать недвижимость можно только во время своего хода/);
+
+// Alice ends turn -> pass turn to Bob
+gameMortgage.status = 'TURN_END';
+gameMortgage.endTurn('p1');
+assert.strictEqual(gameMortgage.getCurrentPlayer().id, 'p2');
+
+// Bob can now mortgage during his own turn!
+const bobMoneyBefore = gameMortgage.players[1].money;
+const mortgageVal = gameMortgage.board[3].mortgageValue || 40;
+gameMortgage.mortgageProperty('p2', 3);
+assert.strictEqual(gameMortgage.board[3].isMortgaged, true);
+assert.strictEqual(gameMortgage.players[1].money, bobMoneyBefore + mortgageVal);
+console.log('✅ Mortgage out of turn strictly rejected, allowed in turn');
+
+// Bob ends turn -> pass turn to Alice
+gameMortgage.status = 'TURN_END';
+gameMortgage.endTurn('p2');
+assert.strictEqual(gameMortgage.getCurrentPlayer().id, 'p1');
+
+// Bob tries to unmortgage out of turn -> MUST THROW!
+assert.throws(() => {
+  gameMortgage.unmortgageProperty('p2', 3);
+}, /Выкупать недвижимость из залога можно только во время своего хода/);
+
+// Alice ends turn -> pass turn back to Bob
+gameMortgage.status = 'TURN_END';
+gameMortgage.endTurn('p1');
+assert.strictEqual(gameMortgage.getCurrentPlayer().id, 'p2');
+
+// Bob can now unmortgage during his own turn!
+gameMortgage.unmortgageProperty('p2', 3);
+assert.strictEqual(gameMortgage.board[3].isMortgaged, false);
+console.log('✅ Unmortgage out of turn strictly rejected, allowed in turn');
+
+// 4. Test Bot Bankruptcy Turn Auto-Advance
+console.log('\nTest 4: Bot bankruptcy immediately advances turn to next active player');
 const game3 = roomManager.createRoom('p1', 'Alice');
 const botPlayer = game3.addBot({ difficulty: 'balanced' });
 game3.addPlayer('p3', 'Charlie');

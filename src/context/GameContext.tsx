@@ -40,7 +40,7 @@ interface GameContextType {
   closeModal: () => void;
   showToast: (message: string, type?: 'info' | 'success' | 'warning' | 'error', duration?: number) => void;
   removeToast: (id: string) => void;
-  createRoom: (name: string, isPrivate?: boolean, options?: { mode?: 'standard' | 'blitz' | 'ranked'; boardSize?: 40 | 24; startingCash?: number; maxPlayers?: number }) => Promise<{ success: boolean; error?: string }>;
+  createRoom: (name: string, isPrivate?: boolean, options?: { mode?: 'standard' | 'blitz' | 'ranked'; gameMode?: 'classic' | 'reverse'; maxRounds?: number; boardSize?: 40 | 24; startingCash?: number; maxPlayers?: number }) => Promise<{ success: boolean; error?: string }>;
   joinRoom: (code: string, name: string) => Promise<{ success: boolean; error?: string }>;
   quickMatch: () => Promise<{ success: boolean; isNewRoom?: boolean; error?: string }>;
   leaveRoom: () => void;
@@ -489,7 +489,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [showToast]);
 
-  const createRoom = useCallback(async (name: string, isPrivate: boolean = false, options: { mode?: 'standard' | 'blitz' | 'ranked'; boardSize?: 40 | 24; startingCash?: number; maxPlayers?: number } = {}) => {
+  const createRoom = useCallback(async (name: string, isPrivate: boolean = false, options: { mode?: 'standard' | 'blitz' | 'ranked'; gameMode?: 'classic' | 'reverse'; maxRounds?: number; boardSize?: 40 | 24; startingCash?: number; maxPlayers?: number } = {}) => {
     if (!socket) return { success: false, error: 'Сокет не подключен' };
     const cleanName = name.trim() || 'Игрок 1';
     setPlayerName(cleanName);
@@ -501,6 +501,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         playerId,
         isPrivate,
         mode: options.mode || 'standard',
+        gameMode: options.gameMode || 'classic',
+        maxRounds: options.maxRounds !== undefined ? options.maxRounds : (options.gameMode === 'reverse' ? 20 : 0),
         boardSize: options.boardSize || (options.mode === 'blitz' ? 24 : 40),
         startingCash: options.startingCash || 1500,
         maxPlayers: options.maxPlayers || 6,

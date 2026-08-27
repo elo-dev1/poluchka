@@ -45,6 +45,8 @@ export interface PlayerData {
   isBot?: boolean;
   botDifficulty?: 'careful' | 'balanced' | 'aggressive';
   telegramId?: string | null;
+  yandexId?: string | null;
+  authProvider?: 'telegram' | 'yandex' | null;
   username?: string | null;
   avatarUrl?: string | null;
   characterId?: string;
@@ -54,6 +56,17 @@ export interface PlayerData {
   tradeOffersRemaining?: number;
   propertiesCount?: number;
   properties?: number[];
+  auctionCooldownUntilTurn?: number;
+  netWorth?: number;
+  totalCapital?: number;
+  propertyValue?: number;
+  propertyNominalValue?: number;
+  buildingsValue?: number;
+  monopoliesCount?: number;
+  housesCount?: number;
+  hotelsCount?: number;
+  rank?: number;
+  isWinner?: boolean;
 }
 
 export interface ActiveAuction {
@@ -139,6 +152,8 @@ export interface RankingPlayer extends PlayerData {
   totalCapital: number;
   netWorth: number;
   propertyValue: number;
+  propertyNominalValue?: number;
+  buildingsValue?: number;
   monopoliesCount: number;
   housesCount: number;
   hotelsCount: number;
@@ -173,6 +188,8 @@ export interface GameState {
   status: 'LOBBY' | 'ROLLING' | 'ACTION' | 'AWAITING_ACTION' | 'TURN_END' | 'AUCTION' | 'TRADE' | 'GAME_OVER';
   isPrivate: boolean;
   mode?: 'standard' | 'blitz' | 'ranked';
+  gameMode?: 'classic' | 'reverse';
+  maxRounds?: number;
   boardSize?: number;
   hasBots?: boolean;
   currentTurnIndex: number;
@@ -219,6 +236,8 @@ export interface PublicRoomSummary {
   maxPlayers: number;
   isPrivate: boolean;
   mode?: string;
+  gameMode?: 'classic' | 'reverse';
+  maxRounds?: number;
   boardSize?: number;
   status: string;
   players: Array<{

@@ -41,22 +41,26 @@ export const RulesModal: React.FC = () => {
         </DialogHeader>
 
         <Tabs defaultValue="basics" className="w-full flex-1 flex flex-col min-h-0 mt-3">
-          <TabsList className="grid grid-cols-4 w-full bg-black/40 border border-white/10 p-1 rounded-xl shrink-0">
+          <TabsList className="grid grid-cols-5 w-full bg-black/40 border border-white/10 p-1 rounded-xl shrink-0">
             <TabsTrigger value="basics" className="text-xs font-bold py-1.5 flex items-center gap-1">
               <Dices className="w-3.5 h-3.5" />
-              <span>Основы</span>
+              <span className="hidden sm:inline">Основы</span>
             </TabsTrigger>
             <TabsTrigger value="property" className="text-xs font-bold py-1.5 flex items-center gap-1">
               <Building2 className="w-3.5 h-3.5 text-amber-400" />
-              <span>Улицы</span>
+              <span className="hidden sm:inline">Улицы</span>
             </TabsTrigger>
             <TabsTrigger value="special" className="text-xs font-bold py-1.5 flex items-center gap-1">
               <Train className="w-3.5 h-3.5 text-blue-400" />
-              <span>Транспорт</span>
+              <span className="hidden sm:inline">Транспорт</span>
             </TabsTrigger>
             <TabsTrigger value="finance" className="text-xs font-bold py-1.5 flex items-center gap-1">
               <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Финансы</span>
+              <span className="hidden sm:inline">Финансы</span>
+            </TabsTrigger>
+            <TabsTrigger value="reverse" className="text-xs font-bold py-1.5 flex items-center gap-1 text-purple-300">
+              <span>🔄</span>
+              <span>Наоборот</span>
             </TabsTrigger>
           </TabsList>
 
@@ -212,6 +216,53 @@ export const RulesModal: React.FC = () => {
                 </span>
                 <p className="text-red-200/90">
                   Если баланс игрока отрицателен, и залога имущества недостаточно для погашения долга, игрок объявляет банкротство и выбывает из партии.
+                </p>
+              </div>
+            </TabsContent>
+
+            {/* 5. Режим «Наоборот» */}
+            <TabsContent value="reverse" className="flex flex-col gap-3 mt-0">
+              <div className="p-3 rounded-xl bg-purple-950/40 border border-purple-400/40 flex flex-col gap-1.5">
+                <span className="text-xs sm:text-sm font-black text-purple-200 flex items-center gap-1.5">
+                  🔄 Главная цель и победа
+                </span>
+                <p className="text-purple-100">
+                  В режиме «Наоборот» побеждает игрок с <strong>НАИМЕНЬШИМ капиталом</strong> по истечении 20 раундов! Ваша цель — закончить игру с минимальными активами, но не обанкротиться.
+                </p>
+              </div>
+
+              <div className="p-3 rounded-xl bg-white/5 border border-white/10 flex flex-col gap-2">
+                <span className="text-xs sm:text-sm font-black text-white flex items-center gap-1.5">
+                  📊 Формула подсчета капитала
+                </span>
+                <ul className="flex flex-col gap-1.5 list-disc list-inside">
+                  <li>
+                    <strong>Наличные деньги:</strong> Каждые $100 приближают вас к поражению.
+                  </li>
+                  <li>
+                    <strong>Номинал недвижимости:</strong> В зачет идет полная цена каждой вашей клетки (залог не уменьшает эту сумму!).
+                  </li>
+                  <li>
+                    <strong>Постройки (дома/отели):</strong> Оцениваются в 50% от стоимости постройки (цена сдачи банку).
+                  </li>
+                </ul>
+              </div>
+
+              <div className="p-3 rounded-xl bg-amber-950/30 border border-amber-500/30 flex flex-col gap-2">
+                <span className="text-xs sm:text-sm font-black text-amber-300 flex items-center gap-1.5">
+                  🔨 Принудительный аукцион
+                </span>
+                <p className="text-amber-100">
+                  Если игрок отказывается от покупки клетки, на которую наступил, и на аукционе никто из соперников не сделал ставку — клетка <strong>принудительно достаётся наступившему</strong> за стартовую цену ($10% стоимости)!
+                </p>
+              </div>
+
+              <div className="p-3 rounded-xl bg-red-950/30 border border-red-500/30 flex flex-col gap-1.5">
+                <span className="text-xs sm:text-sm font-black text-red-300 flex items-center gap-1.5">
+                  ⚠️ Банкротство = Дисквалификация
+                </span>
+                <p className="text-red-200/90">
+                  Обанкротившийся игрок выбывает и никогда не может стать победителем, даже если у него $0. Вы должны балансировать на грани минимального капитала, оставаясь в игре!
                 </p>
               </div>
             </TabsContent>
