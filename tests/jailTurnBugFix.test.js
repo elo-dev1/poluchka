@@ -83,3 +83,4 @@ console.log('\nTest 3: GameEngine Aliases Validation');
 }
 
 console.log('\n🎉 ALL JAIL TURN FIX TESTS PASSED!\n');
+process.exit(0);

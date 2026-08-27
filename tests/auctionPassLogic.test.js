@@ -110,3 +110,4 @@ console.log('\nTest 3: Multiple Opponents -> Competitive Auction');
 }
 
 console.log('\n🎉 ALL PROPERTY PASS & AUCTION TESTS PASSED!\n');
+process.exit(0);

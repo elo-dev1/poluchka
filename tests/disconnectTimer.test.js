@@ -73,6 +73,7 @@ async function runTests() {
   game2.stopDisconnectWaitingTimer();
 
   console.log('\n🎉 ALL DISCONNECT & ANTI-ABUSE TESTS PASSED!\n');
+  process.exit(0);
 }
 
 runTests().catch(err => {

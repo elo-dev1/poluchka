@@ -26,9 +26,15 @@ export const TradeModal: React.FC = () => {
     showToast,
   } = useGame();
 
-  if (!gameState) return null;
+  const [selectedPartnerId, setSelectedPartnerId] = useState<string>(
+    modalData?.targetPlayerId || ''
+  );
+  const [offerProperties, setOfferProperties] = useState<number[]>([]);
+  const [offerCash, setOfferCash] = useState<number>(0);
+  const [requestProperties, setRequestProperties] = useState<number[]>([]);
+  const [requestCash, setRequestCash] = useState<number>(0);
 
-  const activeTrade = gameState.activeTrade;
+  const activeTrade = gameState?.activeTrade;
   const isIncomingTrade = Boolean(
     activeTrade &&
     (activeTrade.targetId === playerId || activeTrade.toPlayerId === playerId) &&
@@ -40,27 +46,23 @@ export const TradeModal: React.FC = () => {
     activeTrade.status === 'PENDING'
   );
 
-  const isOpen = (activeModal === 'trade' && (!activeTrade || activeTrade.status !== 'PENDING' || isIncomingTrade || isOutgoingTrade)) || isIncomingTrade;
+  const isOpen = Boolean(
+    gameState &&
+    ((activeModal === 'trade' && (!activeTrade || activeTrade.status !== 'PENDING' || isIncomingTrade || isOutgoingTrade)) || isIncomingTrade)
+  );
 
-  const myPlayer = gameState.players.find((p) => p.id === playerId);
-  const otherPlayers = gameState.players.filter((p) => !p.isBankrupt && p.id !== playerId);
+  const players = gameState?.players || [];
+  const otherPlayers = players.filter((p) => !p.isBankrupt && p.id !== playerId);
+  const myPlayer = players.find((p) => p.id === playerId);
 
-  const myOffersCount = (gameState.tradeOffersThisRound || {})[playerId] || 0;
+  const myOffersCount = (gameState?.tradeOffersThisRound || {})[playerId] || 0;
   const remainingTrades = myPlayer?.tradeOffersRemaining !== undefined
     ? myPlayer.tradeOffersRemaining
     : Math.max(0, 2 - myOffersCount);
   const isTradeLimitReached = remainingTrades <= 0;
 
-  const [selectedPartnerId, setSelectedPartnerId] = useState<string>(
-    modalData?.targetPlayerId || otherPlayers[0]?.id || ''
-  );
-  const [offerProperties, setOfferProperties] = useState<number[]>([]);
-  const [offerCash, setOfferCash] = useState<number>(0);
-  const [requestProperties, setRequestProperties] = useState<number[]>([]);
-  const [requestCash, setRequestCash] = useState<number>(0);
-
   useEffect(() => {
-    if (activeModal === 'trade') {
+    if (activeModal === 'trade' && gameState) {
       if (modalData?.targetPlayerId && otherPlayers.some((p) => p.id === modalData.targetPlayerId)) {
         setSelectedPartnerId(modalData.targetPlayerId);
       } else if (!selectedPartnerId || !otherPlayers.some((p) => p.id === selectedPartnerId)) {
@@ -71,7 +73,9 @@ export const TradeModal: React.FC = () => {
       setRequestProperties([]);
       setRequestCash(0);
     }
-  }, [activeModal, modalData?.targetPlayerId]);
+  }, [activeModal, modalData?.targetPlayerId, gameState?.roomId]);
+
+  if (!gameState || !isOpen) return null;
 
   const partnerPlayer = gameState.players.find((p) => p.id === selectedPartnerId);
 

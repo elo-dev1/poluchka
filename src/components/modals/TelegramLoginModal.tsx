@@ -1,26 +1,37 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useGame } from '@/context/GameContext';
+import React, { useEffect, useRef, useState } from "react";
+import { useGame } from "@/context/GameContext";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from '@/components/ui/dialog';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Send, ShieldCheck, Loader2, KeyRound } from 'lucide-react';
+} from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Send, ShieldCheck, Loader2, KeyRound } from "lucide-react";
 
 export const TelegramLoginModal: React.FC = () => {
-  const { activeModal, modalData, closeModal, authTelegram, authYandex, openModal, showToast } = useGame();
-  const isOpen = activeModal === 'telegramLogin' || (activeModal as string) === 'auth';
+  const {
+    activeModal,
+    modalData,
+    closeModal,
+    authTelegram,
+    authYandex,
+    openModal,
+    showToast,
+  } = useGame();
+  const isOpen =
+    activeModal === "telegramLogin" || (activeModal as string) === "auth";
 
-  const [activeTab, setActiveTab] = useState<string>('telegram');
+  const [activeTab, setActiveTab] = useState<string>("telegram");
   const [yandexClientId, setYandexClientId] = useState<string>(
-    (import.meta as any).env?.VITE_YANDEX_CLIENT_ID || ''
+    (import.meta as any).env?.VITE_YANDEX_CLIENT_ID || "",
   );
-  const [botUsername, setBotUsername] = useState<string>('monopoly_poluchka_bot');
-  const [botId, setBotId] = useState<string>('8950689907');
+  const [botUsername, setBotUsername] = useState<string>(
+    "monopoly_poluchka_bot",
+  );
+  const [botId, setBotId] = useState<string>("8950689907");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const widgetContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -30,12 +41,13 @@ export const TelegramLoginModal: React.FC = () => {
       if (modalData && modalData.tab) {
         setActiveTab(modalData.tab);
       }
-      fetch('/api/auth/config')
+      fetch("/api/auth/config")
         .then((r) => r.json())
         .then((data) => {
           if (data) {
             if (data.yandexClientId) setYandexClientId(data.yandexClientId);
-            if (data.botUsername) setBotUsername(data.botUsername.replace(/^@/, ''));
+            if (data.botUsername)
+              setBotUsername(data.botUsername.replace(/^@/, ""));
             if (data.botId) setBotId(data.botId);
           }
         })
@@ -47,7 +59,7 @@ export const TelegramLoginModal: React.FC = () => {
   useEffect(() => {
     const handleMessage = async (event: MessageEvent) => {
       let data = event.data;
-      if (typeof data === 'string') {
+      if (typeof data === "string") {
         try {
           data = JSON.parse(data);
         } catch {
@@ -55,9 +67,9 @@ export const TelegramLoginModal: React.FC = () => {
         }
       }
       if (!data) return;
-      
+
       // Yandex OAuth
-      if (data.type === 'YANDEX_AUTH_SUCCESS' && data.token) {
+      if (data.type === "YANDEX_AUTH_SUCCESS" && data.token) {
         setIsLoading(true);
         try {
           await authYandex({ token: data.token });
@@ -65,13 +77,13 @@ export const TelegramLoginModal: React.FC = () => {
           setIsLoading(false);
         }
         return;
-      } else if (data.type === 'YANDEX_AUTH_ERROR') {
-        showToast('Вход через Яндекс ID отменён', 'warning');
+      } else if (data.type === "YANDEX_AUTH_ERROR") {
+        showToast("Вход через Яндекс ID отменён", "warning");
         return;
       }
 
       // Telegram OAuth callback window message (type: 'TELEGRAM_AUTH_SUCCESS')
-      if (data.type === 'TELEGRAM_AUTH_SUCCESS' && data.user) {
+      if (data.type === "TELEGRAM_AUTH_SUCCESS" && data.user) {
         setIsLoading(true);
         try {
           await authTelegram(data.user);
@@ -82,7 +94,7 @@ export const TelegramLoginModal: React.FC = () => {
       }
 
       // Telegram official postMessage (event: 'auth_result')
-      if (data.event === 'auth_result' && data.result) {
+      if (data.event === "auth_result" && data.result) {
         setIsLoading(true);
         try {
           await authTelegram(data.result);
@@ -104,13 +116,13 @@ export const TelegramLoginModal: React.FC = () => {
       }
     };
 
-    window.addEventListener('message', handleMessage);
+    window.addEventListener("message", handleMessage);
 
     // Poll for pending auth data from localStorage (in case popup redirected)
     const checkInterval = setInterval(() => {
-      const pendingTg = localStorage.getItem('pending_tg_auth_data');
+      const pendingTg = localStorage.getItem("pending_tg_auth_data");
       if (pendingTg) {
-        localStorage.removeItem('pending_tg_auth_data');
+        localStorage.removeItem("pending_tg_auth_data");
         try {
           const user = JSON.parse(pendingTg);
           if (user && user.id) {
@@ -122,39 +134,40 @@ export const TelegramLoginModal: React.FC = () => {
     }, 500);
 
     return () => {
-      window.removeEventListener('message', handleMessage);
+      window.removeEventListener("message", handleMessage);
       clearInterval(checkInterval);
     };
   }, [authYandex, authTelegram, showToast]);
 
   // 3. Mount Telegram Widget on Telegram Tab
   useEffect(() => {
-    if (!isOpen || activeTab !== 'telegram' || !widgetContainerRef.current) return;
+    if (!isOpen || activeTab !== "telegram" || !widgetContainerRef.current)
+      return;
     const container = widgetContainerRef.current;
-    container.innerHTML = '';
+    container.innerHTML = "";
 
     (window as any).onTelegramAuth = (user: any) => {
       setIsLoading(true);
       authTelegram(user).finally(() => setIsLoading(false));
     };
 
-    const targetBot = botUsername || 'monopoly_poluchka_bot';
-    const script = document.createElement('script');
+    const targetBot = botUsername || "monopoly_poluchka_bot";
+    const script = document.createElement("script");
     script.async = true;
-    script.src = 'https://telegram.org/js/telegram-widget.js?22';
-    script.setAttribute('data-telegram-login', targetBot);
-    script.setAttribute('data-size', 'large');
-    script.setAttribute('data-radius', '12');
-    script.setAttribute('data-userpic', 'true');
-    script.setAttribute('data-onauth', 'onTelegramAuth(user)');
-    script.setAttribute('data-request-access', 'write');
+    script.src = "https://telegram.org/js/telegram-widget.js?22";
+    script.setAttribute("data-telegram-login", targetBot);
+    script.setAttribute("data-size", "large");
+    script.setAttribute("data-radius", "12");
+    script.setAttribute("data-userpic", "true");
+    script.setAttribute("data-onauth", "onTelegramAuth(user)");
+    script.setAttribute("data-request-access", "write");
 
     container.appendChild(script);
   }, [isOpen, activeTab, botUsername, authTelegram]);
 
   // 4. Auto-detect Telegram WebApp environment
   useEffect(() => {
-    if (isOpen && typeof window !== 'undefined') {
+    if (isOpen && typeof window !== "undefined") {
       const tg = (window as any).Telegram?.WebApp;
       if (tg && tg.initData) {
         setIsLoading(true);
@@ -165,9 +178,11 @@ export const TelegramLoginModal: React.FC = () => {
 
   // Handle Telegram OAuth Click
   const handleOpenTelegramOAuth = () => {
-    const targetBotId = botId || '8950689907';
+    const targetBotId = botId || "8950689907";
     const originUrl = encodeURIComponent(window.location.origin);
-    const returnUrl = encodeURIComponent(window.location.origin + '/telegram-callback.html');
+    const returnUrl = encodeURIComponent(
+      window.location.origin + "/telegram-callback.html",
+    );
     const authUrl = `https://oauth.telegram.org/auth?bot_id=${targetBotId}&origin=${originUrl}&embed=0&request_access=write&return_to=${returnUrl}`;
 
     const width = 540;
@@ -177,11 +192,11 @@ export const TelegramLoginModal: React.FC = () => {
 
     const popup = window.open(
       authUrl,
-      'telegram_oauth_popup',
-      `width=${width},height=${height},left=${left},top=${top},status=no,toolbar=no,menubar=no`
+      "telegram_oauth_popup",
+      `width=${width},height=${height},left=${left},top=${top},status=no,toolbar=no,menubar=no`,
     );
 
-    if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+    if (!popup || popup.closed || typeof popup.closed === "undefined") {
       window.location.href = authUrl;
     }
   };
@@ -190,12 +205,16 @@ export const TelegramLoginModal: React.FC = () => {
   const handleOpenYandexOAuth = () => {
     const clientId = yandexClientId;
     if (!clientId) {
-      showToast('Укажите YANDEX_CLIENT_ID в файле .env и перезапустите сервер', 'error', 5000);
+      showToast(
+        "Укажите YANDEX_CLIENT_ID в файле .env и перезапустите сервер",
+        "error",
+        5000,
+      );
       return;
     }
-    const redirectUri = window.location.origin + '/yandex-callback.html';
+    const redirectUri = window.location.origin + "/yandex-callback.html";
     const authUrl = `https://oauth.yandex.ru/authorize?response_type=token&client_id=${clientId}&redirect_uri=${encodeURIComponent(
-      redirectUri
+      redirectUri,
     )}`;
 
     const width = 560;
@@ -205,11 +224,11 @@ export const TelegramLoginModal: React.FC = () => {
 
     const popup = window.open(
       authUrl,
-      'yandex_oauth_popup',
-      `width=${width},height=${height},left=${left},top=${top},status=no,toolbar=no,menubar=no`
+      "yandex_oauth_popup",
+      `width=${width},height=${height},left=${left},top=${top},status=no,toolbar=no,menubar=no`,
     );
 
-    if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+    if (!popup || popup.closed || typeof popup.closed === "undefined") {
       window.location.href = authUrl;
     }
   };
@@ -225,13 +244,18 @@ export const TelegramLoginModal: React.FC = () => {
             Вход в профиль игрока
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground mt-1 leading-relaxed text-center w-full max-w-xs mx-auto">
-            Официальная авторизация для сохранения ELO-рейтинга, статистики побед и лидерборда.
+            Официальная авторизация для сохранения ELO-рейтинга, статистики
+            побед и лидерборда.
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-3 py-1">
           {/* Provider Tabs: Telegram vs Yandex ID */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full"
+          >
             <TabsList className="grid grid-cols-2 w-full p-1 bg-black/40 border border-white/10 rounded-2xl">
               <TabsTrigger
                 value="telegram"
@@ -262,9 +286,6 @@ export const TelegramLoginModal: React.FC = () => {
                 <div className="text-center">
                   <span className="text-sm font-bold text-foreground block">
                     Авторизация через Telegram
-                  </span>
-                  <span className="text-[11px] text-muted-foreground block mt-0.5">
-                    Бот: <strong className="text-[#2AABEE]">@{botUsername}</strong>
                   </span>
                 </div>
 
@@ -302,9 +323,6 @@ export const TelegramLoginModal: React.FC = () => {
                   <span className="text-sm font-bold text-foreground block">
                     Официальный вход с Яндекс ID
                   </span>
-                  <span className="text-[11px] text-muted-foreground block mt-0.5">
-                    Вход в 1 клик с использованием вашего аккаунта Яндекс
-                  </span>
                 </div>
 
                 <Button
@@ -330,10 +348,15 @@ export const TelegramLoginModal: React.FC = () => {
           <div className="pt-1.5 border-t border-white/10 text-[11px] text-muted-foreground leading-relaxed flex items-center justify-center gap-1 w-full">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
             <span>
-              Авторизуясь, вы принимаете{' '}
+              Авторизуясь, вы принимаете{" "}
               <button
                 type="button"
-                onClick={() => openModal('legal', { tab: 'terms', returnTo: 'telegramLogin' })}
+                onClick={() =>
+                  openModal("legal", {
+                    tab: "terms",
+                    returnTo: "telegramLogin",
+                  })
+                }
                 className="underline hover:text-foreground text-primary font-medium"
               >
                 условия сервиса

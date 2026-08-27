@@ -71,3 +71,4 @@ console.log('\nTest 2: Bot with low money passes direct offer');
 }
 
 console.log('\n🎉 ALL BOT DIRECT OFFER & AUCTION TESTS PASSED!\n');
+process.exit(0);

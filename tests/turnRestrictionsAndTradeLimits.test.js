@@ -113,3 +113,4 @@ assert.strictEqual(game3.status, 'ROLLING');
 console.log('✅ Bot bankruptcy immediately advances turn to next player without stalling');
 
 console.log('\n🎉 ALL TURN RESTRICTION, TRADE LIMIT & BOT BANKRUPTCY TESTS PASSED! 🎉\n');
+process.exit(0);

@@ -23,7 +23,7 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/server ./server
 
 # Ensure data directory exists for database persistence
-RUN mkdir -p server/data
+RUN mkdir -p data
 
 EXPOSE 3000
 

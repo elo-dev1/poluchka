@@ -31,3 +31,7 @@ lerna-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+# Game Data & DB
+data/
+server/data/

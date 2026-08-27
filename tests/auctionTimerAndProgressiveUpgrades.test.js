@@ -95,7 +95,10 @@ console.log('✅ Auction completes and awards property to highest bidder, resumi
 
 // Clean up
 game1.clearTurnTimer();
+game1.stopActivePlayTracker();
 game2.clearTurnTimer();
 game2.stopAuctionTimer();
+game2.stopActivePlayTracker();
 
 console.log('\n🎉 ALL AUCTION 10S TIMER & PROGRESSIVE UPGRADE TESTS PASSED! 🎉\n');
+process.exit(0);

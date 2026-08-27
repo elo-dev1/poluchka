@@ -1100,11 +1100,6 @@ export const WelcomeScreen: React.FC = () => {
       {/* 4. Bottom Live Stats & Legal Footer */}
       <div className="w-full mt-5 pt-3 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between text-[11px] text-muted-foreground gap-2">
         <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-            Сервер онлайн
-          </span>
-          <span>•</span>
           <span>Открытых столов: {publicRooms.length}</span>
         </div>
 
@@ -1115,10 +1110,6 @@ export const WelcomeScreen: React.FC = () => {
           >
             Соглашение и 152-ФЗ
           </button>
-          <span>•</span>
-          <span className="font-mono text-[10px] opacity-75">
-            v2.4 Monopoly Online
-          </span>
         </div>
       </div>
     </div>

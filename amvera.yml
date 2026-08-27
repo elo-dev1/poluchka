@@ -7,5 +7,5 @@ build:
   dockerfile: Dockerfile
 
 run:
-  persistenceMount: /app/server/data
+  persistenceMount: /app/data
   containerPort: 3000

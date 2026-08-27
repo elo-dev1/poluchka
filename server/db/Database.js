@@ -3,7 +3,7 @@ const path = require('path');
 
 class Database {
   constructor() {
-    this.dataDir = path.join(__dirname, '../data');
+    this.dataDir = process.env.DATA_DIR || path.join(__dirname, '../../data');
     this.usersFile = path.join(this.dataDir, 'users.json');
     this.gamesFile = path.join(this.dataDir, 'games.json');
     this.users = new Map(); // telegramId -> user object
@@ -16,6 +16,19 @@ class Database {
     try {
       if (!fs.existsSync(this.dataDir)) {
         fs.mkdirSync(this.dataDir, { recursive: true });
+      }
+
+      // Check for legacy data in server/data and migrate if present
+      const legacyDir = path.join(__dirname, '../data');
+      if (fs.existsSync(legacyDir) && legacyDir !== this.dataDir) {
+        const legacyUsers = path.join(legacyDir, 'users.json');
+        const legacyGames = path.join(legacyDir, 'games.json');
+        if (!fs.existsSync(this.usersFile) && fs.existsSync(legacyUsers)) {
+          try { fs.copyFileSync(legacyUsers, this.usersFile); } catch (e) {}
+        }
+        if (!fs.existsSync(this.gamesFile) && fs.existsSync(legacyGames)) {
+          try { fs.copyFileSync(legacyGames, this.gamesFile); } catch (e) {}
+        }
       }
 
       if (fs.existsSync(this.usersFile)) {

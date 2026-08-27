@@ -11653,5 +11653,215 @@
         "totalCapital": 850
       }
     ]
+  },
+  {
+    "id": "game_1787838326748_lkia",
+    "roomId": "HUZA",
+    "winnerId": "bot_1787838295334_3ydf",
+    "hasBots": true,
+    "endedAt": 1787838326748,
+    "playersCount": 2,
+    "rankings": [
+      {
+        "id": "bot_1787838295334_3ydf",
+        "name": "Щенок (Баланс)",
+        "telegramId": null,
+        "isBot": true,
+        "botDifficulty": "balanced",
+        "rank": 1,
+        "isWinner": true,
+        "totalCapital": 1500
+      },
+      {
+        "id": "p_1787437896652_6osg",
+        "name": "elo",
+        "telegramId": "ya_557189898",
+        "isBot": false,
+        "botDifficulty": null,
+        "rank": 2,
+        "isWinner": false,
+        "totalCapital": 0
+      }
+    ]
+  },
+  {
+    "id": "game_1787838335320_4fes",
+    "roomId": "M3A3",
+    "winnerId": "bot_1787838333099_qbrw",
+    "hasBots": true,
+    "endedAt": 1787838335320,
+    "playersCount": 2,
+    "rankings": [
+      {
+        "id": "bot_1787838333099_qbrw",
+        "name": "Щенок (Баланс)",
+        "telegramId": null,
+        "isBot": true,
+        "botDifficulty": "balanced",
+        "rank": 1,
+        "isWinner": true,
+        "totalCapital": 1500
+      },
+      {
+        "id": "p_1787437896652_6osg",
+        "name": "elo",
+        "telegramId": "ya_557189898",
+        "isBot": false,
+        "botDifficulty": null,
+        "rank": 2,
+        "isWinner": false,
+        "totalCapital": 0
+      }
+    ]
+  },
+  {
+    "id": "game_1787838512492_du23",
+    "roomId": "PJKL",
+    "winnerId": "bot_1787838508648_mqp9",
+    "hasBots": true,
+    "endedAt": 1787838512492,
+    "playersCount": 2,
+    "rankings": [
+      {
+        "id": "bot_1787838508648_mqp9",
+        "name": "Щенок (Баланс)",
+        "telegramId": null,
+        "isBot": true,
+        "botDifficulty": "balanced",
+        "rank": 1,
+        "isWinner": true,
+        "totalCapital": 1500
+      },
+      {
+        "id": "p_1787437896652_6osg",
+        "name": "elo",
+        "telegramId": "ya_557189898",
+        "isBot": false,
+        "botDifficulty": null,
+        "rank": 2,
+        "isWinner": false,
+        "totalCapital": 0
+      }
+    ]
+  },
+  {
+    "id": "game_1787838601306_xsyi",
+    "roomId": "MCTZ",
+    "winnerId": "p1",
+    "hasBots": false,
+    "endedAt": 1787838601306,
+    "playersCount": 2,
+    "rankings": [
+      {
+        "id": "p1",
+        "name": "Alice",
+        "telegramId": null,
+        "isBot": false,
+        "botDifficulty": null,
+        "rank": 1,
+        "isWinner": true,
+        "totalCapital": 1500
+      },
+      {
+        "id": "p2",
+        "name": "Bob",
+        "telegramId": null,
+        "isBot": false,
+        "botDifficulty": null,
+        "rank": 2,
+        "isWinner": false,
+        "totalCapital": 0
+      }
+    ]
+  },
+  {
+    "id": "game_1787838601365_t8a4",
+    "roomId": "TEST2",
+    "winnerId": "p2",
+    "hasBots": false,
+    "endedAt": 1787838601365,
+    "playersCount": 2,
+    "rankings": [
+      {
+        "id": "p2",
+        "name": "Bob",
+        "telegramId": null,
+        "isBot": false,
+        "botDifficulty": null,
+        "rank": 1,
+        "isWinner": true,
+        "totalCapital": 1600
+      },
+      {
+        "id": "p1",
+        "name": "Alice",
+        "telegramId": null,
+        "isBot": false,
+        "botDifficulty": null,
+        "rank": 2,
+        "isWinner": false,
+        "totalCapital": 1500
+      }
+    ]
+  },
+  {
+    "id": "game_1787838601394_vhzk",
+    "roomId": "N2US",
+    "winnerId": "p1",
+    "hasBots": false,
+    "endedAt": 1787838601394,
+    "playersCount": 2,
+    "rankings": [
+      {
+        "id": "p1",
+        "name": "Alice",
+        "telegramId": null,
+        "isBot": false,
+        "botDifficulty": null,
+        "rank": 1,
+        "isWinner": true,
+        "totalCapital": 1500
+      },
+      {
+        "id": "p2",
+        "name": "Bob",
+        "telegramId": null,
+        "isBot": false,
+        "botDifficulty": null,
+        "rank": 2,
+        "isWinner": false,
+        "totalCapital": 1500
+      }
+    ]
+  },
+  {
+    "id": "game_1787838601617_q4ki",
+    "roomId": "TEST_ROOM",
+    "winnerId": "p1",
+    "hasBots": false,
+    "endedAt": 1787838601617,
+    "playersCount": 2,
+    "rankings": [
+      {
+        "id": "p1",
+        "name": "Алиса",
+        "telegramId": "tg_test_alice_1787838601617",
+        "isBot": false,
+        "botDifficulty": null,
+        "rank": 1,
+        "isWinner": true,
+        "totalCapital": 3200
+      },
+      {
+        "id": "p2",
+        "name": "Борис",
+        "telegramId": "tg_test_boris_1787838601617",
+        "isBot": false,
+        "botDifficulty": null,
+        "rank": 2,
+        "isWinner": false,
+        "totalCapital": 850
+      }
+    ]
   }
 ]

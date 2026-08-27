@@ -154,3 +154,4 @@ console.log('\nTest 4: Bot-to-Bot Trading Lifecycle');
 }
 
 console.log('\n🎉 ALL BOT TRADE & TURN TESTS PASSED!\n');
+process.exit(0);
