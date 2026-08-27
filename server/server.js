@@ -62,8 +62,11 @@ app.get('/api/health', (req, res) => {
 
 // Auth config endpoint (Telegram & Yandex)
 app.get('/api/auth/config', (req, res) => {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN || '';
+  const botId = botToken.split(':')[0] || '';
   res.json({
-    botUsername: process.env.TELEGRAM_BOT_NAME || 'MonopolyWebGameBot',
+    botUsername: process.env.TELEGRAM_BOT_NAME || 'monopoly_poluchka_bot',
+    botId: botId,
     hasToken: !!process.env.TELEGRAM_BOT_TOKEN,
     yandexClientId: process.env.YANDEX_CLIENT_ID || process.env.VITE_YANDEX_CLIENT_ID || ''
   });
