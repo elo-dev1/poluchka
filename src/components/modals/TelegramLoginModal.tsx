@@ -8,8 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Send, ShieldCheck, Loader2, KeyRound, Sparkles, ExternalLink } from 'lucide-react';
+import { Send, ShieldCheck, Loader2, KeyRound } from 'lucide-react';
 
 export const TelegramLoginModal: React.FC = () => {
   const { activeModal, modalData, closeModal, authTelegram, authYandex, openModal, showToast } = useGame();
@@ -21,7 +20,6 @@ export const TelegramLoginModal: React.FC = () => {
   );
   const [botUsername, setBotUsername] = useState<string>('monopoly_poluchka_bot');
   const [botId, setBotId] = useState<string>('8950689907');
-  const [manualUsername, setManualUsername] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const widgetContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -138,29 +136,6 @@ export const TelegramLoginModal: React.FC = () => {
     }
   };
 
-  // Handle Direct / Dev Telegram Login
-  const handleDirectLogin = async () => {
-    const clean = manualUsername.trim().replace(/^@/, '');
-    if (!clean) {
-      showToast('Введите ваш никнейм в Telegram', 'warning');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const mockTgUser = {
-        id: `tg_${clean.toLowerCase()}`,
-        first_name: clean,
-        username: clean,
-        isDirect: true,
-        auth_date: Math.floor(Date.now() / 1000)
-      };
-      await authTelegram(mockTgUser);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   // Handle Official Yandex ID Popup Open
   const handleOpenYandexOAuth = () => {
     const clientId = yandexClientId;
@@ -263,31 +238,6 @@ export const TelegramLoginModal: React.FC = () => {
                   ref={widgetContainerRef}
                   className="flex items-center justify-center w-full min-h-[0px]"
                 />
-
-                {/* Fallback Direct Login for Local / Instant Testing */}
-                <div className="w-full pt-2 border-t border-white/10 flex flex-col gap-1.5">
-                  <span className="text-[10px] text-muted-foreground text-left">
-                    Или быстрый вход по вашему @username:
-                  </span>
-                  <div className="flex items-center gap-1.5">
-                    <Input
-                      value={manualUsername}
-                      onChange={(e) => setManualUsername(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleDirectLogin()}
-                      placeholder="@username или имя"
-                      className="h-8 text-xs font-bold bg-black/50 border-white/15 focus:border-[#2AABEE]"
-                      maxLength={24}
-                    />
-                    <Button
-                      size="sm"
-                      className="h-8 px-3 text-xs font-bold bg-white/10 hover:bg-white/20 text-foreground shrink-0 border border-white/10"
-                      onClick={handleDirectLogin}
-                      disabled={isLoading || !manualUsername.trim()}
-                    >
-                      Войти
-                    </Button>
-                  </div>
-                </div>
               </div>
             </TabsContent>
 
