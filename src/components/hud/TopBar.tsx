@@ -5,6 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Volume2, VolumeX, Sliders, Trophy, LogOut, Copy, Check, LogIn } from 'lucide-react';
 import { soundEngine } from '@/lib/soundEngine';
 
+import { UserAvatar } from '@/components/ui/UserAvatar';
+
 export const TopBar: React.FC = () => {
   const {
     gameState,
@@ -73,17 +75,11 @@ export const TopBar: React.FC = () => {
               onClick={() => openModal('profile')}
               className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 hover:border-primary/50 transition-all cursor-pointer shadow-sm"
             >
-              {currentUser.avatarUrl ? (
-                <img
-                  src={currentUser.avatarUrl}
-                  alt="Avatar"
-                  className="w-6 h-6 rounded-full object-cover border border-primary"
-                />
-              ) : (
-                <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-[10px] font-bold text-white">
-                  {(currentUser.firstName || 'U').charAt(0).toUpperCase()}
-                </div>
-              )}
+              <UserAvatar
+                avatarUrl={currentUser.avatarUrl}
+                name={currentUser.firstName || currentUser.username}
+                size="xs"
+              />
               <div className="flex flex-col text-left">
                 <span className="text-[11px] font-bold text-foreground leading-tight max-w-[90px] truncate">
                   {currentUser.firstName}

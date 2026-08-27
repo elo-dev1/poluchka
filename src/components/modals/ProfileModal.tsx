@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { formatMoney } from '@/lib/utils';
 import { User, Trophy, Gamepad2, TrendingUp, DollarSign, LogOut, Pencil, Check, X, Loader2 } from 'lucide-react';
+import { UserAvatar } from '@/components/ui/UserAvatar';
 
 export const ProfileModal: React.FC = () => {
   const { activeModal, closeModal, currentUser, playerName, logoutTelegram, updateNickname, openModal } = useGame();
@@ -74,17 +75,11 @@ export const ProfileModal: React.FC = () => {
               {/* User Header & Nickname Editor */}
               <div className="p-4 rounded-2xl bg-black/40 border border-white/10 flex flex-col gap-3">
                 <div className="flex items-center gap-3.5">
-                  {currentUser.avatarUrl ? (
-                    <img
-                      src={currentUser.avatarUrl}
-                      alt="Avatar"
-                      className="w-14 h-14 rounded-full object-cover border-2 border-primary shadow-md shrink-0"
-                    />
-                  ) : (
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-primary to-indigo-600 flex items-center justify-center text-xl font-black text-white shadow-md border-2 border-white/20 shrink-0">
-                      {(currentDisplayName || 'U').charAt(0).toUpperCase()}
-                    </div>
-                  )}
+                  <UserAvatar
+                    avatarUrl={currentUser.avatarUrl}
+                    name={currentDisplayName}
+                    size="lg"
+                  />
 
                   <div className="flex flex-col min-w-0 flex-1">
                     {/* Nickname Row / Inline Edit */}
