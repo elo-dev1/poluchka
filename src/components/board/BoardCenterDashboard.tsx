@@ -143,7 +143,13 @@ export const BoardCenterDashboard: React.FC = () => {
                   characterId={currentPlayer.characterId}
                   anim="idle"
                   size="sm"
-                  pedestalColor={currentPlayer.color?.hex}
+                  pedestalColor={
+                    currentPlayer.teamId === 'team_red'
+                      ? '#FF5252'
+                      : currentPlayer.teamId === 'team_blue'
+                      ? '#448AFF'
+                      : currentPlayer.color?.hex
+                  }
                 />
               </div>
             )}

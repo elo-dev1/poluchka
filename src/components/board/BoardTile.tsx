@@ -139,7 +139,18 @@ export const BoardTile: React.FC<BoardTileProps> = ({
   });
 
   const owner = tile.ownerId ? players.find((p) => p.id === tile.ownerId) : null;
-  const ownerHex = owner?.color?.hex;
+  const ownerTeamId = tile.teamId || owner?.teamId;
+  const ownerHex = ownerTeamId === 'team_red'
+    ? '#FF5252'
+    : ownerTeamId === 'team_blue'
+    ? '#448AFF'
+    : owner?.color?.hex;
+
+  const getPlayerHex = (player: PlayerData) => {
+    if (player.teamId === 'team_red') return '#FF5252';
+    if (player.teamId === 'team_blue') return '#448AFF';
+    return player.color?.hex || '#3b82f6';
+  };
 
   // Custom Corner Tiles Rendering
   if (side.startsWith('corner')) {
@@ -238,7 +249,7 @@ export const BoardTile: React.FC<BoardTileProps> = ({
             {playersOnTile.map((player) => {
               const isMoving = Boolean(movingPlayers?.[player.id]);
               const anim = isMoving ? 'jump' : player.inJail ? 'sleep' : (currentPlayerId === player.id ? 'happy' : 'idle');
-              const playerHex = player.color?.hex || '#3b82f6';
+              const playerHex = getPlayerHex(player);
               const isBlitz = totalTiles === 24;
               return (
                 <div
@@ -509,7 +520,7 @@ export const BoardTile: React.FC<BoardTileProps> = ({
           {playersOnTile.map((player) => {
             const isMoving = Boolean(movingPlayers?.[player.id]);
             const anim = isMoving ? 'jump' : player.inJail ? 'sleep' : (currentPlayerId === player.id ? 'happy' : 'idle');
-            const playerHex = player.color?.hex || '#3b82f6';
+            const playerHex = getPlayerHex(player);
             const isBlitz = totalTiles === 24;
             return (
               <div

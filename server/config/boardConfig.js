@@ -796,8 +796,22 @@ const PROPERTY_GROUPS_40 = buildPropertyGroups(BOARD_TILES_40);
 const PROPERTY_GROUPS_24 = buildPropertyGroups(BOARD_TILES_24);
 const PROPERTY_GROUPS = PROPERTY_GROUPS_40;
 
+const DEFAULT_TEAMS = [
+  {
+    id: 'team_red',
+    name: 'Красная Команда',
+    color: { name: 'Красный', hex: '#FF5252', bgHex: 'rgba(255, 82, 82, 0.2)', text: '#FFFFFF', icon: '🔴' }
+  },
+  {
+    id: 'team_blue',
+    name: 'Синяя Команда',
+    color: { name: 'Синий', hex: '#448AFF', bgHex: 'rgba(68, 138, 255, 0.2)', text: '#FFFFFF', icon: '🔵' }
+  }
+];
+
 const GAME_SETTINGS = {
   STARTING_CASH: 1500,
+  TEAM_STARTING_CASH_MULTIPLIER: 1.5, // Total pool for team of 2 ($2250)
   START_PASS_BONUS: 200,
   START_LANDING_BONUS: 100, // +100 bonus when exactly landing on START field
   JAIL_TILE_INDEX: 10,
@@ -826,5 +840,6 @@ module.exports = {
   PROPERTY_GROUPS,
   PROPERTY_GROUPS_40,
   PROPERTY_GROUPS_24,
+  DEFAULT_TEAMS,
   GAME_SETTINGS
 };

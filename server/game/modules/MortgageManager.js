@@ -4,12 +4,17 @@ class MortgageManager {
   /**
    * Validate if a property can be mortgaged
    */
-  static canMortgage(player, board, tileId) {
+  static canMortgage(player, board, tileId, options = {}) {
     const tile = board[tileId];
     if (!tile || tile.type !== 'property') {
       return { allowed: false, reason: 'Клетка не является недвижимостью' };
     }
-    if (tile.ownerId !== player.id) {
+    const isOwner = tile.ownerId === player.id ||
+      (options.teamId && (tile.teamId === options.teamId || tile.ownerId === options.teamId)) ||
+      (player.teamId && (tile.teamId === player.teamId || tile.ownerId === player.teamId)) ||
+      (typeof options.isSameTeam === 'function' && (options.isSameTeam(tile.ownerId, player.id) || (tile.teamId && options.isSameTeam(tile.teamId, player.id))));
+
+    if (!isOwner) {
       return { allowed: false, reason: 'Вы не владеете этой недвижимостью' };
     }
     if (tile.isMortgaged) {
@@ -30,8 +35,8 @@ class MortgageManager {
   /**
    * Mortgage a property to receive cash
    */
-  static mortgageProperty(player, board, tileId) {
-    const validation = this.canMortgage(player, board, tileId);
+  static mortgageProperty(player, board, tileId, options = {}) {
+    const validation = this.canMortgage(player, board, tileId, options);
     if (!validation.allowed) {
       throw new Error(validation.reason);
     }
@@ -53,12 +58,17 @@ class MortgageManager {
   /**
    * Validate if a mortgaged property can be redeemed
    */
-  static canUnmortgage(player, board, tileId) {
+  static canUnmortgage(player, board, tileId, options = {}) {
     const tile = board[tileId];
     if (!tile || tile.type !== 'property') {
       return { allowed: false, reason: 'Клетка не является недвижимостью' };
     }
-    if (tile.ownerId !== player.id) {
+    const isOwner = tile.ownerId === player.id ||
+      (options.teamId && (tile.teamId === options.teamId || tile.ownerId === options.teamId)) ||
+      (player.teamId && (tile.teamId === player.teamId || tile.ownerId === player.teamId)) ||
+      (typeof options.isSameTeam === 'function' && (options.isSameTeam(tile.ownerId, player.id) || (tile.teamId && options.isSameTeam(tile.teamId, player.id))));
+
+    if (!isOwner) {
       return { allowed: false, reason: 'Вы не владеете этой недвижимостью' };
     }
     if (!tile.isMortgaged) {
@@ -78,8 +88,8 @@ class MortgageManager {
   /**
    * Redeem a mortgaged property
    */
-  static unmortgageProperty(player, board, tileId) {
-    const validation = this.canUnmortgage(player, board, tileId);
+  static unmortgageProperty(player, board, tileId, options = {}) {
+    const validation = this.canUnmortgage(player, board, tileId, options);
     if (!validation.allowed) {
       throw new Error(validation.reason);
     }

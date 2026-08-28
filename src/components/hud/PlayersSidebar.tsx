@@ -85,133 +85,292 @@ export const PlayersSidebar: React.FC<PlayersSidebarProps> = ({ onClose, classNa
 
         {/* Players List */}
         <div className="flex flex-col gap-1.5 overflow-y-auto no-scrollbar max-h-[calc(100vh-140px)] pr-0.5">
-          {players.map((player) => {
-            const currentTurnPlayer = gameState.players?.[gameState.currentTurnIndex];
-            const isCurrentTurn = currentTurnPlayer ? player.id === currentTurnPlayer.id : false;
-            const isMe = player.id === playerId;
-            const playerHex = player.color?.hex || '#3b82f6';
+          {gameState.gameMode === 'team' && gameState.teams ? (
+            gameState.teams.map((team) => {
+              const teamPlayers = players.filter((p) => p.teamId === team.id);
+              const isRed = team.id === 'team_red';
 
-            return (
-              <div
-                key={player.id}
-                onClick={() => !isMe && handlePlayerClick(player.id)}
-                className={cn(
-                  'relative flex items-center justify-between p-1.5 rounded-xl border transition-all duration-300 shadow-md group',
-                  isMe ? 'cursor-default' : 'cursor-pointer hover:border-indigo-400/80 hover:bg-[#181c33]',
-                  isCurrentTurn
-                    ? 'bg-[#1a203a] border-indigo-500/80 ring-2 ring-indigo-500/40 shadow-indigo-500/20 shadow-lg scale-[1.01]'
-                    : 'bg-[#131628]/90 border-white/10',
-                  player.isBankrupt && 'opacity-35 saturate-0 pointer-events-none'
-                )}
-                style={{
-                  borderLeftColor: playerHex,
-                  borderLeftWidth: '3.5px',
-                }}
-                title={isMe ? 'Ваш профиль' : `Нажмите для предложения обмена с ${player.name}`}
-              >
-                {/* Left: Avatar with colored ring */}
-                <div className="flex items-center gap-2 min-w-0 flex-1">
+              return (
+                <div key={team.id} className="flex flex-col gap-1 mb-1">
+                  {/* Team Header */}
                   <div
-                    className="relative w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-inner"
-                    style={{
-                      backgroundColor: `color-mix(in srgb, ${playerHex} 20%, #0d1021)`,
-                      boxShadow: `0 0 8px color-mix(in srgb, ${playerHex} 40%, transparent)`,
-                    }}
+                    className={cn(
+                      'flex items-center justify-between px-2 py-1 rounded-lg border text-[10px] font-black',
+                      isRed
+                        ? 'bg-red-500/20 border-red-500/40 text-red-300'
+                        : 'bg-blue-500/20 border-blue-500/40 text-blue-300'
+                    )}
                   >
-                    <PetAvatar
-                      characterId={player.characterId}
-                      anim={isCurrentTurn ? 'jump' : player.inJail ? 'sleep' : 'idle'}
-                      size="sm"
-                      pedestalColor={playerHex}
-                    />
-                    {isCurrentTurn && (
-                      <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 ring-1 ring-[#0d1021] animate-pulse" />
+                    <div className="flex items-center gap-1">
+                      <span>{isRed ? '🔴' : '🔵'}</span>
+                      <span>{team.name}</span>
+                    </div>
+                    <span className="text-amber-300 font-bold">
+                      {formatMoney(team.money)}
+                    </span>
+                  </div>
+
+                  {/* Team Players */}
+                  {teamPlayers.map((player) => {
+                    const currentTurnPlayer = gameState.players?.[gameState.currentTurnIndex];
+                    const isCurrentTurn = currentTurnPlayer ? player.id === currentTurnPlayer.id : false;
+                    const isMe = player.id === playerId;
+                    const isTeammate = myPlayer && myPlayer.teamId === player.teamId;
+                    const playerHex = isRed ? '#FF5252' : '#448AFF';
+
+                    return (
+                      <div
+                        key={player.id}
+                        onClick={() => !isTeammate && handlePlayerClick(player.id)}
+                        className={cn(
+                          'relative flex items-center justify-between p-1.5 rounded-xl border transition-all duration-300 shadow-md group',
+                          isMe || isTeammate ? 'cursor-default' : 'cursor-pointer hover:border-indigo-400/80 hover:bg-[#181c33]',
+                          isCurrentTurn
+                            ? 'bg-[#1a203a] border-indigo-500/80 ring-2 ring-indigo-500/40 shadow-indigo-500/20 shadow-lg scale-[1.01]'
+                            : 'bg-[#131628]/90 border-white/10',
+                          player.isBankrupt && 'opacity-35 saturate-0 pointer-events-none'
+                        )}
+                        style={{
+                          borderLeftColor: playerHex,
+                          borderLeftWidth: '3.5px',
+                        }}
+                        title={isMe ? 'Ваш профиль' : isTeammate ? 'Ваш напарник по команде' : `Предложить обмен ${player.name}`}
+                      >
+                        {/* Left: Avatar with colored ring */}
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <div
+                            className="relative w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-inner"
+                            style={{
+                              backgroundColor: `color-mix(in srgb, ${playerHex} 20%, #0d1021)`,
+                              boxShadow: `0 0 8px color-mix(in srgb, ${playerHex} 40%, transparent)`,
+                            }}
+                          >
+                            <PetAvatar
+                              characterId={player.characterId}
+                              anim={isCurrentTurn ? 'jump' : player.inJail ? 'sleep' : 'idle'}
+                              size="sm"
+                              pedestalColor={playerHex}
+                            />
+                            {isCurrentTurn && (
+                              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 ring-1 ring-[#0d1021] animate-pulse" />
+                            )}
+                          </div>
+
+                          {/* Center: Name & Balance */}
+                          <div className="flex flex-col min-w-0 flex-1">
+                            <div className="flex items-center gap-1 flex-wrap">
+                              <span className="text-xs sm:text-sm font-black text-foreground truncate max-w-[85px] sm:max-w-[105px]">
+                                {player.name}
+                              </span>
+                              {isMe && (
+                                <Badge variant="gold" className="text-[7.5px] px-1 py-0 h-3.5 font-black">
+                                  ВЫ
+                                </Badge>
+                              )}
+                              {player.isBot && (
+                                <Badge
+                                  variant="outline"
+                                  className={cn(
+                                    'text-[7.5px] px-1 py-0 h-3.5 font-black border flex items-center gap-0.5',
+                                    player.botDifficulty === 'careful' && 'bg-teal-500/20 text-teal-300 border-teal-500/40',
+                                    player.botDifficulty === 'aggressive' && 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+                                    (!player.botDifficulty || player.botDifficulty === 'balanced') && 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
+                                  )}
+                                >
+                                  <span>🤖</span>
+                                  <span>
+                                    {player.botDifficulty === 'careful'
+                                      ? 'Осторожный'
+                                      : player.botDifficulty === 'aggressive'
+                                      ? 'Агрессор'
+                                      : 'Баланс'}
+                                  </span>
+                                </Badge>
+                              )}
+                              {!isTeammate && !player.isBot && (
+                                <span className="text-[8.5px] text-indigo-300 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 font-bold">
+                                  <ArrowRightLeft className="w-2.5 h-2.5" />
+                                  Обмен
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="text-xs sm:text-sm font-black text-amber-300 flex items-center gap-0.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
+                                {formatMoney(player.money)}
+                              </span>
+
+                              {/* Status Tags */}
+                              {player.inJail && (
+                                <span className="text-[8px] font-black text-red-400 bg-red-950/60 px-1 py-0.2 rounded border border-red-500/30">
+                                  Тюрьма
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Right: Pawn Token Icon in player color */}
+                        <div className="flex flex-col items-end gap-0.5 shrink-0 pl-1">
+                          <div
+                            className="w-4 h-5 flex items-center justify-center drop-shadow-md"
+                            title={`Фишка игрока ${player.name}`}
+                          >
+                            <svg viewBox="0 0 24 30" className="w-3.5 h-4.5" fill="none">
+                              <circle cx="12" cy="7" r="5" fill={playerHex} stroke="#ffffff" strokeWidth="1.5" />
+                              <path
+                                d="M6 26 C6 18, 9 14, 12 14 C15 14, 18 18, 18 26 Z"
+                                fill={playerHex}
+                                stroke="#ffffff"
+                                strokeWidth="1.5"
+                              />
+                              <ellipse cx="12" cy="26" rx="8" ry="3" fill={playerHex} stroke="#ffffff" strokeWidth="1.5" />
+                            </svg>
+                          </div>
+
+                          {!player.isConnected && (
+                            <Badge variant="destructive" className="text-[6.5px] px-1 py-0 flex items-center gap-0.5 animate-pulse">
+                              <WifiOff className="w-2 h-2" />
+                              {player.disconnectBudgetSeconds || 60}с
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })
+          ) : (
+            players.map((player) => {
+              const currentTurnPlayer = gameState.players?.[gameState.currentTurnIndex];
+              const isCurrentTurn = currentTurnPlayer ? player.id === currentTurnPlayer.id : false;
+              const isMe = player.id === playerId;
+              const playerHex = player.color?.hex || '#3b82f6';
+
+              return (
+                <div
+                  key={player.id}
+                  onClick={() => !isMe && handlePlayerClick(player.id)}
+                  className={cn(
+                    'relative flex items-center justify-between p-1.5 rounded-xl border transition-all duration-300 shadow-md group',
+                    isMe ? 'cursor-default' : 'cursor-pointer hover:border-indigo-400/80 hover:bg-[#181c33]',
+                    isCurrentTurn
+                      ? 'bg-[#1a203a] border-indigo-500/80 ring-2 ring-indigo-500/40 shadow-indigo-500/20 shadow-lg scale-[1.01]'
+                      : 'bg-[#131628]/90 border-white/10',
+                    player.isBankrupt && 'opacity-35 saturate-0 pointer-events-none'
+                  )}
+                  style={{
+                    borderLeftColor: playerHex,
+                    borderLeftWidth: '3.5px',
+                  }}
+                  title={isMe ? 'Ваш профиль' : `Нажмите для предложения обмена с ${player.name}`}
+                >
+                  {/* Left: Avatar with colored ring */}
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <div
+                      className="relative w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-inner"
+                      style={{
+                        backgroundColor: `color-mix(in srgb, ${playerHex} 20%, #0d1021)`,
+                        boxShadow: `0 0 8px color-mix(in srgb, ${playerHex} 40%, transparent)`,
+                      }}
+                    >
+                      <PetAvatar
+                        characterId={player.characterId}
+                        anim={isCurrentTurn ? 'jump' : player.inJail ? 'sleep' : 'idle'}
+                        size="sm"
+                        pedestalColor={playerHex}
+                      />
+                      {isCurrentTurn && (
+                        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 ring-1 ring-[#0d1021] animate-pulse" />
+                      )}
+                    </div>
+
+                    {/* Center: Name & Balance */}
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <span className="text-xs sm:text-sm font-black text-foreground truncate max-w-[85px] sm:max-w-[105px]">
+                          {player.name}
+                        </span>
+                        {isMe && (
+                          <Badge variant="gold" className="text-[7.5px] px-1 py-0 h-3.5 font-black">
+                            ВЫ
+                          </Badge>
+                        )}
+                        {player.isBot && (
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              'text-[7.5px] px-1 py-0 h-3.5 font-black border flex items-center gap-0.5',
+                              player.botDifficulty === 'careful' && 'bg-teal-500/20 text-teal-300 border-teal-500/40',
+                              player.botDifficulty === 'aggressive' && 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+                              (!player.botDifficulty || player.botDifficulty === 'balanced') && 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
+                            )}
+                          >
+                            <span>🤖</span>
+                            <span>
+                              {player.botDifficulty === 'careful'
+                                ? 'Осторожный'
+                                : player.botDifficulty === 'aggressive'
+                                ? 'Агрессор'
+                                : 'Баланс'}
+                            </span>
+                          </Badge>
+                        )}
+                        {!isMe && !player.isBot && (
+                          <span className="text-[8.5px] text-indigo-300 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 font-bold">
+                            <ArrowRightLeft className="w-2.5 h-2.5" />
+                            Обмен
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="text-xs sm:text-sm font-black text-amber-300 flex items-center gap-0.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
+                          {formatMoney(player.money)}
+                        </span>
+
+                        {/* Status Tags */}
+                        {player.inJail && (
+                          <span className="text-[8px] font-black text-red-400 bg-red-950/60 px-1 py-0.2 rounded border border-red-500/30">
+                            Тюрьма
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right: Pawn Token Icon in player color */}
+                  <div className="flex flex-col items-end gap-0.5 shrink-0 pl-1">
+                    <div
+                      className="w-4 h-5 flex items-center justify-center drop-shadow-md"
+                      title={`Фишка игрока ${player.name}`}
+                    >
+                      <svg viewBox="0 0 24 30" className="w-3.5 h-4.5" fill="none">
+                        <circle cx="12" cy="7" r="5" fill={playerHex} stroke="#ffffff" strokeWidth="1.5" />
+                        <path
+                          d="M6 26 C6 18, 9 14, 12 14 C15 14, 18 18, 18 26 Z"
+                          fill={playerHex}
+                          stroke="#ffffff"
+                          strokeWidth="1.5"
+                        />
+                        <ellipse cx="12" cy="26" rx="8" ry="3" fill={playerHex} stroke="#ffffff" strokeWidth="1.5" />
+                      </svg>
+                    </div>
+
+                    {!player.isConnected && (
+                      <Badge variant="destructive" className="text-[6.5px] px-1 py-0 flex items-center gap-0.5 animate-pulse">
+                        <WifiOff className="w-2 h-2" />
+                        {player.disconnectBudgetSeconds || 60}с
+                      </Badge>
                     )}
                   </div>
-
-                  {/* Center: Name & Balance */}
-                  <div className="flex flex-col min-w-0 flex-1">
-                    <div className="flex items-center gap-1 flex-wrap">
-                      <span className="text-xs sm:text-sm font-black text-foreground truncate max-w-[85px] sm:max-w-[105px]">
-                        {player.name}
-                      </span>
-                      {isMe && (
-                        <Badge variant="gold" className="text-[7.5px] px-1 py-0 h-3.5 font-black">
-                          ВЫ
-                        </Badge>
-                      )}
-                      {player.isBot && (
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            'text-[7.5px] px-1 py-0 h-3.5 font-black border flex items-center gap-0.5',
-                            player.botDifficulty === 'careful' && 'bg-teal-500/20 text-teal-300 border-teal-500/40',
-                            player.botDifficulty === 'aggressive' && 'bg-amber-500/20 text-amber-300 border-amber-500/40',
-                            (!player.botDifficulty || player.botDifficulty === 'balanced') && 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
-                          )}
-                        >
-                          <span>🤖</span>
-                          <span>
-                            {player.botDifficulty === 'careful'
-                              ? 'Осторожный'
-                              : player.botDifficulty === 'aggressive'
-                              ? 'Агрессор'
-                              : 'Баланс'}
-                          </span>
-                        </Badge>
-                      )}
-                      {!isMe && !player.isBot && (
-                        <span className="text-[8.5px] text-indigo-300 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 font-bold">
-                          <ArrowRightLeft className="w-2.5 h-2.5" />
-                          Обмен
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-xs sm:text-sm font-black text-amber-300 flex items-center gap-0.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
-                        {formatMoney(player.money)}
-                      </span>
-
-                      {/* Status Tags */}
-                      {player.inJail && (
-                        <span className="text-[8px] font-black text-red-400 bg-red-950/60 px-1 py-0.2 rounded border border-red-500/30">
-                          Тюрьма
-                        </span>
-                      )}
-                    </div>
-                  </div>
                 </div>
-
-                {/* Right: Pawn Token Icon in player color */}
-                <div className="flex flex-col items-end gap-0.5 shrink-0 pl-1">
-                  <div
-                    className="w-4 h-5 flex items-center justify-center drop-shadow-md"
-                    title={`Фишка игрока ${player.name}`}
-                  >
-                    <svg viewBox="0 0 24 30" className="w-3.5 h-4.5" fill="none">
-                      <circle cx="12" cy="7" r="5" fill={playerHex} stroke="#ffffff" strokeWidth="1.5" />
-                      <path
-                        d="M6 26 C6 18, 9 14, 12 14 C15 14, 18 18, 18 26 Z"
-                        fill={playerHex}
-                        stroke="#ffffff"
-                        strokeWidth="1.5"
-                      />
-                      <ellipse cx="12" cy="26" rx="8" ry="3" fill={playerHex} stroke="#ffffff" strokeWidth="1.5" />
-                    </svg>
-                  </div>
-
-                  {!player.isConnected && (
-                    <Badge variant="destructive" className="text-[6.5px] px-1 py-0 flex items-center gap-0.5 animate-pulse">
-                      <WifiOff className="w-2 h-2" />
-                      {player.disconnectBudgetSeconds || 60}с
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </div>
 

@@ -20,7 +20,10 @@ export const PropertyManagerModal: React.FC = () => {
   if (!gameState) return null;
 
   const myPlayer = gameState.players.find((p) => p.id === playerId);
-  const myTiles = gameState.board.filter((t) => t.ownerId === playerId);
+  const isTeamMode = gameState.gameMode === 'team';
+  const myTiles = gameState.board.filter(
+    (t) => t.ownerId === playerId || (isTeamMode && myPlayer?.teamId && t.teamId === myPlayer.teamId)
+  );
   const isMyTurn = Boolean(gameState.players[gameState.currentTurnIndex]?.id === playerId && gameState.status !== 'GAME_OVER' && gameState.status !== 'LOBBY');
 
   return (

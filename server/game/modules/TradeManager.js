@@ -4,7 +4,7 @@ class TradeManager {
   /**
    * Validate trade items and ownership
    */
-  static validateTradeItems(player, items, board) {
+  static validateTradeItems(player, items, board, options = {}) {
     const money = Math.max(0, Number(items.money) || 0);
     if (money > player.money) {
       return { valid: false, reason: `${player.name} не имеет достаточно денег ($${player.money} < $${money})` };
@@ -18,7 +18,13 @@ class TradeManager {
     const properties = items.properties || [];
     for (const tileId of properties) {
       const tile = board[tileId];
-      if (!tile || tile.ownerId !== player.id) {
+      const isOwner = tile && (
+        tile.ownerId === player.id ||
+        (typeof options.isSameTeam === 'function' && options.isSameTeam(tile.ownerId, player.id)) ||
+        (player.teamId && tile.teamId === player.teamId)
+      );
+
+      if (!tile || !isOwner) {
         return { valid: false, reason: `${player.name} не владеет улицей "${tile ? tile.name : tileId}"` };
       }
 
@@ -36,22 +42,25 @@ class TradeManager {
   /**
    * Create a trade proposal
    */
-  static createTradeProposal(fromPlayer, toPlayer, offer, request, board) {
+  static createTradeProposal(fromPlayer, toPlayer, offer, request, board, options = {}) {
     if (!fromPlayer || !toPlayer || fromPlayer.id === toPlayer.id) {
       throw new Error('Некорректные участники сделки');
+    }
+    if (typeof options.isSameTeam === 'function' && options.isSameTeam(fromPlayer.id, toPlayer.id)) {
+      throw new Error('Нельзя совершать сделки с напарником по команде, так как у вас общая казна и имущество');
     }
     if (fromPlayer.isBankrupt || toPlayer.isBankrupt) {
       throw new Error('Обанкротившиеся игроки не могут совершать сделки');
     }
 
     // Validate offer items belong to fromPlayer
-    const offerCheck = this.validateTradeItems(fromPlayer, offer, board);
+    const offerCheck = this.validateTradeItems(fromPlayer, offer, board, options);
     if (!offerCheck.valid) {
       throw new Error(offerCheck.reason);
     }
 
     // Validate request items belong to toPlayer
-    const requestCheck = this.validateTradeItems(toPlayer, request, board);
+    const requestCheck = this.validateTradeItems(toPlayer, request, board, options);
     if (!requestCheck.valid) {
       throw new Error(requestCheck.reason);
     }

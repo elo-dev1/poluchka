@@ -321,7 +321,7 @@ function setupSocketHandlers(io) {
     });
 
     // 2.1 Add Bot to Lobby (Host only)
-    socket.on('add_bot', ({ roomId, difficulty }, callback) => {
+    socket.on('add_bot', ({ roomId, difficulty, teamId }, callback) => {
       try {
         const rId = roomId || currentRoomId;
         const game = roomManager.getRoom(rId);
@@ -330,7 +330,7 @@ function setupSocketHandlers(io) {
           return sendError(callback, 'Только создатель стола может добавлять ботов');
         }
 
-        const bot = game.addBot({ difficulty });
+        const bot = game.addBot({ difficulty, teamId });
         if (typeof callback === 'function') {
           callback({ success: true, bot, state: game.getPublicState() });
         }
@@ -353,6 +353,26 @@ function setupSocketHandlers(io) {
         const removedBot = game.removeBot(botId);
         if (typeof callback === 'function') {
           callback({ success: true, bot: removedBot, state: game.getPublicState() });
+        }
+        broadcastGameState(game);
+      } catch (err) {
+        sendError(callback, err.message);
+      }
+    });
+
+    // 2.3 Set Player Team in Lobby (Team Mode)
+    socket.on('set_player_team', ({ roomId, targetPlayerId, teamId }, callback) => {
+      try {
+        const rId = roomId || currentRoomId;
+        const game = roomManager.getRoom(rId);
+        if (!game) return sendError(callback, 'Комната не найдена');
+        if (game.status !== 'LOBBY') {
+          return sendError(callback, 'Команды можно менять только в лобби перед началом игры');
+        }
+
+        const targetTeam = game.setPlayerTeam(targetPlayerId || currentPlayerId, teamId);
+        if (typeof callback === 'function') {
+          callback({ success: true, team: targetTeam, state: game.getPublicState() });
         }
         broadcastGameState(game);
       } catch (err) {

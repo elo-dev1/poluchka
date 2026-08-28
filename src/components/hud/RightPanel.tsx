@@ -58,8 +58,9 @@ export const RightPanel: React.FC<RightPanelProps> = ({
 
   const myPlayer = gameState.players.find((p) => p.id === playerId);
   const myMoney = myPlayer?.money || 0;
+  const isTeamMode = gameState.gameMode === 'team';
   const myProperties = gameState.board.filter(
-    (tile) => tile.ownerId === playerId,
+    (tile) => tile.ownerId === playerId || (isTeamMode && myPlayer?.teamId && tile.teamId === myPlayer.teamId),
   );
 
   // Active tile: selected tile by click, or landing action tile, or fallback to first owned property or tile 1
@@ -79,7 +80,10 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   const isUtility = isProperty && displayTile?.group === "utility";
   const isStreet = isProperty && !isTransport && !isUtility;
 
-  const isOwner = isProperty && displayTile && displayTile.ownerId === playerId;
+  const isOwner = isProperty && displayTile && (
+    displayTile.ownerId === playerId ||
+    (isTeamMode && myPlayer?.teamId && displayTile.teamId === myPlayer.teamId)
+  );
   const ownerPlayer = displayTile?.ownerId
     ? gameState.players.find((p) => p.id === displayTile.ownerId)
     : null;

@@ -12,7 +12,10 @@ export const InventorySidebar: React.FC = () => {
   if (!gameState) return null;
 
   const myPlayer = gameState.players.find((p) => p.id === playerId);
-  const myProperties = gameState.board.filter((tile) => tile.ownerId === playerId);
+  const isTeamMode = gameState.gameMode === 'team';
+  const myProperties = gameState.board.filter(
+    (tile) => tile.ownerId === playerId || (isTeamMode && myPlayer?.teamId && tile.teamId === myPlayer.teamId)
+  );
   const jailCardsCount = myPlayer?.jailFreeCards || 0;
   const totalPropertyValue = myProperties.reduce((acc, tile) => acc + (tile.price || 0), 0);
 

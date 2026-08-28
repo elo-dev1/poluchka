@@ -6,6 +6,7 @@ import { LobbyScreen } from '@/components/screens/LobbyScreen';
 import { GameScreen } from '@/components/screens/GameScreen';
 import { SnowOverlay } from '@/components/board/SnowOverlay';
 import { ToastContainer } from '@/components/ui/toast';
+import { cn } from '@/lib/utils';
 
 // Modals
 import { SettingsModal } from '@/components/modals/SettingsModal';
@@ -42,8 +43,13 @@ export const App: React.FC = () => {
       {/* Top Header (Only shown on Welcome and Lobby screens) */}
       {!isPlayingGame && <TopBar />}
 
-      {/* Main Screen Content (Strictly fitted to viewport) */}
-      <main className="flex-1 min-h-0 w-full flex flex-col items-center justify-center relative z-10 overflow-hidden">
+      {/* Main Screen Content (Scrollable in menus, fitted in-game) */}
+      <main
+        className={cn(
+          "flex-1 min-h-0 w-full flex flex-col items-center relative z-10",
+          isPlayingGame ? "justify-center overflow-hidden" : "overflow-y-auto justify-start"
+        )}
+      >
         {renderActiveScreen()}
       </main>
 

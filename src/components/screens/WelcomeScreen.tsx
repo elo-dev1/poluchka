@@ -106,7 +106,7 @@ export const WelcomeScreen: React.FC = () => {
 
   const handleCreate = async (options?: {
     mode?: "standard" | "blitz" | "ranked";
-    gameMode?: "classic" | "reverse";
+    gameMode?: "classic" | "reverse" | "team";
     maxRounds?: number;
     boardSize?: 40 | 24;
   }) => {
@@ -128,7 +128,7 @@ export const WelcomeScreen: React.FC = () => {
       maxRounds,
       boardSize: bSize,
       startingCash: 1500,
-      maxPlayers: mode === "ranked" ? 2 : 6,
+      maxPlayers: gameMode === "team" ? 4 : (mode === "ranked" ? 2 : 6),
     });
     setLoadingCreate(false);
   };
@@ -193,7 +193,7 @@ export const WelcomeScreen: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-5xl px-3 sm:px-6 py-4 md:py-6 flex flex-col items-center justify-start animate-fade-in select-none min-h-[calc(100dvh-60px)]">
+    <div className="w-full max-w-5xl px-3 sm:px-6 py-4 md:py-6 flex flex-col items-center justify-start animate-fade-in select-none min-h-full pb-10">
       {/* 1. Hero Player Profile Bar */}
       <div className="w-full rounded-3xl bg-gradient-to-r from-card/90 via-black/40 to-card/90 border border-white/10 p-3 sm:p-4 shadow-xl backdrop-blur-xl mb-4 flex flex-col md:flex-row items-center justify-between gap-4 shrink-0">
         {/* Left: Chosen Character & Player Name */}
@@ -957,6 +957,114 @@ export const WelcomeScreen: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* Mode 5: 👥 Командный режим 2v2 (Team Mode) */}
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-500/20 via-indigo-500/20 to-red-500/20 border-2 border-blue-400/40 p-5 sm:p-6 shadow-2xl backdrop-blur-xl">
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-2xl bg-blue-400/20 border border-blue-400/40 flex items-center justify-center shrink-0">
+                      <Users className="w-5 h-5 text-blue-300" />
+                    </div>
+                    <div className="flex flex-col text-left">
+                      <div className="flex items-center gap-2">
+                        <span className="font-black text-lg sm:text-xl text-foreground">
+                          Командный режим 2v2 👥
+                        </span>
+                        <Badge
+                          variant="gold"
+                          className="text-[10px] font-black px-2 py-0.5 uppercase tracking-wide bg-blue-500/30 text-blue-200 border-blue-400/50"
+                        >
+                          2 КОМАНДЫ
+                        </Badge>
+                      </div>
+                      <span className="text-xs text-blue-300 font-semibold">
+                        Красные 🔴 vs Синие 🔵 • Общая казна $2250 • Командные монополии
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 self-start sm:self-auto">
+                    <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-blue-500/20 border border-blue-500/30 text-blue-200 flex items-center gap-1">
+                      🤝 Командная стратегия
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed text-left">
+                  Сражайтесь плечом к плечу! У вас и напарника <strong className="text-foreground">общий баланс казны и недвижимость</strong>. Монополии строятся на общих улицах команды, остановка на территории напарника <strong className="text-emerald-400">бесплатна ($0)</strong>, а рента с соперников пополняет общую казну. Побеждает команда с наибольшим суммарным капиталом!
+                </p>
+
+                {/* Mode Attributes Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-left">
+                  <div className="p-3 rounded-2xl bg-black/40 border border-white/5 flex flex-col gap-1">
+                    <div className="flex items-center gap-1.5 text-blue-400 text-xs font-bold">
+                      <Users className="w-4 h-4" />
+                      <span>2v2 Команды</span>
+                    </div>
+                    <span className="text-[11px] text-muted-foreground">
+                      🔴 Красные vs 🔵 Синие
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-black/40 border border-white/5 flex flex-col gap-1">
+                    <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-bold">
+                      <Coins className="w-4 h-4" />
+                      <span>Общая казна $2250</span>
+                    </div>
+                    <span className="text-[11px] text-muted-foreground">
+                      Единый кошелек и активы
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-black/40 border border-white/5 flex flex-col gap-1">
+                    <div className="flex items-center gap-1.5 text-amber-400 text-xs font-bold">
+                      <Building2 className="w-4 h-4" />
+                      <span>$0 Рента своим</span>
+                    </div>
+                    <span className="text-[11px] text-muted-foreground">
+                      Бесплатный отдых напарника
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-black/40 border border-white/5 flex flex-col gap-1">
+                    <div className="flex items-center gap-1.5 text-red-400 text-xs font-bold">
+                      <Flame className="w-4 h-4" />
+                      <span>Командный финал</span>
+                    </div>
+                    <span className="text-[11px] text-muted-foreground">
+                      Победа по капиталу команд
+                    </span>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-2">
+                  <Button
+                    variant="outline"
+                    className="w-full sm:w-auto font-bold text-xs h-10 border-white/15 hover:bg-white/10"
+                    onClick={() =>
+                      handleCreate({ mode: "blitz", gameMode: "team", boardSize: 24 })
+                    }
+                    disabled={loadingCreate}
+                  >
+                    <span>Блиц 2v2 (24 кл.) ⚡</span>
+                  </Button>
+
+                  <Button
+                    variant="gold"
+                    className="w-full sm:w-auto font-black text-xs sm:text-sm h-10 px-6 shadow-xl shadow-blue-500/20 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white"
+                    onClick={() =>
+                      handleCreate({ mode: "standard", gameMode: "team", boardSize: 40 })
+                    }
+                    disabled={loadingCreate}
+                  >
+                    <Users className="w-4 h-4 mr-1.5" />
+                    <span>Создать стол 2v2 (40 кл.) 👥</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
@@ -1010,6 +1118,7 @@ export const WelcomeScreen: React.FC = () => {
                     const isBlitz =
                       room.mode === "blitz" || room.boardSize === 24;
                     const isReverse = room.gameMode === "reverse";
+                    const isTeam = room.gameMode === "team";
                     return (
                       <div
                         key={room.roomId}
@@ -1023,6 +1132,12 @@ export const WelcomeScreen: React.FC = () => {
                             <span className="text-xs font-bold text-foreground">
                               {room.hostName}
                             </span>
+                            {isTeam && (
+                              <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/40 text-[10px] font-black px-1.5 py-0.5 rounded-md flex items-center gap-1 shadow-sm">
+                                <span>👥</span>
+                                <span>Команды 2v2</span>
+                              </Badge>
+                            )}
                             {isReverse && (
                               <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/40 text-[10px] font-black px-1.5 py-0.5 rounded-md flex items-center gap-1 shadow-sm">
                                 <span>🔄</span>
@@ -1248,7 +1363,7 @@ export const WelcomeScreen: React.FC = () => {
       </div>
 
       {/* 4. Bottom Live Stats & Legal Footer */}
-      <div className="w-full mt-5 pt-3 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between text-[11px] text-muted-foreground gap-2">
+      <footer className="w-full mt-8 sm:mt-12 pt-6 pb-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between text-[11px] text-muted-foreground gap-3 shrink-0">
         <div className="flex items-center gap-3">
           <span>Открытых столов: {publicRooms.length}</span>
         </div>
@@ -1256,12 +1371,12 @@ export const WelcomeScreen: React.FC = () => {
         <div className="flex items-center gap-3">
           <button
             onClick={() => openModal("legal")}
-            className="hover:text-foreground transition-colors underline"
+            className="hover:text-foreground transition-colors underline underline-offset-4 cursor-pointer"
           >
             Соглашение и 152-ФЗ
           </button>
         </div>
-      </div>
+      </footer>
     </div>
   );
 };

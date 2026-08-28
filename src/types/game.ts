@@ -5,6 +5,24 @@ export interface PlayerColor {
   icon: string;
 }
 
+export interface TeamColor {
+  name: string;
+  hex: string;
+  bgHex: string;
+  text: string;
+  icon: string;
+}
+
+export interface TeamData {
+  id: string;
+  name: string;
+  color: TeamColor;
+  money: number;
+  properties: number[];
+  playerIds: string[];
+  isBankrupt: boolean;
+}
+
 export interface TileData {
   id: number;
   name: string;
@@ -25,6 +43,7 @@ export interface TileData {
   iconUrl?: string;
   description?: string;
   ownerId?: string | null;
+  teamId?: string | null;
   houses?: number;
   isMortgaged?: boolean;
   isMonopoly?: boolean;
@@ -35,6 +54,7 @@ export interface PlayerData {
   id: string;
   name: string;
   color: PlayerColor;
+  teamId?: string | null;
   money: number;
   position: number;
   inJail: boolean;
@@ -67,6 +87,8 @@ export interface PlayerData {
   hotelsCount?: number;
   rank?: number;
   isWinner?: boolean;
+  isTeamWinner?: boolean;
+  teamName?: string;
 }
 
 export interface ActiveAuction {
@@ -188,7 +210,7 @@ export interface GameState {
   status: 'LOBBY' | 'ROLLING' | 'ACTION' | 'AWAITING_ACTION' | 'TURN_END' | 'AUCTION' | 'TRADE' | 'GAME_OVER';
   isPrivate: boolean;
   mode?: 'standard' | 'blitz' | 'ranked';
-  gameMode?: 'classic' | 'reverse';
+  gameMode?: 'classic' | 'reverse' | 'team';
   maxRounds?: number;
   boardSize?: number;
   hasBots?: boolean;
@@ -215,6 +237,7 @@ export interface GameState {
     remainingSeconds: number;
   } | null;
   winner: PlayerData | null;
+  teams?: TeamData[];
   gameDurationSeconds: number;
   remainingTurnSeconds: number;
   stats: {
@@ -236,7 +259,7 @@ export interface PublicRoomSummary {
   maxPlayers: number;
   isPrivate: boolean;
   mode?: string;
-  gameMode?: 'classic' | 'reverse';
+  gameMode?: 'classic' | 'reverse' | 'team';
   maxRounds?: number;
   boardSize?: number;
   status: string;

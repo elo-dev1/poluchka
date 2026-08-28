@@ -1,4 +1,4 @@
-const { BOARD_TILES, BOARD_TILES_40, BOARD_TILES_24, GAME_SETTINGS } = require('../config/boardConfig');
+const { BOARD_TILES, BOARD_TILES_40, BOARD_TILES_24, DEFAULT_TEAMS, GAME_SETTINGS } = require('../config/boardConfig');
 const { PET_CHARACTERS } = require('../config/petCharacters');
 const { CHANCE_CARDS, CHEST_CARDS } = require('../config/cardsConfig');
 const MonopolyManager = require('./modules/MonopolyManager');
@@ -14,12 +14,23 @@ class GameEngine {
     this.hostId = hostId;
     this.status = 'LOBBY'; // LOBBY, ROLLING, AWAITING_ACTION, TURN_END, AUCTION, GAME_OVER
     this.isPrivate = !!options.isPrivate;
-    this.maxPlayers = options.maxPlayers || GAME_SETTINGS.MAX_PLAYERS || 6;
+    this.maxPlayers = options.maxPlayers || ((options.gameMode === 'team' || options.mode === 'team') ? 4 : (GAME_SETTINGS.MAX_PLAYERS || 6));
     this.mode = options.mode || 'standard'; // 'standard' (40 tiles) | 'blitz' (24 tiles) | 'ranked'
     this.boardSize = options.boardSize || (this.mode === 'blitz' ? 24 : 40);
     this.startingCash = options.startingCash || GAME_SETTINGS.STARTING_CASH || 1500;
-    this.gameMode = options.gameMode || (options.mode === 'reverse' ? 'reverse' : 'classic'); // 'classic' | 'reverse'
+    this.gameMode = options.gameMode || (options.mode === 'reverse' ? 'reverse' : options.mode === 'team' ? 'team' : 'classic'); // 'classic' | 'reverse' | 'team'
+    this.teamStartingCash = options.teamStartingCash || Math.round(this.startingCash * (GAME_SETTINGS.TEAM_STARTING_CASH_MULTIPLIER || 1.5));
     this.maxRounds = options.maxRounds !== undefined ? Number(options.maxRounds) : (this.gameMode === 'reverse' ? (this.boardSize === 24 || this.mode === 'blitz' ? 10 : 20) : 0);
+
+    this.teams = this.gameMode === 'team' ? (DEFAULT_TEAMS || []).map(t => ({
+      id: t.id,
+      name: t.name,
+      color: t.color,
+      money: this.teamStartingCash,
+      properties: [],
+      playerIds: [],
+      isBankrupt: false
+    })) : [];
 
     this.players = [];
     this.currentTurnIndex = 0;
@@ -98,12 +109,116 @@ class GameEngine {
     return logEntry;
   }
 
+  /**
+   * Get the treasury entity for financial/property operations.
+   * In standard/reverse mode: returns player.
+   * In team mode: returns player's team.
+   */
+  getTreasury(playerOrId) {
+    const player = typeof playerOrId === 'object' && playerOrId ? playerOrId : this.players.find(p => p.id === playerOrId);
+    if (!player) return null;
+    if (this.gameMode === 'team' && player.teamId) {
+      const team = this.teams.find(t => t.id === player.teamId);
+      if (team) return team;
+    }
+    return player;
+  }
+
+  isSameTeam(player1OrId, player2OrId) {
+    if (!player1OrId || !player2OrId) return false;
+    const id1 = typeof player1OrId === 'object' ? player1OrId.id : player1OrId;
+    const id2 = typeof player2OrId === 'object' ? player2OrId.id : player2OrId;
+    if (id1 === id2) return true;
+    if (this.gameMode !== 'team') return false;
+
+    // Check if either is a teamId or player on the team
+    const t1 = this.teams.find(t => t.id === id1);
+    const t2 = this.teams.find(t => t.id === id2);
+    const p1 = this.players.find(p => p.id === id1);
+    const p2 = this.players.find(p => p.id === id2);
+
+    const teamId1 = t1 ? t1.id : p1?.teamId;
+    const teamId2 = t2 ? t2.id : p2?.teamId;
+
+    return Boolean(teamId1 && teamId2 && teamId1 === teamId2);
+  }
+
+  /**
+   * Get the team object for a player.
+   */
+  getTeam(playerOrId) {
+    const player = typeof playerOrId === 'object' && playerOrId ? playerOrId : this.players.find(p => p.id === playerOrId);
+    if (!player || !player.teamId) return null;
+    return this.teams.find(t => t.id === player.teamId) || null;
+  }
+
+  /**
+   * Sync money and properties from teams to their member players so all client components
+   * have consistent state without requiring separate team logic everywhere.
+   */
+  syncPlayerTreasuries() {
+    if (this.gameMode !== 'team') return;
+    for (const team of this.teams) {
+      for (const pid of team.playerIds) {
+        const p = this.players.find(pl => pl.id === pid);
+        if (p) {
+          p.money = team.money;
+          p.properties = [...team.properties];
+          p.propertiesCount = team.properties.length;
+          p.isBankrupt = team.isBankrupt;
+        }
+      }
+    }
+  }
+
+  /**
+   * Assign or switch a player's team in LOBBY
+   */
+  setPlayerTeam(playerId, teamId) {
+    if (this.status !== 'LOBBY') {
+      throw new Error('Команды можно менять только в лобби перед стартом игры');
+    }
+    if (this.gameMode !== 'team') {
+      throw new Error('Команды доступны только в командном режиме');
+    }
+    const player = this.players.find(p => p.id === playerId);
+    if (!player) {
+      throw new Error('Игрок не найден');
+    }
+    const targetTeam = this.teams.find(t => t.id === teamId);
+    if (!targetTeam) {
+      throw new Error('Команда не найдена');
+    }
+
+    if (player.teamId === teamId) {
+      return targetTeam;
+    }
+
+    const maxPerTeam = 2;
+    const currentMembers = this.players.filter(p => p.teamId === teamId && p.id !== playerId);
+    if (currentMembers.length >= maxPerTeam) {
+      throw new Error('Команда уже заполнена (максимум 2 игрока)');
+    }
+
+    // Remove from old team
+    for (const team of this.teams) {
+      team.playerIds = team.playerIds.filter(id => id !== playerId);
+    }
+
+    // Add to new team
+    targetTeam.playerIds.push(playerId);
+    player.teamId = targetTeam.id;
+    this.syncPlayerTreasuries();
+    this.notifyStateChange();
+    return targetTeam;
+  }
+
   addPlayer(id, name, options = {}) {
     if (this.status !== 'LOBBY') {
       throw new Error('Игра уже началась');
     }
-    if (this.players.length >= GAME_SETTINGS.MAX_PLAYERS) {
-      throw new Error(`В комнате уже максимум игроков (${GAME_SETTINGS.MAX_PLAYERS})`);
+    if (this.players.length >= this.maxPlayers) {
+      throw new Error(`В комнате уже максимум игроков (${this.maxPlayers})`);
     }
 
     const availableColors = GAME_SETTINGS.PLAYER_COLORS.filter(
@@ -114,12 +229,14 @@ class GameEngine {
     const defaultChar = PET_CHARACTERS[this.players.length % PET_CHARACTERS.length]?.id || 'cat';
     const characterId = options.characterId || defaultChar;
 
+    const initialMoney = this.gameMode === 'team' ? this.teamStartingCash : GAME_SETTINGS.STARTING_CASH;
+
     const player = {
       id,
       name: (name || '').trim() || `Игрок ${this.players.length + 1}`,
       color,
       characterId,
-      money: GAME_SETTINGS.STARTING_CASH,
+      money: initialMoney,
       position: 0,
       inJail: false,
       jailTurns: 0,
@@ -136,20 +253,43 @@ class GameEngine {
       properties: []
     };
 
+    if (this.gameMode === 'team') {
+      const requestedTeamId = typeof options === 'string' ? options : (options && options.teamId);
+      const availableTeams = [...this.teams].filter(t => t.playerIds.length < 2).sort((a, b) => a.playerIds.length - b.playerIds.length);
+      let chosenTeam = requestedTeamId ? this.teams.find(t => t.id === requestedTeamId) : null;
+      if (!chosenTeam || chosenTeam.playerIds.length >= 2) {
+        chosenTeam = availableTeams[0] || this.teams[0];
+      }
+      player.teamId = chosenTeam.id;
+      if (!chosenTeam.playerIds.includes(player.id)) {
+        chosenTeam.playerIds.push(player.id);
+      }
+      player.money = chosenTeam.money;
+      player.properties = [...chosenTeam.properties];
+    }
+
     this.players.push(player);
     this.addLog(`${player.name} присоединился к игре`, 'info', player.color.icon);
     return player;
   }
 
-  addBot(options = {}) {
+  addBot(difficultyOrOptions = {}, maybeTeamId) {
     if (this.status !== 'LOBBY') {
       throw new Error('Ботов можно добавлять только в лобби перед началом игры');
     }
-    if (this.players.length >= GAME_SETTINGS.MAX_PLAYERS) {
-      throw new Error(`В комнате уже максимум игроков (${GAME_SETTINGS.MAX_PLAYERS})`);
+    if (this.players.length >= this.maxPlayers) {
+      throw new Error(`В комнате уже максимум игроков (${this.maxPlayers})`);
     }
 
-    const difficulty = options.difficulty || 'balanced'; // 'careful' | 'balanced' | 'aggressive'
+    let difficulty = 'balanced';
+    let teamId = undefined;
+    if (typeof difficultyOrOptions === 'string') {
+      difficulty = difficultyOrOptions;
+      teamId = maybeTeamId;
+    } else if (difficultyOrOptions && typeof difficultyOrOptions === 'object') {
+      difficulty = difficultyOrOptions.difficulty || 'balanced';
+      teamId = difficultyOrOptions.teamId || maybeTeamId;
+    }
     const availableColors = GAME_SETTINGS.PLAYER_COLORS.filter(
       c => !this.players.some(p => p.color.hex === c.hex)
     );
@@ -168,13 +308,15 @@ class GameEngine {
     const diffLabel = diffLabels[difficulty] || 'Баланс';
     const petName = availableChar ? availableChar.name : 'Бот';
 
+    const initialMoney = this.gameMode === 'team' ? this.teamStartingCash : GAME_SETTINGS.STARTING_CASH;
+
     const botId = `bot_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const botPlayer = {
       id: botId,
       name: `${petName} (${diffLabel})`,
       color,
       characterId,
-      money: GAME_SETTINGS.STARTING_CASH,
+      money: initialMoney,
       position: 0,
       inJail: false,
       jailTurns: 0,
@@ -193,9 +335,34 @@ class GameEngine {
       properties: []
     };
 
+    if (this.gameMode === 'team') {
+      let chosenTeam = teamId ? this.teams.find(t => t.id === teamId) : null;
+      if (teamId) {
+        if (!chosenTeam) {
+          throw new Error('Указанная команда не найдена');
+        }
+        if (chosenTeam.playerIds.length >= 2) {
+          throw new Error(`Команда "${chosenTeam.name}" уже заполнена (максимум 2 игрока)`);
+        }
+      } else {
+        const availableTeams = [...this.teams].filter(t => t.playerIds.length < 2).sort((a, b) => a.playerIds.length - b.playerIds.length);
+        if (availableTeams.length === 0) {
+          throw new Error('Все команды уже заполнены (максимум 4 игрока)');
+        }
+        chosenTeam = availableTeams[0];
+      }
+
+      botPlayer.teamId = chosenTeam.id;
+      if (!chosenTeam.playerIds.includes(botPlayer.id)) {
+        chosenTeam.playerIds.push(botPlayer.id);
+      }
+      botPlayer.money = chosenTeam.money;
+      botPlayer.properties = [...chosenTeam.properties];
+    }
+
     this.players.push(botPlayer);
     this.everHadBot = true;
-    this.addLog(`🤖 Бот ${botPlayer.name} добавлен в комнату`, 'info', '🤖');
+    this.addLog(`🤖 Бот ${botPlayer.name} добавлен в комнату${this.gameMode === 'team' ? ` (${this.getTeam(botPlayer)?.name})` : ''}`, 'info', '🤖');
     this.notifyStateChange();
     return botPlayer;
   }
@@ -209,6 +376,12 @@ class GameEngine {
       throw new Error('Бот не найден');
     }
     const removedBot = this.players.splice(index, 1)[0];
+    if (this.gameMode === 'team' && removedBot.teamId) {
+      const team = this.teams.find(t => t.id === removedBot.teamId);
+      if (team) {
+        team.playerIds = team.playerIds.filter(id => id !== botId);
+      }
+    }
     this.addLog(`🤖 Бот ${removedBot.name} удален из комнаты`, 'info', '🚪');
     this.notifyStateChange();
     return removedBot;
@@ -287,6 +460,12 @@ class GameEngine {
 
     if (this.status === 'LOBBY') {
       this.players.splice(index, 1);
+      if (this.gameMode === 'team' && player.teamId) {
+        const team = this.teams.find(t => t.id === player.teamId);
+        if (team) {
+          team.playerIds = team.playerIds.filter(id => id !== playerId);
+        }
+      }
       if (this.hostId === playerId && this.players.length > 0) {
         this.hostId = this.players[0].id;
         this.addLog(`${this.players[0].name} стал новым хостом комнаты`, 'warning', '👑');
@@ -620,6 +799,42 @@ class GameEngine {
       throw new Error('Игра уже запущена');
     }
 
+    if (this.gameMode === 'team') {
+      // Ensure both teams have at least 1 player
+      for (const team of this.teams) {
+        if (team.playerIds.length === 0) {
+          this.addBot({ difficulty: 'balanced', teamId: team.id });
+        }
+      }
+
+      // Balance player counts if needed (e.g. 2v1 -> add bot to make 2v2)
+      const maxTeamCount = Math.max(...this.teams.map(t => t.playerIds.length));
+      for (const team of this.teams) {
+        while (team.playerIds.length < maxTeamCount && this.players.length < this.maxPlayers) {
+          this.addBot({ difficulty: 'balanced', teamId: team.id });
+        }
+      }
+
+      // Re-order players so turns alternate between teams: Team 1 [0], Team 2 [0], Team 1 [1], Team 2 [1], ...
+      const alternatingPlayers = [];
+      const teamLists = this.teams.map(t => this.players.filter(p => p.teamId === t.id));
+      const maxLen = Math.max(...teamLists.map(l => l.length));
+      for (let i = 0; i < maxLen; i++) {
+        for (const tList of teamLists) {
+          if (tList[i]) alternatingPlayers.push(tList[i]);
+        }
+      }
+      this.players = alternatingPlayers;
+
+      // Initialize team treasury money
+      for (const team of this.teams) {
+        team.money = this.teamStartingCash;
+        team.properties = [];
+        team.isBankrupt = false;
+      }
+      this.syncPlayerTreasuries();
+    }
+
     this.status = 'ROLLING';
     this.startedAt = Date.now();
     this.currentTurnIndex = 0;
@@ -647,7 +862,11 @@ class GameEngine {
     }
 
     player.missedTurns = 0;
-    const res = JailManager.payBail(player);
+    const treasury = this.getTreasury(player);
+    const res = JailManager.payBail(treasury);
+    player.inJail = false;
+    player.jailTurns = 0;
+    this.syncPlayerTreasuries();
     this.addLog(`🔓 ${player.name} оплатил залог $${res.bailAmount} и вышел из тюрьмы!`, 'money', '💸');
     this.status = 'ROLLING';
     return this.getPublicState();
@@ -707,10 +926,12 @@ class GameEngine {
         if (jailRes.reason === 'double') {
           this.addLog(`🎉 ${player.name} выбросил ДУБЛЬ (${die1}:${die2}) и выходит из Тюрьмы!`, 'success', '🗝️');
         } else if (jailRes.forcedBail) {
-          if (player.money >= jailRes.bailAmount) {
-            player.money -= jailRes.bailAmount;
+          const treasury = this.getTreasury(player);
+          if (treasury.money >= jailRes.bailAmount) {
+            treasury.money -= jailRes.bailAmount;
             player.inJail = false;
             player.jailTurns = 0;
+            this.syncPlayerTreasuries();
             this.addLog(`⛓️ ${player.name} провёл 3 хода в Тюрьме и обязан оплатить залог $${jailRes.bailAmount}.`, 'warning', '💸');
           } else {
             this.handleBankruptcy(player, null);
@@ -756,7 +977,9 @@ class GameEngine {
 
     // Apply start pass bonus
     if (passedStart && newPosition !== 0) {
-      player.money += GAME_SETTINGS.START_PASS_BONUS;
+      const treasury = this.getTreasury(player);
+      treasury.money += GAME_SETTINGS.START_PASS_BONUS;
+      this.syncPlayerTreasuries();
       this.addLog(
         `${player.name} прошёл через СТАРТ и получил +$${GAME_SETTINGS.START_PASS_BONUS}`,
         'money',
@@ -788,7 +1011,9 @@ class GameEngine {
         const passBonus = GAME_SETTINGS.START_PASS_BONUS || 200;
         const landingBonus = GAME_SETTINGS.START_LANDING_BONUS || 100;
         const totalBonus = passBonus + landingBonus;
-        player.money += totalBonus;
+        const treasury = this.getTreasury(player);
+        treasury.money += totalBonus;
+        this.syncPlayerTreasuries();
         this.addLog(
           `${player.name} встал на поле СТАРТ и получил +$${totalBonus} (бонус круга $${passBonus} + $${landingBonus} за остановку)!`,
           'money',
@@ -801,7 +1026,8 @@ class GameEngine {
       case 'property':
         if (!tile.ownerId) {
           // Unowned property
-          if (player.money >= tile.price) {
+          const treasury = this.getTreasury(player);
+          if (treasury.money >= tile.price) {
             this.status = 'AWAITING_ACTION';
             this.pendingAction = {
               type: 'BUY_PROPERTY',
@@ -819,17 +1045,21 @@ class GameEngine {
             );
           } else {
             this.addLog(
-              `${player.name} остановился на "${tile.name}", но у него недостаточно средств ($${player.money} / $${tile.price}). Запуск аукциона!`,
+              `${player.name} остановился на "${tile.name}", но у команды недостаточно средств ($${treasury.money} / $${tile.price}). Запуск аукциона!`,
               'info',
               '🏷️'
             );
-            this.startAuctionForTile(tile);
+            this.passProperty(player.id);
           }
-        } else if (tile.ownerId === player.id) {
-          this.addLog(`${player.name} отдыхает на своей территории "${tile.name}"`, 'info', '🏡');
+        } else if (tile.ownerId === player.id || this.isSameTeam(tile.ownerId, player.id)) {
+          this.addLog(
+            `${player.name} отдыхает на территории "${tile.name}" ${this.gameMode === 'team' ? 'своей команды' : 'своей собственности'}`,
+            'info',
+            '🏡'
+          );
           this.status = 'TURN_END';
         } else {
-          // Owned by another player
+          // Owned by another player/team
           const owner = this.players.find(p => p.id === tile.ownerId);
           if (owner && !owner.isBankrupt) {
             this.payRent(player, owner, tile);
@@ -891,17 +1121,27 @@ class GameEngine {
     if (tile.ownerId) {
       throw new Error('Эта недвижимость уже куплена');
     }
-    if (player.money < tile.price) {
+    const treasury = this.getTreasury(player);
+    if (treasury.money < tile.price) {
       throw new Error('Недостаточно средств для покупки');
     }
 
     player.missedTurns = 0;
-    player.money -= tile.price;
+    treasury.money -= tile.price;
     tile.ownerId = player.id;
-    player.properties.push(tile.id);
+    if (this.gameMode === 'team' && player.teamId) {
+      tile.teamId = player.teamId;
+    }
+    if (!treasury.properties.includes(tile.id)) {
+      treasury.properties.push(tile.id);
+    }
+    this.syncPlayerTreasuries();
 
-    const isMonopoly = MonopolyManager.hasMonopoly(this.board, player.id, tile.group);
-    const monopolyMsg = isMonopoly ? ' 🌟 СОБРАНА МОНОПОЛИЯ РАЙОНА! Рента удвоена!' : '';
+    const isMonopoly = MonopolyManager.hasMonopoly(this.board, player.id, tile.group, {
+      isSameTeam: this.isSameTeam.bind(this),
+      teamId: player.teamId
+    });
+    const monopolyMsg = isMonopoly ? (this.gameMode === 'team' ? ' 🌟 КОМАНДА СОБРАЛА МОНОПОЛИЮ! Рента удвоена!' : ' 🌟 СОБРАНА МОНОПОЛИЯ РАЙОНА! Рента удвоена!') : '';
 
     this.addLog(
       `🎉 ${player.name} купил "${tile.name}" за $${tile.price}!${monopolyMsg}`,
@@ -928,7 +1168,7 @@ class GameEngine {
     const tile = this.board[this.pendingAction.tileId];
     this.pendingAction = null;
 
-    const opponents = this.getActivePlayers().filter(p => p.id !== requestingPlayerId);
+    const opponents = this.getActivePlayers().filter(p => !this.isSameTeam(p.id, requestingPlayerId));
 
     // Save remaining turn time before pausing during auction
     const currentRemaining = this.turnStartedAt
@@ -1116,6 +1356,16 @@ class GameEngine {
     const result = AuctionManager.resolveAuction(this.activeAuction, this.board, this.players);
 
     if (result && result.winner) {
+      const winnerTreasury = this.getTreasury(result.winner);
+      if (this.gameMode === 'team' && result.winner.teamId) {
+        const tile = this.board[tileId];
+        if (tile) tile.teamId = result.winner.teamId;
+        if (!winnerTreasury.properties.includes(tileId)) {
+          winnerTreasury.properties.push(tileId);
+        }
+      }
+      this.syncPlayerTreasuries();
+
       if (this.gameMode === 'reverse') {
         result.winner.auctionCooldownUntilTurn = (this.turnNumber || 1) + 1;
       }
@@ -1185,10 +1435,14 @@ class GameEngine {
       throw new Error('Сейчас нельзя строить здания');
     }
 
-    const result = MonopolyManager.buildHouse(player, this.board, tileId, {
+    const treasury = this.getTreasury(player);
+    const result = MonopolyManager.buildHouse(treasury, this.board, tileId, {
       mode: this.mode,
-      builtTilesThisTurn: this.builtTilesThisTurn || []
+      builtTilesThisTurn: this.builtTilesThisTurn || [],
+      isSameTeam: this.isSameTeam.bind(this),
+      teamId: player.teamId
     });
+    this.syncPlayerTreasuries();
     this.stats.totalHousesBuilt++;
     if (!this.builtTilesThisTurn) this.builtTilesThisTurn = [];
     this.builtTilesThisTurn.push(Number(tileId));
@@ -1216,7 +1470,12 @@ class GameEngine {
       throw new Error('Сейчас нельзя продавать постройки');
     }
 
-    const result = MonopolyManager.sellHouse(player, this.board, tileId);
+    const treasury = this.getTreasury(player);
+    const result = MonopolyManager.sellHouse(treasury, this.board, tileId, {
+      isSameTeam: this.isSameTeam.bind(this),
+      teamId: player.teamId
+    });
+    this.syncPlayerTreasuries();
     this.addLog(
       `💸 ${player.name} продал постройку с "${result.name}" за $${result.refund}. Осталось построек: ${result.houses}`,
       'warning',
@@ -1240,7 +1499,12 @@ class GameEngine {
       throw new Error('Сейчас нельзя закладывать недвижимость');
     }
 
-    const result = MortgageManager.mortgageProperty(player, this.board, tileId);
+    const treasury = this.getTreasury(player);
+    const result = MortgageManager.mortgageProperty(treasury, this.board, tileId, {
+      isSameTeam: this.isSameTeam.bind(this),
+      teamId: player.teamId
+    });
+    this.syncPlayerTreasuries();
     this.addLog(
       `🏦 ${player.name} заложил "${result.name}" в банк и получил +$${result.mortgageValue}`,
       'warning',
@@ -1263,7 +1527,12 @@ class GameEngine {
       throw new Error('Сейчас нельзя выкупать недвижимость');
     }
 
-    const result = MortgageManager.unmortgageProperty(player, this.board, tileId);
+    const treasury = this.getTreasury(player);
+    const result = MortgageManager.unmortgageProperty(treasury, this.board, tileId, {
+      isSameTeam: this.isSameTeam.bind(this),
+      teamId: player.teamId
+    });
+    this.syncPlayerTreasuries();
     this.addLog(
       `✨ ${player.name} выкупил из залога "${result.name}" за $${result.redemptionCost}`,
       'success',
@@ -1282,6 +1551,10 @@ class GameEngine {
       throw new Error('Игроки для торговли не найдены');
     }
 
+    if (this.isSameTeam(fromPlayerId, toPlayerId)) {
+      throw new Error('Нельзя совершать сделки с напарником по команде, так как у вас общая казна и имущество');
+    }
+
     if (!this.tradeOffersThisRound) {
       this.tradeOffersThisRound = {};
     }
@@ -1290,7 +1563,9 @@ class GameEngine {
       throw new Error('Лимит исчерпан: нельзя предлагать больше 2 обменов за один раунд');
     }
 
-    const trade = TradeManager.createTradeProposal(fromPlayer, toPlayer, offer, request, this.board);
+    const trade = TradeManager.createTradeProposal(fromPlayer, toPlayer, offer, request, this.board, {
+      isSameTeam: this.isSameTeam.bind(this)
+    });
     this.activeTrade = trade;
     this.tradeOffersThisRound[fromPlayerId] = currentOffers + 1;
 
@@ -1309,6 +1584,7 @@ class GameEngine {
 
     if (action === 'ACCEPT') {
       const res = TradeManager.executeTrade(this.activeTrade, this.players, this.board);
+      this.syncPlayerTreasuries();
       this.stats.totalTradesCompleted++;
       this.addLog(`🤝 Сделка между ${this.activeTrade.fromPlayerName} и ${this.activeTrade.toPlayerName} успешно заключена!`, 'success', '🎉');
       this.activeTrade = null;
@@ -1334,7 +1610,20 @@ class GameEngine {
 
   // --- Rent & Taxes ---
   payRent(player, owner, tile) {
-    const rent = MonopolyManager.calculateRent(tile, this.board, owner);
+    if (this.isSameTeam(player.id, owner.id)) {
+      this.addLog(
+        `🤝 ${player.name} наступил на "${tile.name}" своей команды (${this.getTeam(player)?.name || 'Команда'}). Рента: $0 (бесплатно)!`,
+        'info',
+        '🤝'
+      );
+      this.status = 'TURN_END';
+      return;
+    }
+
+    const rent = MonopolyManager.calculateRent(tile, this.board, owner, {
+      isSameTeam: this.isSameTeam.bind(this),
+      teamId: owner.teamId
+    });
     if (rent === 0) {
       this.addLog(`Улица "${tile.name}" заложена в банке. Рента не взимается.`, 'info', '📜');
       this.status = 'TURN_END';
@@ -1343,28 +1632,33 @@ class GameEngine {
 
     this.stats.totalRentPaid += rent;
     const buildingInfo = (tile.houses || 0) === 5 ? ' (Отель 🏨)' : (tile.houses > 0 ? ` (${tile.houses} дома 🏠)` : '');
+    const ownerDisplayName = this.gameMode === 'team' ? `${this.getTeam(owner)?.name || owner.name} (${owner.name})` : owner.name;
     this.addLog(
-      `${player.name} наступил на "${tile.name}"${buildingInfo} игрока ${owner.name}. Рента: $${rent}`,
+      `${player.name} наступил на "${tile.name}"${buildingInfo} соперников ${ownerDisplayName}. Рента: $${rent}`,
       'warning',
       '💳'
     );
 
-    player.money -= rent;
-    if (this.gameMode !== 'reverse') {
-      owner.money += rent;
-    }
+    const playerTreasury = this.getTreasury(player);
+    const ownerTreasury = this.getTreasury(owner);
 
-    if (player.money >= 0) {
+    playerTreasury.money -= rent;
+    if (this.gameMode !== 'reverse') {
+      ownerTreasury.money += rent;
+    }
+    this.syncPlayerTreasuries();
+
+    if (playerTreasury.money >= 0) {
       if (this.gameMode === 'reverse') {
         this.addLog(`${player.name} оплатил $${rent} ренты в Банк (в режиме «Наоборот» рента уходит банку)`, 'money', '🏛️');
       } else {
-        this.addLog(`${player.name} заплатил $${rent} ренты игроку ${owner.name}`, 'money', '💸');
+        this.addLog(`${player.name} заплатил $${rent} ренты соперникам ${ownerDisplayName}`, 'money', '💸');
       }
       this.status = 'TURN_END';
     } else {
-      const debt = Math.abs(player.money);
+      const debt = Math.abs(playerTreasury.money);
       this.addLog(
-        `⚠️ У ${player.name} задолженность: -$${debt}! Заложите имущество или продайте дома в меню "Моя недвижимость" для погашения долга.`,
+        `⚠️ У ${this.gameMode === 'team' ? this.getTeam(player)?.name || player.name : player.name} задолженность: -$${debt}! Заложите имущество или продайте дома в меню "Моя недвижимость" для погашения долга.`,
         'danger',
         '⚠️'
       );
@@ -1374,11 +1668,13 @@ class GameEngine {
 
   payTax(player, amount, taxName) {
     this.addLog(`${player.name} оплачивает ${taxName}: -$${amount}`, 'warning', '🏛️');
-    player.money -= amount;
-    if (player.money < 0) {
-      const debt = Math.abs(player.money);
+    const treasury = this.getTreasury(player);
+    treasury.money -= amount;
+    this.syncPlayerTreasuries();
+    if (treasury.money < 0) {
+      const debt = Math.abs(treasury.money);
       this.addLog(
-        `⚠️ У ${player.name} задолженность по налогу: -$${debt}! Заложите имущество или продайте дома в меню "Моя недвижимость".`,
+        `⚠️ У ${this.gameMode === 'team' ? this.getTeam(player)?.name || player.name : player.name} задолженность по налогу: -$${debt}! Заложите имущество или продайте дома в меню "Моя недвижимость".`,
         'danger',
         '⚠️'
       );
@@ -1399,6 +1695,7 @@ class GameEngine {
 
     const card = deck.shift();
     const deckName = deckType === 'chance' ? 'Шанс' : 'Казна';
+    const treasury = this.getTreasury(player);
 
     this.lastDrawnCard = {
       id: card.id,
@@ -1424,10 +1721,11 @@ class GameEngine {
 
     switch (card.type) {
       case 'cash':
-        player.money += card.amount;
-        if (card.amount < 0 && player.money < 0) {
+        treasury.money += card.amount;
+        this.syncPlayerTreasuries();
+        if (card.amount < 0 && treasury.money < 0) {
           this.addLog(
-            `⚠️ У ${player.name} задолженность: -$${Math.abs(player.money)}! Заложите имущество или продайте дома в меню "Моя недвижимость".`,
+            `⚠️ У ${this.gameMode === 'team' ? this.getTeam(player)?.name || player.name : player.name} задолженность: -$${Math.abs(treasury.money)}! Заложите имущество или продайте дома в меню "Моя недвижимость".`,
             'danger',
             '⚠️'
           );
@@ -1459,7 +1757,8 @@ class GameEngine {
         }
         player.position = targetPos;
         if (card.collectStartBonus && (targetPos === 0 || targetPos < oldPos)) {
-          player.money += GAME_SETTINGS.START_PASS_BONUS;
+          treasury.money += GAME_SETTINGS.START_PASS_BONUS;
+          this.syncPlayerTreasuries();
           this.addLog(`${player.name} получил бонус за СТАРТ +$${GAME_SETTINGS.START_PASS_BONUS}`, 'money', '🚀');
         }
         this.handleTileLanding(player, this.board[targetPos]);
@@ -1467,7 +1766,8 @@ class GameEngine {
 
       case 'repairs':
         let totalRepairs = 0;
-        player.properties.forEach(tId => {
+        const propList = this.gameMode === 'team' ? treasury.properties : player.properties;
+        propList.forEach(tId => {
           const t = this.board[tId];
           if (t && t.houses > 0) {
             if (t.houses === 5) {
@@ -1478,10 +1778,11 @@ class GameEngine {
           }
         });
         this.addLog(`🔨 ${player.name} оплачивает ремонт недвижимости: -$${totalRepairs}`, 'warning', '🔧');
-        player.money -= totalRepairs;
-        if (player.money < 0) {
+        treasury.money -= totalRepairs;
+        this.syncPlayerTreasuries();
+        if (treasury.money < 0) {
           this.addLog(
-            `⚠️ У ${player.name} задолженность за ремонт: -$${Math.abs(player.money)}! Заложите имущество или продайте дома в меню "Моя недвижимость".`,
+            `⚠️ У ${this.gameMode === 'team' ? this.getTeam(player)?.name || player.name : player.name} задолженность за ремонт: -$${Math.abs(treasury.money)}! Заложите имущество или продайте дома в меню "Моя недвижимость".`,
             'danger',
             '⚠️'
           );
@@ -1489,26 +1790,30 @@ class GameEngine {
         break;
 
       case 'player_payment':
-        const otherPlayers = this.getActivePlayers().filter(p => p.id !== player.id);
+        const otherPlayers = this.getActivePlayers().filter(p => !this.isSameTeam(p.id, player.id));
         const amountPerPlayer = card.amountPerPlayer || 20;
 
         if (amountPerPlayer > 0) {
           otherPlayers.forEach(op => {
-            const transfer = Math.min(op.money, amountPerPlayer);
-            op.money -= transfer;
-            player.money += transfer;
+            const opTreasury = this.getTreasury(op);
+            const transfer = Math.min(opTreasury.money, amountPerPlayer);
+            opTreasury.money -= transfer;
+            treasury.money += transfer;
           });
-          this.addLog(`🎁 ${player.name} собрал по $${amountPerPlayer} с каждого игрока!`, 'success', '💰');
+          this.syncPlayerTreasuries();
+          this.addLog(`🎁 ${player.name} собрал по $${amountPerPlayer} с соперников!`, 'success', '💰');
         } else {
           const cost = Math.abs(amountPerPlayer);
           otherPlayers.forEach(op => {
-            player.money -= cost;
-            op.money += cost;
+            const opTreasury = this.getTreasury(op);
+            treasury.money -= cost;
+            opTreasury.money += cost;
           });
-          this.addLog(`🤝 ${player.name} выплатил по $${cost} каждому игроку`, 'warning', '💸');
-          if (player.money < 0) {
+          this.syncPlayerTreasuries();
+          this.addLog(`🤝 ${player.name} выплатил по $${cost} соперникам`, 'warning', '💸');
+          if (treasury.money < 0) {
             this.addLog(
-              `⚠️ У ${player.name} задолженность по выплатам: -$${Math.abs(player.money)}! Заложите имущество или продайте дома в меню "Моя недвижимость".`,
+              `⚠️ У ${this.gameMode === 'team' ? this.getTeam(player)?.name || player.name : player.name} задолженность по выплатам: -$${Math.abs(treasury.money)}! Заложите имущество или продайте дома в меню "Моя недвижимость".`,
               'danger',
               '⚠️'
             );
@@ -1521,16 +1826,21 @@ class GameEngine {
         if (unownedProperties.length > 0) {
           const giftTile = unownedProperties[Math.floor(Math.random() * unownedProperties.length)];
           giftTile.ownerId = player.id;
-          if (!player.properties.includes(giftTile.id)) {
-            player.properties.push(giftTile.id);
+          if (this.gameMode === 'team' && player.teamId) {
+            giftTile.teamId = player.teamId;
           }
+          if (!treasury.properties.includes(giftTile.id)) {
+            treasury.properties.push(giftTile.id);
+          }
+          this.syncPlayerTreasuries();
           this.addLog(
             `🎁 ${player.name} бесплатно получил недвижимость "${giftTile.name}" по карте [${deckName}]!`,
             'warning',
             '🎁'
           );
         } else {
-          player.money += 100;
+          treasury.money += 100;
+          this.syncPlayerTreasuries();
           this.addLog(
             `🎁 Все улицы уже заняты: ${player.name} получает компенсацию +$100 по карте [${deckName}]`,
             'info',
@@ -1545,25 +1855,56 @@ class GameEngine {
 
   handleBankruptcy(player, creditor) {
     const wasCurrentTurn = Boolean(this.getCurrentPlayer() && this.getCurrentPlayer().id === player.id);
-    player.isBankrupt = true;
-    player.money = 0;
 
-    // Free all properties owned by bankrupt player
-    this.board.forEach(tile => {
-      if (tile.ownerId === player.id) {
-        tile.ownerId = null;
-        tile.houses = 0;
-        tile.isMortgaged = false;
+    if (this.gameMode === 'team' && player.teamId) {
+      const team = this.teams.find(t => t.id === player.teamId);
+      if (team) {
+        team.isBankrupt = true;
+        team.money = 0;
+        team.properties = [];
+        for (const pid of team.playerIds) {
+          const p = this.players.find(pl => pl.id === pid);
+          if (p) {
+            p.isBankrupt = true;
+            p.money = 0;
+            p.properties = [];
+          }
+        }
+        this.board.forEach(tile => {
+          if (tile.teamId === team.id || team.playerIds.includes(tile.ownerId)) {
+            tile.ownerId = null;
+            tile.teamId = null;
+            tile.houses = 0;
+            tile.isMortgaged = false;
+          }
+        });
+        this.addLog(
+          `💥 Команда "${team.name}" обанкротилась и выбывает из игры в полном составе! Все улицы команды освобождены.`,
+          'danger',
+          '☠️'
+        );
       }
-    });
-    player.properties = [];
+    } else {
+      player.isBankrupt = true;
+      player.money = 0;
 
-    const creditorText = creditor ? ` перед ${creditor.name}` : '';
-    this.addLog(
-      `💥 Игрок ${player.name} обанкротился${creditorText} и выбывает из игры! Все его улицы освобождены.`,
-      'danger',
-      '☠️'
-    );
+      // Free all properties owned by bankrupt player
+      this.board.forEach(tile => {
+        if (tile.ownerId === player.id) {
+          tile.ownerId = null;
+          tile.houses = 0;
+          tile.isMortgaged = false;
+        }
+      });
+      player.properties = [];
+
+      const creditorText = creditor ? ` перед ${creditor.name}` : '';
+      this.addLog(
+        `💥 Игрок ${player.name} обанкротился${creditorText} и выбывает из игры! Все его улицы освобождены.`,
+        'danger',
+        '☠️'
+      );
+    }
 
     if (!this.checkWinCondition()) {
       if (wasCurrentTurn) {
@@ -1583,18 +1924,20 @@ class GameEngine {
       throw new Error('Игрок уже выбыл из партии');
     }
 
-    // Cancel active trade involving this player
+    // Cancel active trade involving this player or teammates
     if (this.activeTrade && (
       this.activeTrade.initiatorId === player.id ||
       this.activeTrade.targetId === player.id ||
       this.activeTrade.fromPlayerId === player.id ||
-      this.activeTrade.toPlayerId === player.id
+      this.activeTrade.toPlayerId === player.id ||
+      this.isSameTeam(this.activeTrade.fromPlayerId, player.id) ||
+      this.isSameTeam(this.activeTrade.toPlayerId, player.id)
     )) {
       this.activeTrade = null;
     }
 
     // Cancel active auction if this player was leading
-    if (this.activeAuction && this.activeAuction.highestBidderId === player.id) {
+    if (this.activeAuction && (this.activeAuction.highestBidderId === player.id || this.isSameTeam(this.activeAuction.highestBidderId, player.id))) {
       this.activeAuction.highestBidderId = null;
     }
 
@@ -1613,6 +1956,35 @@ class GameEngine {
   }
 
   checkWinCondition() {
+    if (this.gameMode === 'team') {
+      const activeTeams = this.teams.filter(t => !t.isBankrupt && t.playerIds.some(pid => {
+        const p = this.players.find(pl => pl.id === pid);
+        return p && !p.isBankrupt;
+      }));
+
+      if (activeTeams.length <= 1) {
+        this.status = 'GAME_OVER';
+        this.endedAt = Date.now();
+        this.clearTurnTimer();
+        this.stopDisconnectWaitingTimer();
+        this.stopActivePlayTracker();
+        const winningTeam = activeTeams[0] || this.teams[0];
+        const winningPlayer = this.players.find(p => p.teamId === winningTeam.id && !p.isBankrupt) || this.players.find(p => p.teamId === winningTeam.id);
+        this.winner = {
+          ...winningPlayer,
+          isTeamWinner: true,
+          teamId: winningTeam.id,
+          teamName: winningTeam.name,
+          name: winningTeam.name,
+          color: winningTeam.color
+        };
+        this.recordFinalGameResults();
+        this.addLog(`🏆 Победитель игры — ${winningTeam.name}! Поздравляем команду с победой! 🎉`, 'success', '👑');
+        return true;
+      }
+      return false;
+    }
+
     const active = this.getActivePlayers();
     if (active.length <= 1) {
       this.status = 'GAME_OVER';
@@ -1638,8 +2010,9 @@ class GameEngine {
     if (this.status !== 'TURN_END') {
       throw new Error('Ход ещё не завершён (требуется действие)');
     }
-    if (player.money < 0) {
-      throw new Error(`У вас задолженность -$${Math.abs(player.money)}! Продайте дома или заложите улицы в меню "Моя недвижимость", либо объявите банкротство.`);
+    const treasury = this.getTreasury(player);
+    if (treasury.money < 0) {
+      throw new Error(`У вас задолженность -$${Math.abs(treasury.money)}! Продайте дома или заложите улицы в меню "Моя недвижимость", либо объявите банкротство.`);
     }
 
     if (this.checkWinCondition()) {
@@ -1721,6 +2094,12 @@ class GameEngine {
           'success',
           '👑'
         );
+      } else if (this.gameMode === 'team') {
+        this.addLog(
+          `🏁 Партия завершена по лимиту в ${this.maxRounds} раундов! Команда-победитель по капиталу ($${this.winner ? this.winner.netWorth : 0}): ${this.winner ? this.winner.name : 'Ничья'}! 🏆`,
+          'success',
+          '👑'
+        );
       } else {
         this.addLog(
           `🏁 Партия завершена по лимиту в ${this.maxRounds} раундов! Победитель по капиталу ($${this.winner ? this.winner.netWorth : 0}): ${this.winner ? this.winner.name : 'Ничья'}! 🏆`,
@@ -1750,6 +2129,8 @@ class GameEngine {
     this.recordFinalGameResults();
     if (this.gameMode === 'reverse') {
       this.addLog(`🛑 Хост завершил игру. Победитель режима "Наоборот" с наименьшим капиталом: ${this.winner ? this.winner.name : 'Ничья'}!`, 'success', '🏆');
+    } else if (this.gameMode === 'team') {
+      this.addLog(`🛑 Хост завершил игру. Команда-победитель: ${this.winner ? this.winner.name : 'Ничья'}!`, 'success', '🏆');
     } else {
       this.addLog(`🛑 Хост завершил игру. Победитель по капиталу: ${this.winner ? this.winner.name : 'Ничья'}!`, 'success', '🏆');
     }
@@ -1782,11 +2163,21 @@ class GameEngine {
     this.board = sourceTiles.map(tile => ({
       ...tile,
       ownerId: null,
+      teamId: null,
       houses: 0,
       isMortgaged: false
     }));
+
+    if (this.gameMode === 'team') {
+      this.teams.forEach(t => {
+        t.money = this.teamStartingCash;
+        t.properties = [];
+        t.isBankrupt = false;
+      });
+    }
+
     this.players.forEach(p => {
-      p.money = this.startingCash || GAME_SETTINGS.STARTING_CASH;
+      p.money = this.gameMode === 'team' ? this.teamStartingCash : (this.startingCash || GAME_SETTINGS.STARTING_CASH);
       p.position = 0;
       p.inJail = false;
       p.jailTurns = 0;
@@ -1803,6 +2194,91 @@ class GameEngine {
   }
 
   calculateRankings() {
+    if (this.gameMode === 'team') {
+      // Calculate rankings on team basis
+      const rankedTeams = this.teams.map(team => {
+        let propertyNominalValue = 0;
+        let buildingsValue = 0;
+
+        team.properties.forEach(tileId => {
+          const t = this.board[tileId];
+          if (!t) return;
+          propertyNominalValue += (t.price || 0);
+          if (t.houses && t.houses > 0) {
+            buildingsValue += t.houses * Math.floor((t.housePrice || 50) / 2);
+          }
+        });
+
+        const propertyValue = propertyNominalValue + buildingsValue;
+        const allGroups = [...new Set(this.board.filter(t => t.group).map(t => t.group))];
+        const monopoliesCount = allGroups.filter(g =>
+          MonopolyManager.hasMonopoly(this.board, null, g, { isSameTeam: this.isSameTeam.bind(this), teamId: team.id })
+        ).length;
+
+        const housesCount = team.properties.reduce((sum, tId) => {
+          const t = this.board[tId];
+          return sum + (t && t.houses < 5 ? t.houses : 0);
+        }, 0);
+
+        const hotelsCount = team.properties.reduce((sum, tId) => {
+          const t = this.board[tId];
+          return sum + (t && t.houses === 5 ? 1 : 0);
+        }, 0);
+
+        const netWorth = team.money + propertyNominalValue + buildingsValue;
+
+        return {
+          ...team,
+          totalCapital: netWorth,
+          netWorth,
+          propertyNominalValue,
+          buildingsValue,
+          propertyValue,
+          monopoliesCount,
+          housesCount,
+          hotelsCount
+        };
+      }).sort((a, b) => {
+        if (a.isBankrupt && !b.isBankrupt) return 1;
+        if (!a.isBankrupt && b.isBankrupt) return -1;
+        if (a.isBankrupt && b.isBankrupt) return 0;
+        return b.netWorth - a.netWorth;
+      });
+
+      // Map rankings back onto each player decorated with team rank
+      const decoratedPlayers = this.players.map(p => {
+        const teamData = rankedTeams.find(t => t.id === p.teamId) || {
+          netWorth: p.money,
+          totalCapital: p.money,
+          propertyNominalValue: 0,
+          buildingsValue: 0,
+          propertyValue: 0,
+          monopoliesCount: 0,
+          housesCount: 0,
+          hotelsCount: 0,
+          isBankrupt: p.isBankrupt
+        };
+        const teamRank = rankedTeams.findIndex(t => t.id === p.teamId) + 1;
+        const isWinner = this.winner ? (this.winner.teamId === p.teamId || this.winner.id === p.id) : (teamRank === 1);
+
+        return {
+          ...p,
+          rank: teamRank,
+          isWinner,
+          totalCapital: teamData.totalCapital,
+          netWorth: teamData.netWorth,
+          propertyNominalValue: teamData.propertyNominalValue,
+          buildingsValue: teamData.buildingsValue,
+          propertyValue: teamData.propertyValue,
+          monopoliesCount: teamData.monopoliesCount,
+          housesCount: teamData.housesCount,
+          hotelsCount: teamData.hotelsCount
+        };
+      }).sort((a, b) => a.rank - b.rank);
+
+      return decoratedPlayers;
+    }
+
     const sorted = [...this.players].map(p => {
       let propertyNominalValue = 0;
       let buildingsValue = 0;
@@ -1903,6 +2379,15 @@ class GameEngine {
       builtTilesThisTurn: this.builtTilesThisTurn || [],
       disconnectWaitingState: this.disconnectWaitingState,
       winner: this.winner,
+      teams: (this.teams || []).map(t => ({
+        id: t.id,
+        name: t.name,
+        color: t.color,
+        money: t.money,
+        properties: t.properties,
+        playerIds: t.playerIds,
+        isBankrupt: t.isBankrupt
+      })),
       gameDurationSeconds: elapsedSeconds,
       remainingTurnSeconds,
       stats: this.stats,
@@ -1924,17 +2409,19 @@ class GameEngine {
         iconUrl: tile.iconUrl || null,
         description: tile.description,
         ownerId: tile.ownerId,
+        teamId: tile.teamId || null,
         houses: tile.houses || 0,
         isMortgaged: !!tile.isMortgaged,
         upgradeCost: tile.type === 'property' && tile.housePrice ? MonopolyManager.getUpgradeCost(tile, tile.houses || 0) : null,
         sellRefund: tile.type === 'property' && tile.housePrice ? Math.floor(MonopolyManager.getUpgradeCost(tile, Math.max(0, (tile.houses || 1) - 1)) / 2) : null,
-        isMonopoly: tile.ownerId ? MonopolyManager.hasMonopoly(this.board, tile.ownerId, tile.group) : false,
-        currentRent: tile.ownerId ? MonopolyManager.calculateRent(tile, this.board, this.players.find(p => p.id === tile.ownerId)) : 0
+        isMonopoly: tile.ownerId ? MonopolyManager.hasMonopoly(this.board, tile.ownerId, tile.group, { isSameTeam: this.isSameTeam.bind(this), teamId: tile.teamId }) : false,
+        currentRent: tile.ownerId ? MonopolyManager.calculateRent(tile, this.board, this.players.find(p => p.id === tile.ownerId), { isSameTeam: this.isSameTeam.bind(this), teamId: tile.teamId }) : 0
       })),
       players: this.players.map(p => ({
         id: p.id,
         name: p.name,
         color: p.color,
+        teamId: p.teamId || null,
         money: p.money,
         position: p.position,
         inJail: p.inJail,
@@ -1959,3 +2446,4 @@ class GameEngine {
 }
 
 module.exports = GameEngine;
+

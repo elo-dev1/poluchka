@@ -18,6 +18,11 @@ export const PlayerToken: React.FC<PlayerTokenProps> = ({
 }) => {
   const anim = isMoving ? 'jump' : player.inJail ? 'sleep' : 'idle';
   const avatarSize = size === 'sm' ? 'sm' : size === 'md' ? 'md' : 'lg';
+  const playerHex = player.teamId === 'team_red'
+    ? '#FF5252'
+    : player.teamId === 'team_blue'
+    ? '#448AFF'
+    : player.color?.hex || '#3B82F6';
 
   return (
     <div
@@ -39,15 +44,15 @@ export const PlayerToken: React.FC<PlayerTokenProps> = ({
         anim={anim}
         size={avatarSize}
         showPedestal={true}
-        pedestalColor={player.color?.hex}
+        pedestalColor={playerHex}
       />
 
       {/* Player Color Ring Badge */}
       <div
         className="w-3.5 h-1.5 rounded-full mt-[-2px] border border-white/80 shadow-md"
         style={{
-          backgroundColor: player.color?.hex || '#3B82F6',
-          boxShadow: `0 0 8px ${player.color?.hex || '#3B82F6'}`,
+          backgroundColor: playerHex,
+          boxShadow: `0 0 8px ${playerHex}`,
         }}
       />
     </div>

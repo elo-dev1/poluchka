@@ -1,12 +1,22 @@
 class MonopolyManager {
   /**
-   * Check if a player owns all properties in a color group
+   * Check if a player (or team) owns all properties in a color group
    */
-  static hasMonopoly(board, playerId, groupId) {
+  static hasMonopoly(board, playerId, groupId, options = {}) {
     if (!groupId || !board) return false;
     const groupTiles = this.getGroupTiles(board, groupId);
     if (groupTiles.length === 0) return false;
-    return groupTiles.every(tile => tile.ownerId === playerId);
+    return groupTiles.every(tile => {
+      if (!tile.ownerId) return false;
+      if (tile.ownerId === playerId) return true;
+      if (typeof options.isSameTeam === 'function' && options.isSameTeam(tile.ownerId, playerId)) {
+        return true;
+      }
+      if (options.teamId && tile.teamId === options.teamId) {
+        return true;
+      }
+      return false;
+    });
   }
 
   /**
@@ -35,7 +45,12 @@ class MonopolyManager {
     if (!tile || tile.type !== 'property') {
       return { allowed: false, reason: 'Клетка не является недвижимостью' };
     }
-    if (tile.ownerId !== player.id) {
+    const isOwner = tile.ownerId === player.id ||
+      (options.teamId && (tile.teamId === options.teamId || tile.ownerId === options.teamId)) ||
+      (player.teamId && (tile.teamId === player.teamId || tile.ownerId === player.teamId)) ||
+      (typeof options.isSameTeam === 'function' && (options.isSameTeam(tile.ownerId, player.id) || (tile.teamId && options.isSameTeam(tile.teamId, player.id))));
+
+    if (!isOwner) {
       return { allowed: false, reason: 'Вы не владеете этой недвижимостью' };
     }
     if (!tile.housePrice) {
@@ -51,7 +66,7 @@ class MonopolyManager {
       return { allowed: false, reason: 'Нельзя делать больше одного улучшения на одной и той же улице за один ход' };
     }
 
-    if (!this.hasMonopoly(board, player.id, tile.group)) {
+    if (!this.hasMonopoly(board, player.id, tile.group, options)) {
       return { allowed: false, reason: 'Для постройки необходимо собрать монополию всего цветного района' };
     }
 
@@ -103,19 +118,24 @@ class MonopolyManager {
       houses: tile.houses,
       isHotel: tile.houses === 5,
       cost,
-      newRent: this.calculateRent(tile, board, player)
+      newRent: this.calculateRent(tile, board, player, options)
     };
   }
 
   /**
    * Validate if a player can sell a house from the property
    */
-  static canSellHouse(player, board, tileId) {
+  static canSellHouse(player, board, tileId, options = {}) {
     const tile = board[tileId];
     if (!tile || tile.type !== 'property') {
       return { allowed: false, reason: 'Клетка не является недвижимостью' };
     }
-    if (tile.ownerId !== player.id) {
+    const isOwner = tile.ownerId === player.id ||
+      (options.teamId && (tile.teamId === options.teamId || tile.ownerId === options.teamId)) ||
+      (player.teamId && (tile.teamId === player.teamId || tile.ownerId === player.teamId)) ||
+      (typeof options.isSameTeam === 'function' && (options.isSameTeam(tile.ownerId, player.id) || (tile.teamId && options.isSameTeam(tile.teamId, player.id))));
+
+    if (!isOwner) {
       return { allowed: false, reason: 'Вы не владеете этой недвижимостью' };
     }
 
@@ -141,8 +161,8 @@ class MonopolyManager {
   /**
    * Sell a house back to the bank for 50% value
    */
-  static sellHouse(player, board, tileId) {
-    const validation = this.canSellHouse(player, board, tileId);
+  static sellHouse(player, board, tileId, options = {}) {
+    const validation = this.canSellHouse(player, board, tileId, options);
     if (!validation.allowed) {
       throw new Error(validation.reason);
     }
@@ -158,16 +178,27 @@ class MonopolyManager {
       name: tile.name,
       houses: tile.houses,
       refund,
-      newRent: this.calculateRent(tile, board, player)
+      newRent: this.calculateRent(tile, board, player, options)
     };
   }
 
   /**
    * Calculate rent for a property tile based on houses, monopoly, and mortgage
    */
-  static calculateRent(tile, board, owner) {
+  static calculateRent(tile, board, owner, options = {}) {
     if (!tile || tile.type !== 'property') return 0;
     if (tile.isMortgaged) return 0; // No rent from mortgaged property
+
+    // Free visit if visitor is on the same team or owner
+    if (options.visitor) {
+      if (options.visitor.id === tile.ownerId) return 0;
+      if (typeof options.isSameTeam === 'function' && options.isSameTeam(options.visitor.id, tile.ownerId)) {
+        return 0;
+      }
+      if (options.visitor.teamId && tile.teamId && options.visitor.teamId === tile.teamId) {
+        return 0;
+      }
+    }
 
     const houses = tile.houses || 0;
     const rents = tile.rents || [tile.rent || 10];
@@ -176,7 +207,11 @@ class MonopolyManager {
     if ((tile.group === 'transport' || tile.group === 'utility' || !tile.housePrice) && Array.isArray(rents) && rents.length > 1) {
       if (!owner || !board) return rents[0] || tile.rent || 10;
       const groupTiles = this.getGroupTiles(board, tile.group);
-      const ownedCount = groupTiles.filter(t => t.ownerId === owner.id && !t.isMortgaged).length;
+      const isOwner = (t) => t.ownerId === owner.id ||
+        (typeof options.isSameTeam === 'function' && options.isSameTeam(t.ownerId, owner.id)) ||
+        (owner.teamId && t.teamId === owner.teamId);
+
+      const ownedCount = groupTiles.filter(t => isOwner(t) && !t.isMortgaged).length;
       if (ownedCount <= 0) return rents[0] || tile.rent || 10;
       const rentIndex = Math.min(ownedCount - 1, rents.length - 1);
       return rents[rentIndex] || rents[0];
@@ -188,7 +223,7 @@ class MonopolyManager {
 
     // Base rent or Monopoly 2x bonus
     const baseRent = rents[0] || tile.rent || 10;
-    if (owner && this.hasMonopoly(board, owner.id, tile.group)) {
+    if (owner && this.hasMonopoly(board, owner.id, tile.group, options)) {
       return baseRent * 2;
     }
 

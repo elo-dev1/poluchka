@@ -26,8 +26,8 @@ export const TileDetailsModal: React.FC = () => {
   const isUtility = isProperty && tile.group === 'utility';
   const isStreet = isProperty && !isTransport && !isUtility;
 
-  const owner = tile.ownerId && gameState ? gameState.players.find((p) => p.id === tile.ownerId) : null;
-  const isMine = tile.ownerId === playerId;
+  const myPlayer = gameState?.players.find((p) => p.id === playerId);
+  const isMine = tile.ownerId === playerId || (gameState?.gameMode === 'team' && myPlayer?.teamId && tile.teamId === myPlayer.teamId);
 
   // Special Non-Property Information (Chance, Chest, Jail, Start, Tax, Parking, GoToJail)
   const getSpecialInfo = () => {

@@ -40,15 +40,16 @@ interface GameContextType {
   closeModal: () => void;
   showToast: (message: string, type?: 'info' | 'success' | 'warning' | 'error', duration?: number) => void;
   removeToast: (id: string) => void;
-  createRoom: (name: string, isPrivate?: boolean, options?: { mode?: 'standard' | 'blitz' | 'ranked'; gameMode?: 'classic' | 'reverse'; maxRounds?: number; boardSize?: 40 | 24; startingCash?: number; maxPlayers?: number }) => Promise<{ success: boolean; error?: string }>;
+  createRoom: (name: string, isPrivate?: boolean, options?: { mode?: 'standard' | 'blitz' | 'ranked'; gameMode?: 'classic' | 'reverse' | 'team'; maxRounds?: number; boardSize?: 40 | 24; startingCash?: number; maxPlayers?: number }) => Promise<{ success: boolean; error?: string }>;
   joinRoom: (code: string, name: string) => Promise<{ success: boolean; error?: string }>;
   quickMatch: () => Promise<{ success: boolean; isNewRoom?: boolean; error?: string }>;
   leaveRoom: () => void;
   reconnectSession: () => void;
   discardSession: () => void;
   startGame: () => void;
-  addBot: (difficulty?: 'careful' | 'balanced' | 'aggressive') => void;
+  addBot: (difficulty?: 'careful' | 'balanced' | 'aggressive', teamId?: string) => void;
   removeBot: (botId: string) => void;
+  setPlayerTeam: (teamId: string, targetPlayerId?: string) => void;
   rollDice: () => void;
   endTurn: () => void;
   buyProperty: () => void;
@@ -489,7 +490,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [showToast]);
 
-  const createRoom = useCallback(async (name: string, isPrivate: boolean = false, options: { mode?: 'standard' | 'blitz' | 'ranked'; gameMode?: 'classic' | 'reverse'; maxRounds?: number; boardSize?: 40 | 24; startingCash?: number; maxPlayers?: number } = {}) => {
+  const createRoom = useCallback(async (name: string, isPrivate: boolean = false, options: { mode?: 'standard' | 'blitz' | 'ranked'; gameMode?: 'classic' | 'reverse' | 'team'; maxRounds?: number; boardSize?: 40 | 24; startingCash?: number; maxPlayers?: number } = {}) => {
     if (!socket) return { success: false, error: 'Сокет не подключен' };
     const cleanName = name.trim() || 'Игрок 1';
     setPlayerName(cleanName);
@@ -649,12 +650,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [socket, roomId, playerId, showToast]);
 
-  const addBot = useCallback((difficulty: 'careful' | 'balanced' | 'aggressive' = 'balanced') => {
+  const addBot = useCallback((difficulty: 'careful' | 'balanced' | 'aggressive' = 'balanced', teamId?: string) => {
     if (socket && roomId) {
       soundEngine.playClick();
-      socket.emit('add_bot', { roomId, difficulty }, (res: SocketResponse) => {
+      socket.emit('add_bot', { roomId, difficulty, teamId }, (res: SocketResponse) => {
         if (res && res.success) {
-          showToast('Бот добавлен за стол! 🤖', 'success', 1500);
+          const teamLabel = teamId === 'team_red' ? 'в Красную команду 🔴' : teamId === 'team_blue' ? 'в Синюю команду 🔵' : 'за стол';
+          showToast(`Бот добавлен ${teamLabel}! 🤖`, 'success', 1500);
         } else {
           showToast(res ? res.error : 'Не удалось добавить бота', 'error');
         }
@@ -674,6 +676,23 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     }
   }, [socket, roomId, showToast]);
+
+  const setPlayerTeam = useCallback((teamId: string, targetPlayerId?: string) => {
+    if (socket && roomId) {
+      soundEngine.playClick();
+      socket.emit('set_player_team', {
+        roomId,
+        teamId,
+        targetPlayerId: targetPlayerId || playerId
+      }, (res: SocketResponse) => {
+        if (res && res.success) {
+          showToast('Команда изменена! 🚩', 'info', 1500);
+        } else {
+          showToast(res ? res.error : 'Не удалось сменить команду', 'error');
+        }
+      });
+    }
+  }, [socket, roomId, playerId, showToast]);
 
   const rollDice = useCallback(() => {
     if (socket && roomId && playerId) {
@@ -1112,6 +1131,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         startGame,
         addBot,
         removeBot,
+        setPlayerTeam,
         rollDice,
         endTurn,
         buyProperty,
