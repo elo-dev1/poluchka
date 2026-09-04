@@ -38,6 +38,9 @@ import {
 import { PetAvatar } from "@/components/common/PetAvatar";
 import { getPetCharacter } from "@/lib/petCharacters";
 import { soundEngine } from "@/lib/soundEngine";
+import { cn } from "@/lib/utils";
+import { GameModesTab } from "./GameModesTab";
+import { RulesTab } from "./RulesTab";
 
 type MenuTab = "play" | "modes" | "lobby" | "leaderboard" | "rules";
 
@@ -54,7 +57,11 @@ export const WelcomeScreen: React.FC = () => {
     selectedCharacterId,
     currentUser,
     openModal,
+    theme,
   } = useGame();
+
+  const isSoviet = theme === 'soviet';
+  const isNoir = theme === 'noir';
 
   const [activeTab, setActiveTab] = useState<MenuTab>("play");
   const [inputName, setInputName] = useState<string>(playerName);
@@ -109,6 +116,7 @@ export const WelcomeScreen: React.FC = () => {
     gameMode?: "classic" | "reverse" | "team";
     maxRounds?: number;
     boardSize?: 40 | 24;
+    maxPlayers?: number;
   }) => {
     soundEngine.playClick();
     const gameMode = options?.gameMode || "classic";
@@ -122,13 +130,17 @@ export const WelcomeScreen: React.FC = () => {
     const bSize = options?.boardSize || selectedBoardSize;
     const mode = options?.mode || (bSize === 24 ? "blitz" : "standard");
     const maxRounds = options?.maxRounds !== undefined ? options.maxRounds : (gameMode === 'reverse' ? (bSize === 24 ? 10 : 20) : 0);
+    const maxPlayers = options?.maxPlayers !== undefined
+      ? options.maxPlayers
+      : (mode === "ranked" ? 2 : (gameMode === "team" ? 4 : 6));
+
     await createRoom(inputName, isPrivate, {
       mode,
       gameMode,
       maxRounds,
       boardSize: bSize,
       startingCash: 1500,
-      maxPlayers: gameMode === "team" ? 4 : (mode === "ranked" ? 2 : 6),
+      maxPlayers,
     });
     setLoadingCreate(false);
   };
@@ -188,7 +200,7 @@ export const WelcomeScreen: React.FC = () => {
       };
     return {
       title: "🥉 Новичок",
-      color: "text-emerald-400 border-emerald-400/40 bg-emerald-500/10",
+      color: "text-slate-500 border-slate-500/40 bg-slate-600/10",
     };
   };
 
@@ -211,9 +223,10 @@ export const WelcomeScreen: React.FC = () => {
                 showPedestal={true}
               />
             </div>
-            <span className="absolute -bottom-1 -right-1 text-[9px] font-black bg-primary text-white px-1.5 py-0.2 rounded-full border border-black/40 shadow">
-              🐾 {currentPet.name}
-            </span>
+            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-bold bg-primary text-white px-2 py-0.5 rounded-full border border-black/40 shadow-md flex items-center gap-1 z-10 pointer-events-none">
+              <span className="text-[10px] leading-none">{currentPet.emoji}</span>
+              <span className="leading-none">{currentPet.name}</span>
+            </div>
           </div>
 
           <div className="flex flex-col gap-1 flex-1">
@@ -270,7 +283,10 @@ export const WelcomeScreen: React.FC = () => {
             <Button
               variant="default"
               size="sm"
-              className="font-bold text-xs h-9 px-4 bg-gradient-to-r from-primary to-blue-600 hover:brightness-110 shadow-lg text-white rounded-xl flex items-center gap-1.5"
+              className={cn(
+                "font-bold text-xs h-9 px-4 shadow-lg text-white rounded-none sm:rounded-xl flex items-center gap-1.5",
+                isNoir ? "noir-btn-amber font-noir-title" : isSoviet ? "soviet-btn-cyan font-soviet" : "classic-btn-primary font-sans"
+              )}
               onClick={() => openModal("telegramLogin")}
             >
               <LogIn className="w-4 h-4" />
@@ -280,7 +296,10 @@ export const WelcomeScreen: React.FC = () => {
             <Button
               variant="outline"
               size="sm"
-              className="font-bold text-xs h-9 px-3.5 border-white/15 bg-white/5 hover:bg-white/10 rounded-xl flex items-center gap-1.5"
+              className={cn(
+                "font-bold text-xs h-9 px-3.5 rounded-none sm:rounded-xl flex items-center gap-1.5 border",
+                isNoir ? "bg-[#1a1410] border-[#d4a647]/50 text-[#d4a647]" : isSoviet ? "bg-[#09111c] border-[#38bdf8]/50 text-[#38bdf8]" : "bg-[#0f172a] border-slate-600/40 text-slate-400"
+              )}
               onClick={() => openModal("profile")}
             >
               <Trophy className="w-4 h-4 text-amber-400" />
@@ -291,17 +310,21 @@ export const WelcomeScreen: React.FC = () => {
       </div>
 
       {/* 2. Navigation Tabs (Clean Navigation Bar with Game Modes for Authorized Users) */}
-      <div className="w-full flex items-center justify-start sm:justify-center gap-1.5 p-1.5 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-md mb-4 overflow-x-auto select-none no-scrollbar shrink-0 min-h-[52px] sm:min-h-[56px]">
+      <div className={cn(
+        "w-full flex items-center justify-start sm:justify-center gap-1.5 p-1.5 rounded-none sm:rounded-2xl border backdrop-blur-md mb-4 overflow-x-auto select-none no-scrollbar shrink-0 min-h-[52px] sm:min-h-[56px]",
+        isNoir ? "bg-[#14100c] border-[#3d2e1a] font-noir-body" : isSoviet ? "bg-[#09111c] border-[#1e293b] font-soviet" : "bg-[#020617] border-slate-600/30 font-sans"
+      )}>
         <button
           onClick={() => {
             soundEngine.playClick();
             setActiveTab("play");
           }}
-          className={`flex items-center gap-2 px-4 sm:px-6 py-2.5 h-10 sm:h-11 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
+          className={cn(
+            "flex items-center gap-2 px-4 sm:px-6 py-2.5 h-10 sm:h-11 rounded-none sm:rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 border",
             activeTab === "play"
-              ? "bg-primary text-white shadow-lg shadow-primary/30"
-              : "text-muted-foreground hover:text-foreground hover:bg-white/5"
-          }`}
+              ? (isNoir ? "bg-[#d4a647] border-[#1a1410] text-[#1a1410] shadow-md" : isSoviet ? "bg-[#0369a1] border-[#38bdf8] text-[#e0f2fe] shadow-md" : "bg-slate-600 border-slate-500 text-white shadow-md")
+              : (isNoir ? "text-[#b8a890] border-transparent hover:bg-[#1a1410]" : isSoviet ? "text-[#94a3b8] border-transparent hover:bg-[#0f172a]" : "text-slate-400 border-transparent hover:bg-white/5")
+          )}
         >
           <Dices className="w-4 h-4 shrink-0" />
           <span>Играть</span>
@@ -313,17 +336,15 @@ export const WelcomeScreen: React.FC = () => {
               soundEngine.playClick();
               setActiveTab("modes");
             }}
-            className={`flex items-center gap-2 px-4 sm:px-6 py-2.5 h-10 sm:h-11 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
+            className={cn(
+              "flex items-center gap-2 px-4 sm:px-6 py-2.5 h-10 sm:h-11 rounded-none sm:rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 border",
               activeTab === "modes"
-                ? "bg-primary text-white shadow-lg shadow-primary/30"
-                : "text-muted-foreground hover:text-foreground hover:bg-white/5"
-            }`}
+                ? (isNoir ? "bg-[#d4a647] border-[#1a1410] text-[#1a1410] shadow-md" : isSoviet ? "bg-[#0369a1] border-[#38bdf8] text-[#e0f2fe] shadow-md" : "bg-slate-600 border-slate-500 text-white shadow-md")
+                : (isNoir ? "text-[#b8a890] border-transparent hover:bg-[#1a1410]" : isSoviet ? "text-[#94a3b8] border-transparent hover:bg-[#0f172a]" : "text-slate-400 border-transparent hover:bg-white/5")
+            )}
           >
-            <Gamepad2 className="w-4 h-4 text-purple-400 shrink-0" />
+            <Gamepad2 className={cn("w-4 h-4 shrink-0", isNoir ? "text-[#d4a647]" : isSoviet ? "text-[#38bdf8]" : "text-slate-500")} />
             <span>Режимы игры</span>
-            <span className="px-1.5 py-0.2 text-[9px] font-black rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white">
-              PRO
-            </span>
           </button>
         )}
 
@@ -333,16 +354,20 @@ export const WelcomeScreen: React.FC = () => {
             setActiveTab("lobby");
             handleRefreshRooms();
           }}
-          className={`flex items-center gap-2 px-4 sm:px-6 py-2.5 h-10 sm:h-11 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
+          className={cn(
+            "flex items-center gap-2 px-4 sm:px-6 py-2.5 h-10 sm:h-11 rounded-none sm:rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 border",
             activeTab === "lobby"
-              ? "bg-primary text-white shadow-lg shadow-primary/30"
-              : "text-muted-foreground hover:text-foreground hover:bg-white/5"
-          }`}
+              ? (isNoir ? "bg-[#d4a647] border-[#1a1410] text-[#1a1410] shadow-md" : isSoviet ? "bg-[#0369a1] border-[#38bdf8] text-[#e0f2fe] shadow-md" : "bg-slate-600 border-slate-500 text-white shadow-md")
+              : (isNoir ? "text-[#b8a890] border-transparent hover:bg-[#1a1410]" : isSoviet ? "text-[#94a3b8] border-transparent hover:bg-[#0f172a]" : "text-slate-400 border-transparent hover:bg-white/5")
+          )}
         >
           <Globe className="w-4 h-4 shrink-0" />
           <span>Открытые столы</span>
           {publicRooms.length > 0 && (
-            <span className="px-1.5 py-0.2 text-[10px] font-black rounded-full bg-emerald-500 text-black">
+            <span className={cn(
+              "px-1.5 py-0.2 text-[10px] font-bold rounded-none border",
+              isNoir ? "bg-[#d4a647] text-[#1a1410] border-[#1a1410]" : isSoviet ? "bg-[#38bdf8] text-[#09111c] border-[#38bdf8]" : "bg-slate-600 text-black border-slate-500"
+            )}>
               {publicRooms.length}
             </span>
           )}
@@ -353,11 +378,12 @@ export const WelcomeScreen: React.FC = () => {
             soundEngine.playClick();
             setActiveTab("leaderboard");
           }}
-          className={`flex items-center gap-2 px-4 sm:px-6 py-2.5 h-10 sm:h-11 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
+          className={cn(
+            "flex items-center gap-2 px-4 sm:px-6 py-2.5 h-10 sm:h-11 rounded-none sm:rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 border",
             activeTab === "leaderboard"
-              ? "bg-primary text-white shadow-lg shadow-primary/30"
-              : "text-muted-foreground hover:text-foreground hover:bg-white/5"
-          }`}
+              ? (isNoir ? "bg-[#d4a647] border-[#1a1410] text-[#1a1410] shadow-md" : isSoviet ? "bg-[#0369a1] border-[#38bdf8] text-[#e0f2fe] shadow-md" : "bg-slate-600 border-slate-500 text-white shadow-md")
+              : (isNoir ? "text-[#b8a890] border-transparent hover:bg-[#1a1410]" : isSoviet ? "text-[#94a3b8] border-transparent hover:bg-[#0f172a]" : "text-slate-400 border-transparent hover:bg-white/5")
+          )}
         >
           <Trophy className="w-4 h-4 text-amber-400 shrink-0" />
           <span>Таблица лидеров</span>
@@ -368,11 +394,12 @@ export const WelcomeScreen: React.FC = () => {
             soundEngine.playClick();
             setActiveTab("rules");
           }}
-          className={`flex items-center gap-2 px-4 sm:px-6 py-2.5 h-10 sm:h-11 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
+          className={cn(
+            "flex items-center gap-2 px-4 sm:px-6 py-2.5 h-10 sm:h-11 rounded-none sm:rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 border",
             activeTab === "rules"
-              ? "bg-primary text-white shadow-lg shadow-primary/30"
-              : "text-muted-foreground hover:text-foreground hover:bg-white/5"
-          }`}
+              ? (isNoir ? "bg-[#d4a647] border-[#1a1410] text-[#1a1410] shadow-md" : isSoviet ? "bg-[#0369a1] border-[#38bdf8] text-[#e0f2fe] shadow-md" : "bg-slate-600 border-slate-500 text-white shadow-md")
+              : (isNoir ? "text-[#b8a890] border-transparent hover:bg-[#1a1410]" : isSoviet ? "text-[#94a3b8] border-transparent hover:bg-[#0f172a]" : "text-slate-400 border-transparent hover:bg-white/5")
+          )}
         >
           <HelpCircle className="w-4 h-4 shrink-0" />
           <span>Правила</span>
@@ -385,34 +412,43 @@ export const WelcomeScreen: React.FC = () => {
         {activeTab === "play" && (
           <div className="flex flex-col gap-4 w-full">
             {/* Quick Play Banner */}
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-500/20 via-primary/20 to-indigo-500/20 border border-amber-500/30 p-5 sm:p-6 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className={cn(
+              "relative overflow-hidden p-5 sm:p-6 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4 border",
+              isNoir
+                ? "bg-[#1a1410] border-2 border-[#d4a647] rounded-none font-noir-body"
+                : isSoviet
+                ? "bg-[#09111c] border-2 border-[#38bdf8] rounded-none font-soviet"
+                : "bg-[#020617] border-2 border-slate-600/40 rounded-2xl font-sans"
+            )}>
               <div className="flex flex-col gap-1 text-center sm:text-left">
                 <div className="flex items-center justify-center sm:justify-start gap-2">
-                  <Flame className="w-5 h-5 text-amber-400 animate-pulse" />
-                  <span className="font-black text-lg sm:text-xl text-foreground">
-                    Быстрая онлайн-игра
+                  <Flame className={cn("w-5 h-5 animate-pulse", isNoir ? "text-[#d4a647]" : isSoviet ? "text-[#38bdf8]" : "text-amber-400")} />
+                  <span className={cn("font-bold text-lg sm:text-xl", isNoir ? "text-[#f5e6c8]" : isSoviet ? "text-[#e2e8f0]" : "text-white")}>
+                    {isNoir ? "СРОЧНОЕ ДЕЛО: БЫСТРАЯ ИГРА" : isSoviet ? "ОПЕРАТИВНЫЙ СТАРТ: АВТОПОДБОР" : "Быстрая онлайн-игра"}
                   </span>
-                  <Badge
-                    variant="gold"
-                    className="text-[10px] font-black px-2 py-0"
-                  >
+                  <span className={cn(
+                    "text-[10px] font-bold px-2 py-0.5 border",
+                    isNoir ? "bg-[#1a1410] border-[#d4a647] text-[#d4a647]" : isSoviet ? "bg-[#0f172a] border-[#38bdf8] text-[#38bdf8]" : "bg-slate-950 border-slate-600 text-slate-400"
+                  )}>
                     АВТОПОДБОР
-                  </Badge>
+                  </span>
                 </div>
-                <p className="text-xs sm:text-sm text-muted-foreground max-w-md">
+                <p className={cn("text-xs sm:text-sm max-w-md", isNoir ? "text-[#b8a890]" : isSoviet ? "text-[#94a3b8]" : "text-slate-300")}>
                   Мгновенно подключает вас к существующей открытой партии, где
                   идёт поиск игроков, либо создаёт новый стол в 1 клик.
                 </p>
               </div>
 
               <Button
-                variant="gold"
                 size="lg"
-                className="w-full sm:w-auto font-black text-sm sm:text-base px-8 h-12 shadow-xl shadow-amber-500/30 flex items-center justify-center gap-2"
+                className={cn(
+                  "w-full sm:w-auto font-bold text-sm sm:text-base px-8 h-12 shadow-xl flex items-center justify-center gap-2 border",
+                  isNoir ? "noir-btn-amber font-noir-title" : isSoviet ? "soviet-btn-cyan font-soviet" : "classic-btn-gold font-sans"
+                )}
                 onClick={handleQuickPlay}
                 disabled={loadingQuick}
               >
-                <Zap className="w-5 h-5 text-black fill-current" />
+                <Zap className="w-5 h-5 fill-current" />
                 <span>
                   {loadingQuick ? "Поиск партии..." : "Быстрый старт ⚡"}
                 </span>
@@ -422,60 +458,71 @@ export const WelcomeScreen: React.FC = () => {
             {/* Split: Create Custom Table & Join by Code */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
               {/* Card A: Create Custom Room */}
-              <Card className="flex flex-col justify-between border-white/10 bg-card/80 backdrop-blur-xl">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <PlusCircle className="w-5 h-5 text-primary" />
-                    Создать свой стол
-                  </CardTitle>
-                  <CardDescription className="text-xs">
+              <div className={cn(
+                "flex flex-col justify-between p-5 border rounded-none sm:rounded-2xl shadow-xl",
+                isNoir ? "bg-[#14100c] border-[#3d2e1a] font-noir-body text-[#f5e6c8]" : isSoviet ? "bg-[#09111c] border-[#1e293b] font-soviet text-[#e2e8f0]" : "bg-[#0f172a] border-slate-600/30 font-sans text-slate-100"
+              )}>
+                <div className="flex flex-col gap-1 pb-3 text-left">
+                  <div className="text-base font-bold flex items-center gap-2">
+                    <PlusCircle className={cn("w-5 h-5", isNoir ? "text-[#d4a647]" : isSoviet ? "text-[#38bdf8]" : "text-slate-500")} />
+                    <span>{isNoir ? "ОТКРЫТЬ СВОЁ ДЕЛО (СТОЛ)" : isSoviet ? "РАЗВЕРНУТЬ СВОЙ ЦУП" : "Создать свой стол"}</span>
+                  </div>
+                  <span className={cn("text-xs", isNoir ? "text-[#b8a890]" : isSoviet ? "text-[#94a3b8]" : "text-slate-400")}>
                     Настройте параметры партии и пригласите друзей по коду.
-                  </CardDescription>
-                </CardHeader>
+                  </span>
+                </div>
 
-                <CardContent className="flex flex-col gap-3.5">
+                <div className="flex flex-col gap-3.5">
                   {/* Board Size Toggle */}
                   <div className="flex flex-col gap-1.5 text-left">
-                    <label className="text-[11px] font-bold text-muted-foreground">
+                    <label className={cn("text-[11px] font-bold", isNoir ? "text-[#b8a890]" : isSoviet ? "text-[#94a3b8]" : "text-slate-400")}>
                       Режим и размер поля:
                     </label>
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         type="button"
                         onClick={() => setSelectedBoardSize(40)}
-                        className={`p-2 rounded-xl border flex flex-col items-start gap-0.5 transition-all text-left ${
+                        className={cn(
+                          "p-2 rounded-none sm:rounded-xl border flex flex-col items-start gap-0.5 transition-all text-left",
                           selectedBoardSize === 40
-                            ? "bg-primary/20 border-primary text-foreground shadow-sm"
-                            : "bg-black/30 border-white/10 text-muted-foreground hover:border-white/20"
-                        }`}
+                            ? (isNoir ? "bg-[#d4a647]/20 border-[#d4a647] text-[#f5e6c8]" : isSoviet ? "bg-[#0369a1]/30 border-[#38bdf8] text-[#e0f2fe]" : "bg-slate-600/20 border-slate-600 text-white")
+                            : (isNoir ? "bg-[#1a1410] border-[#3d2e1a] text-[#b8a890]" : isSoviet ? "bg-[#050b14] border-[#1e293b] text-[#94a3b8]" : "bg-black/30 border-white/10 text-slate-400")
+                        )}
                       >
                         <div className="flex items-center gap-1.5 font-bold text-xs">
                           <span>40 клеток</span>
-                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-400/20 text-amber-300 font-black">
-                            28 ОБЪЕКТОВ
+                          <span className={cn(
+                            "text-[9px] px-1.5 py-0.2 rounded-none font-bold border",
+                            isNoir ? "bg-[#1a1410] border-[#d4a647] text-[#d4a647]" : isSoviet ? "bg-[#09111c] border-[#38bdf8] text-[#38bdf8]" : "bg-slate-950 border-slate-600 text-slate-400"
+                          )}>
+                            28 АКТИВОВ
                           </span>
                         </div>
-                        <span className="text-[10px] text-muted-foreground">
-                          Стандартная классика
+                        <span className="text-[10px] opacity-80">
+                          40 клеток • 8 отраслей
                         </span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => setSelectedBoardSize(24)}
-                        className={`p-2 rounded-xl border flex flex-col items-start gap-0.5 transition-all text-left ${
+                        className={cn(
+                          "p-2 rounded-none sm:rounded-xl border flex flex-col items-start gap-0.5 transition-all text-left",
                           selectedBoardSize === 24
-                            ? "bg-primary/20 border-primary text-foreground shadow-sm"
-                            : "bg-black/30 border-white/10 text-muted-foreground hover:border-white/20"
-                        }`}
+                            ? (isNoir ? "bg-[#d4a647]/20 border-[#d4a647] text-[#f5e6c8]" : isSoviet ? "bg-[#0369a1]/30 border-[#38bdf8] text-[#e0f2fe]" : "bg-slate-600/20 border-slate-600 text-white")
+                            : (isNoir ? "bg-[#1a1410] border-[#3d2e1a] text-[#b8a890]" : isSoviet ? "bg-[#050b14] border-[#1e293b] text-[#94a3b8]" : "bg-black/30 border-white/10 text-slate-400")
+                        )}
                       >
                         <div className="flex items-center gap-1.5 font-bold text-xs">
                           <span>24 клетки</span>
-                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-400/20 text-blue-300 font-black">
+                          <span className={cn(
+                            "text-[9px] px-1.5 py-0.2 rounded-none font-bold border",
+                            isNoir ? "bg-[#1a1410] border-[#8b0000] text-[#fca5a5]" : isSoviet ? "bg-[#09111c] border-[#dc2626] text-[#fca5a5]" : "bg-amber-950 border-amber-500 text-amber-300"
+                          )}>
                             БЛИЦ
                           </span>
                         </div>
-                        <span className="text-[10px] text-muted-foreground">
+                        <span className="text-[10px] opacity-80">
                           Быстрая игра
                         </span>
                       </button>
@@ -483,18 +530,21 @@ export const WelcomeScreen: React.FC = () => {
                   </div>
 
                   {/* Privacy Toggle */}
-                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-black/30 border border-white/5">
+                  <div className={cn(
+                    "flex items-center justify-between p-2.5 rounded-none sm:rounded-xl border",
+                    isNoir ? "bg-[#1a1410] border-[#3d2e1a]" : isSoviet ? "bg-[#050b14] border-[#1e293b]" : "bg-black/30 border-white/5"
+                  )}>
                     <div className="flex items-center gap-2.5">
                       {isPrivate ? (
-                        <Lock className="w-4 h-4 text-amber-400" />
+                        <Lock className={cn("w-4 h-4", isNoir ? "text-[#d4a647]" : isSoviet ? "text-[#38bdf8]" : "text-amber-400")} />
                       ) : (
-                        <Globe className="w-4 h-4 text-emerald-400" />
+                        <Globe className="w-4 h-4 text-slate-500" />
                       )}
                       <div className="flex flex-col text-left">
                         <span className="text-xs font-bold text-foreground">
                           {isPrivate ? "Приватный стол" : "Открытый стол"}
                         </span>
-                        <span className="text-[10px] text-muted-foreground">
+                        <span className="text-[10px] opacity-75">
                           {isPrivate
                             ? "Вход только по коду приглашения"
                             : "Отображается в общем списке лобби"}
@@ -505,20 +555,23 @@ export const WelcomeScreen: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setIsPrivate(!isPrivate)}
-                      className={`w-11 h-6 flex items-center rounded-full p-1 transition-all ${
+                      className={cn(
+                        "w-11 h-6 flex items-center rounded-full p-1 transition-all",
                         isPrivate
-                          ? "bg-amber-500 justify-end"
+                          ? (isNoir ? "bg-[#d4a647] justify-end" : isSoviet ? "bg-[#38bdf8] justify-end" : "bg-slate-600 justify-end")
                           : "bg-white/20 justify-start"
-                      }`}
+                      )}
                     >
-                      <div className="w-4 h-4 rounded-full bg-white shadow-md" />
+                      <div className="w-4 h-4 rounded-full bg-black shadow-md" />
                     </button>
                   </div>
 
                   <Button
-                    variant="default"
                     size="lg"
-                    className="w-full font-bold shadow-lg h-11 flex items-center justify-center gap-2"
+                    className={cn(
+                      "w-full font-bold shadow-lg h-11 flex items-center justify-center gap-2 border",
+                      isNoir ? "noir-btn-amber font-noir-title" : isSoviet ? "soviet-btn-cyan font-soviet" : "classic-btn-primary font-sans"
+                    )}
                     onClick={() => handleCreate()}
                     disabled={loadingCreate}
                   >
@@ -529,24 +582,27 @@ export const WelcomeScreen: React.FC = () => {
                         : `Создать стол (${selectedBoardSize} клеток) 🎲`}
                     </span>
                   </Button>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
               {/* Card B: Join by Code */}
-              <Card className="flex flex-col justify-between border-white/10 bg-card/80 backdrop-blur-xl">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <LogIn className="w-5 h-5 text-emerald-400" />
-                    Войти по коду
-                  </CardTitle>
-                  <CardDescription className="text-xs">
+              <div className={cn(
+                "flex flex-col justify-between p-5 border rounded-none sm:rounded-2xl shadow-xl",
+                isNoir ? "bg-[#14100c] border-[#3d2e1a] font-noir-body text-[#f5e6c8]" : isSoviet ? "bg-[#09111c] border-[#1e293b] font-soviet text-[#e2e8f0]" : "bg-[#0f172a] border-slate-600/30 font-sans text-slate-100"
+              )}>
+                <div className="flex flex-col gap-1 pb-3 text-left">
+                  <div className="text-base font-bold flex items-center gap-2">
+                    <LogIn className="w-5 h-5 text-slate-500" />
+                    <span>Войти по коду</span>
+                  </div>
+                  <span className={cn("text-xs", isNoir ? "text-[#b8a890]" : isSoviet ? "text-[#94a3b8]" : "text-slate-400")}>
                     Если вам прислали 4-значный код комнаты (например, ABCD).
-                  </CardDescription>
-                </CardHeader>
+                  </span>
+                </div>
 
-                <CardContent className="flex flex-col gap-3">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-muted-foreground">
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-1.5 text-left">
+                    <label className={cn("text-xs font-bold", isNoir ? "text-[#b8a890]" : isSoviet ? "text-[#94a3b8]" : "text-slate-400")}>
                       Код комнаты:
                     </label>
                     <div className="flex gap-2">
@@ -557,11 +613,17 @@ export const WelcomeScreen: React.FC = () => {
                         }
                         placeholder="ABCD"
                         maxLength={6}
-                        className="font-mono font-black tracking-widest text-center text-base uppercase bg-black/40 border-white/15 h-11"
+                        className={cn(
+                          "font-mono font-black tracking-widest text-center text-base uppercase h-11 border",
+                          isNoir ? "bg-[#1a1410] border-[#d4a647]/50 text-[#f5e6c8]" : isSoviet ? "bg-[#050b14] border-[#38bdf8]/50 text-[#e2e8f0]" : "bg-black/40 border-slate-600/40 text-slate-400"
+                        )}
                       />
                       <Button
                         variant="outline"
-                        className="h-11 px-3 text-xs font-bold border-white/15 hover:bg-white/10"
+                        className={cn(
+                          "h-11 px-3 text-xs font-bold border",
+                          isNoir ? "border-[#d4a647]/40 text-[#d4a647] hover:bg-[#1a1410]" : isSoviet ? "border-[#38bdf8]/40 text-[#38bdf8] hover:bg-[#0f172a]" : "border-slate-600/40 text-slate-400 hover:bg-slate-950"
+                        )}
                         onClick={handlePasteCode}
                         title="Вставить из буфера"
                       >
@@ -571,9 +633,11 @@ export const WelcomeScreen: React.FC = () => {
                   </div>
 
                   <Button
-                    variant="secondary"
                     size="lg"
-                    className="w-full font-bold shadow-md h-11 flex items-center justify-center gap-2"
+                    className={cn(
+                      "w-full font-bold shadow-md h-11 flex items-center justify-center gap-2 border",
+                      isNoir ? "noir-btn-amber font-noir-title" : isSoviet ? "soviet-btn-cyan font-soviet" : "classic-btn-primary font-sans"
+                    )}
                     onClick={handleJoin}
                     disabled={loadingJoin}
                   >
@@ -582,490 +646,22 @@ export const WelcomeScreen: React.FC = () => {
                       {loadingJoin ? "Подключение..." : "Присоединиться"}
                     </span>
                   </Button>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </div>
           </div>
         )}
 
         {/* TAB 2: GAME MODES (AUTHORIZED ONLY) */}
         {activeTab === "modes" && (
-          <div className="flex flex-col gap-4 w-full animate-fade-in">
-            {/* Premier Mode 1: 🌟 Классическая Монополия (40 клеток, 28 объектов недвижимости) */}
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-500/20 via-primary/20 to-emerald-500/20 border-2 border-amber-400/40 p-5 sm:p-6 shadow-2xl backdrop-blur-xl">
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-2xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center shrink-0">
-                      <Crown className="w-5 h-5 text-amber-400" />
-                    </div>
-                    <div className="flex flex-col text-left">
-                      <div className="flex items-center gap-2">
-                        <span className="font-black text-lg sm:text-xl text-foreground">
-                          Классическая Получка
-                        </span>
-                        <Badge
-                          variant="gold"
-                          className="text-[10px] font-black px-2 py-0.5 uppercase tracking-wide"
-                        >
-                          СТАНДАРТНЫЙ РЕЖИМ
-                        </Badge>
-                      </div>
-                      <span className="text-xs text-amber-300 font-semibold">
-                        40 клеток на доске • 28 объектов недвижимости • 11x11
-                        периметр
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 self-start sm:self-auto">
-                    <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 flex items-center gap-1">
-                      <Check className="w-3.5 h-3.5" /> Флагманский режим
-                    </span>
-                  </div>
-                </div>
-
-                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed text-left">
-                  Официальное полноразмерное поле мировой Монополии:{" "}
-                  <strong className="text-foreground">
-                    28 объектов недвижимости
-                  </strong>{" "}
-                  (22 корпорации в 8 цветовых районах, 4 транспортных узла и 2
-                  коммунальных сервиса), 4 угловые клетки, Шанс и Казна.
-                  Полноценная экономическая стратегия со строительством домов,
-                  отелей и аукционами.
-                </p>
-
-                {/* Mode Attributes Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-left">
-                  <div className="p-3 rounded-2xl bg-black/40 border border-white/5 flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5 text-amber-400 text-xs font-bold">
-                      <Building2 className="w-4 h-4" />
-                      <span>28 Объектов</span>
-                    </div>
-                    <span className="text-[11px] text-muted-foreground">
-                      22 улицы + 4 вокзала + 2 утилиты
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-2xl bg-black/40 border border-white/5 flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5 text-primary text-xs font-bold">
-                      <Globe className="w-4 h-4" />
-                      <span>40 Клеток</span>
-                    </div>
-                    <span className="text-[11px] text-muted-foreground">
-                      Классический периметр 11x11
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-2xl bg-black/40 border border-white/5 flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-bold">
-                      <Coins className="w-4 h-4" />
-                      <span>$1,500 Капитал</span>
-                    </div>
-                    <span className="text-[11px] text-muted-foreground">
-                      Идеальный баланс экономики
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-2xl bg-black/40 border border-white/5 flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5 text-blue-400 text-xs font-bold">
-                      <Clock className="w-4 h-4" />
-                      <span>30-45 Минут</span>
-                    </div>
-                    <span className="text-[11px] text-muted-foreground">
-                      Глубокая турнирная сессия
-                    </span>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-2">
-                  <Button
-                    variant="outline"
-                    className="w-full sm:w-auto font-bold text-xs h-10 border-white/15 hover:bg-white/10"
-                    onClick={() =>
-                      handleCreate({ mode: "standard", boardSize: 40 })
-                    }
-                    disabled={loadingCreate}
-                  >
-                    <PlusCircle className="w-4 h-4 mr-1.5" />
-                    <span>Создать стол (40 клеток)</span>
-                  </Button>
-
-                  <Button
-                    variant="gold"
-                    className="w-full sm:w-auto font-black text-xs sm:text-sm h-10 px-6 shadow-xl shadow-amber-500/20"
-                    onClick={handleQuickPlay}
-                    disabled={loadingQuick}
-                  >
-                    <Zap className="w-4 h-4 mr-1.5 fill-current" />
-                    <span>Играть в стандартном режиме ⚡</span>
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Split Modes: Blitz & Ranked Duel */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-              {/* Mode 2: ⚡ Блиц-Монополия (24 клетки) */}
-              <Card className="flex flex-col justify-between border-white/10 bg-card/80 backdrop-blur-xl">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Flame className="w-5 h-5 text-blue-400" />
-                      Блиц Получка (24 клетки)
-                    </CardTitle>
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] font-bold text-blue-300 border-blue-400/40 bg-blue-500/10"
-                    >
-                      БЫСТРЫЙ РАУНД
-                    </Badge>
-                  </div>
-                  <CardDescription className="text-xs">
-                    Компактное поле 7x7 для динамичных сессий на 10-15 минут.
-                  </CardDescription>
-                </CardHeader>
-
-                <CardContent className="flex flex-col gap-3 text-left">
-                  <div className="grid grid-cols-2 gap-2 text-left">
-                    <div className="p-2.5 rounded-xl bg-black/30 border border-white/5">
-                      <span className="text-[10px] text-muted-foreground block">
-                        Объекты:
-                      </span>
-                      <span className="text-xs font-bold text-foreground">
-                        14 недвижимости
-                      </span>
-                    </div>
-                    <div className="p-2.5 rounded-xl bg-black/30 border border-white/5">
-                      <span className="text-[10px] text-muted-foreground block">
-                        Время партии:
-                      </span>
-                      <span className="text-xs font-bold text-foreground">
-                        10-15 минут
-                      </span>
-                    </div>
-                  </div>
-
-                  <p className="text-[11px] text-muted-foreground">
-                    По 2 улицы в каждом цветовом районе. Быстрый сбор монополий
-                    и мгновенная развязка!
-                  </p>
-
-                  <Button
-                    variant="default"
-                    className="w-full font-bold text-xs h-10 mt-1"
-                    onClick={() =>
-                      handleCreate({ mode: "blitz", boardSize: 24 })
-                    }
-                    disabled={loadingCreate}
-                  >
-                    <Zap className="w-4 h-4 mr-1.5" />
-                    <span>Создать блиц-стол (24 клетки)</span>
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Mode 3: ⚔️ Рейтинговая Дуэль 1v1 */}
-              <Card className="flex flex-col justify-between border-white/10 bg-card/80 backdrop-blur-xl">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Swords className="w-5 h-5 text-amber-400" />
-                      Рейтинговая Дуэль (1 на 1)
-                    </CardTitle>
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] font-bold text-amber-300 border-amber-400/40 bg-amber-500/10"
-                    >
-                      ТУРНИР
-                    </Badge>
-                  </div>
-                  <CardDescription className="text-xs">
-                    Соревновательный матч один на один за позиции в таблице
-                    лидеров.
-                  </CardDescription>
-                </CardHeader>
-
-                <CardContent className="flex flex-col gap-3 text-left">
-                  <div className="grid grid-cols-2 gap-2 text-left">
-                    <div className="p-2.5 rounded-xl bg-black/30 border border-white/5">
-                      <span className="text-[10px] text-muted-foreground block">
-                        Формат:
-                      </span>
-                      <span className="text-xs font-bold text-foreground">
-                        Дуэль (2 игрока)
-                      </span>
-                    </div>
-                    <div className="p-2.5 rounded-xl bg-black/30 border border-white/5">
-                      <span className="text-[10px] text-muted-foreground block">
-                        Таймер хода:
-                      </span>
-                      <span className="text-xs font-bold text-foreground">
-                        30 сек / ход
-                      </span>
-                    </div>
-                  </div>
-
-                  <p className="text-[11px] text-muted-foreground">
-                    Удвоенный прирост ELO-рейтинга за победу. Проявите
-                    мастерство один на один!
-                  </p>
-
-                  <Button
-                    variant="secondary"
-                    className="w-full font-bold text-xs h-10 mt-1"
-                    onClick={() =>
-                      handleCreate({ mode: "ranked", boardSize: 40 })
-                    }
-                    disabled={loadingCreate}
-                  >
-                    <Swords className="w-4 h-4 mr-1.5" />
-                    <span>Начать рейтинговую дуэль ⚔️</span>
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Mode 4: 🔄 Режим «Наоборот» (Reverse Mode) */}
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-amber-500/20 border-2 border-purple-400/40 p-5 sm:p-6 shadow-2xl backdrop-blur-xl">
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-2xl bg-purple-400/20 border border-purple-400/40 flex items-center justify-center shrink-0">
-                      <RotateCw className="w-5 h-5 text-purple-300" />
-                    </div>
-                    <div className="flex flex-col text-left">
-                      <div className="flex items-center gap-2">
-                        <span className="font-black text-lg sm:text-xl text-foreground">
-                          Режим «Наоборот» 🔄
-                        </span>
-                        <Badge
-                          variant="gold"
-                          className="text-[10px] font-black px-2 py-0.5 uppercase tracking-wide bg-purple-500/30 text-purple-200 border-purple-400/50"
-                        >
-                          НОВЫЙ РЕЖИМ
-                        </Badge>
-                      </div>
-                      <span className="text-xs text-purple-300 font-semibold">
-                        10–20 раундов (кругов) • Побеждает игрок с НАИМЕНЬШИМ капиталом
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 self-start sm:self-auto">
-                    {!currentUser ? (
-                      <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-amber-500/20 border border-amber-500/30 text-amber-300 flex items-center gap-1">
-                        <Lock className="w-3.5 h-3.5" /> Доступно после входа
-                      </span>
-                    ) : (
-                      <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-200 flex items-center gap-1">
-                        👑 Инверсия стратегии
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed text-left">
-                  Абсолютно новые правила игры: побеждает не богатей, а игрок с <strong className="text-foreground">минимальным суммарным капиталом</strong> (деньги + номинал всех владений + 50% построек). Но берегитесь банкротства — банкроты дисквалифицируются! Не покупайте лишнего, избавляйтесь от активов и переигрывайте соперников.
-                </p>
-
-                {/* Mode Attributes Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-left">
-                  <div className="p-3 rounded-2xl bg-black/40 border border-white/5 flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5 text-purple-300 text-xs font-bold">
-                      <Clock className="w-4 h-4" />
-                      <span>10 / 20 Раундов</span>
-                    </div>
-                    <span className="text-[11px] text-muted-foreground">
-                      Кругов стола до финала
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-2xl bg-black/40 border border-white/5 flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-bold">
-                      <Coins className="w-4 h-4" />
-                      <span>Мин. Капитал</span>
-                    </div>
-                    <span className="text-[11px] text-muted-foreground">
-                      Меньше денег = победа
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-2xl bg-black/40 border border-white/5 flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5 text-amber-400 text-xs font-bold">
-                      <Building2 className="w-4 h-4" />
-                      <span>Принуд. аукцион</span>
-                    </div>
-                    <span className="text-[11px] text-muted-foreground">
-                      Без ставок клетка у вас
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-2xl bg-black/40 border border-white/5 flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5 text-pink-400 text-xs font-bold">
-                      <Flame className="w-4 h-4" />
-                      <span>Банкрот = Выбыл</span>
-                    </div>
-                    <span className="text-[11px] text-muted-foreground">
-                      Выживите с $1 до конца!
-                    </span>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-2">
-                  {!currentUser ? (
-                    <Button
-                      variant="gold"
-                      className="w-full sm:w-auto font-black text-xs sm:text-sm h-10 px-6 shadow-xl shadow-amber-500/20 bg-gradient-to-r from-amber-500 to-purple-600 hover:brightness-110 text-white"
-                      onClick={() => {
-                        soundEngine.playClick();
-                        openModal("telegramLogin");
-                      }}
-                    >
-                      <Lock className="w-4 h-4 mr-1.5" />
-                      <span>Войти, чтобы открыть режим «Наоборот» 🔑</span>
-                    </Button>
-                  ) : (
-                    <>
-                      <Button
-                        variant="outline"
-                        className="w-full sm:w-auto font-bold text-xs h-10 border-white/15 hover:bg-white/10"
-                        onClick={() =>
-                          handleCreate({ mode: "blitz", gameMode: "reverse", maxRounds: 10, boardSize: 24 })
-                        }
-                        disabled={loadingCreate}
-                      >
-                        <span>Блиц «Наоборот» (24 кл., 10 раундов) ⚡</span>
-                      </Button>
-
-                      <Button
-                        variant="gold"
-                        className="w-full sm:w-auto font-black text-xs sm:text-sm h-10 px-6 shadow-xl shadow-purple-500/20 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white"
-                        onClick={() =>
-                          handleCreate({ mode: "standard", gameMode: "reverse", maxRounds: 20, boardSize: 40 })
-                        }
-                        disabled={loadingCreate}
-                      >
-                        <RotateCw className="w-4 h-4 mr-1.5" />
-                        <span>Создать стол «Наоборот» (40 кл., 20 раундов) 🔄</span>
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Mode 5: 👥 Командный режим 2v2 (Team Mode) */}
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-500/20 via-indigo-500/20 to-red-500/20 border-2 border-blue-400/40 p-5 sm:p-6 shadow-2xl backdrop-blur-xl">
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-2xl bg-blue-400/20 border border-blue-400/40 flex items-center justify-center shrink-0">
-                      <Users className="w-5 h-5 text-blue-300" />
-                    </div>
-                    <div className="flex flex-col text-left">
-                      <div className="flex items-center gap-2">
-                        <span className="font-black text-lg sm:text-xl text-foreground">
-                          Командный режим 2v2 👥
-                        </span>
-                        <Badge
-                          variant="gold"
-                          className="text-[10px] font-black px-2 py-0.5 uppercase tracking-wide bg-blue-500/30 text-blue-200 border-blue-400/50"
-                        >
-                          2 КОМАНДЫ
-                        </Badge>
-                      </div>
-                      <span className="text-xs text-blue-300 font-semibold">
-                        Красные 🔴 vs Синие 🔵 • Общая казна $2250 • Командные монополии
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 self-start sm:self-auto">
-                    <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-blue-500/20 border border-blue-500/30 text-blue-200 flex items-center gap-1">
-                      🤝 Командная стратегия
-                    </span>
-                  </div>
-                </div>
-
-                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed text-left">
-                  Сражайтесь плечом к плечу! У вас и напарника <strong className="text-foreground">общий баланс казны и недвижимость</strong>. Монополии строятся на общих улицах команды, остановка на территории напарника <strong className="text-emerald-400">бесплатна ($0)</strong>, а рента с соперников пополняет общую казну. Побеждает команда с наибольшим суммарным капиталом!
-                </p>
-
-                {/* Mode Attributes Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-left">
-                  <div className="p-3 rounded-2xl bg-black/40 border border-white/5 flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5 text-blue-400 text-xs font-bold">
-                      <Users className="w-4 h-4" />
-                      <span>2v2 Команды</span>
-                    </div>
-                    <span className="text-[11px] text-muted-foreground">
-                      🔴 Красные vs 🔵 Синие
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-2xl bg-black/40 border border-white/5 flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-bold">
-                      <Coins className="w-4 h-4" />
-                      <span>Общая казна $2250</span>
-                    </div>
-                    <span className="text-[11px] text-muted-foreground">
-                      Единый кошелек и активы
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-2xl bg-black/40 border border-white/5 flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5 text-amber-400 text-xs font-bold">
-                      <Building2 className="w-4 h-4" />
-                      <span>$0 Рента своим</span>
-                    </div>
-                    <span className="text-[11px] text-muted-foreground">
-                      Бесплатный отдых напарника
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-2xl bg-black/40 border border-white/5 flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5 text-red-400 text-xs font-bold">
-                      <Flame className="w-4 h-4" />
-                      <span>Командный финал</span>
-                    </div>
-                    <span className="text-[11px] text-muted-foreground">
-                      Победа по капиталу команд
-                    </span>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-2">
-                  <Button
-                    variant="outline"
-                    className="w-full sm:w-auto font-bold text-xs h-10 border-white/15 hover:bg-white/10"
-                    onClick={() =>
-                      handleCreate({ mode: "blitz", gameMode: "team", boardSize: 24 })
-                    }
-                    disabled={loadingCreate}
-                  >
-                    <span>Блиц 2v2 (24 кл.) ⚡</span>
-                  </Button>
-
-                  <Button
-                    variant="gold"
-                    className="w-full sm:w-auto font-black text-xs sm:text-sm h-10 px-6 shadow-xl shadow-blue-500/20 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white"
-                    onClick={() =>
-                      handleCreate({ mode: "standard", gameMode: "team", boardSize: 40 })
-                    }
-                    disabled={loadingCreate}
-                  >
-                    <Users className="w-4 h-4 mr-1.5" />
-                    <span>Создать стол 2v2 (40 кл.) 👥</span>
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
+          <GameModesTab
+            handleCreate={handleCreate}
+            handleQuickPlay={handleQuickPlay}
+            loadingCreate={loadingCreate}
+            loadingQuick={loadingQuick}
+            isPrivate={isPrivate}
+            setIsPrivate={setIsPrivate}
+          />
         )}
 
         {/* TAB 3: LOBBY BROWSER */}
@@ -1074,7 +670,7 @@ export const WelcomeScreen: React.FC = () => {
             <CardHeader className="pb-3 flex flex-row items-center justify-between">
               <div className="flex flex-col gap-1">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Globe className="w-5 h-5 text-emerald-400" />
+                  <Globe className="w-5 h-5 text-slate-500" />
                   Открытые столы в сети
                 </CardTitle>
                 <CardDescription className="text-xs">
@@ -1200,8 +796,7 @@ export const WelcomeScreen: React.FC = () => {
                   Рейтинг лучших игроков (ТОП-10)
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Рейтинг формируется по системе ELO на основе побед в
-                  официальных онлайн-матчах.
+                  Официальный рейтинг ELO среди авторизованных игроков (Telegram и Яндекс ID).
                 </CardDescription>
               </div>
               <Button
@@ -1219,6 +814,22 @@ export const WelcomeScreen: React.FC = () => {
             </CardHeader>
 
             <CardContent className="p-4">
+              {!currentUser && (
+                <div className="mb-3 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs text-amber-200">
+                  <div className="flex items-center gap-2">
+                    <Trophy className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>Вы играете как гость. Войдите через Telegram или Яндекс ID, чтобы сохранять ELO и попасть в таблицу лидеров!</span>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="h-7 text-xs px-3 font-bold bg-amber-500 text-black hover:bg-amber-400 shrink-0"
+                    onClick={() => openModal('telegramLogin')}
+                  >
+                    Войти
+                  </Button>
+                </div>
+              )}
+
               {loadingLeaderboard ? (
                 <div className="flex items-center justify-center py-12 text-muted-foreground text-xs">
                   Загрузка таблицы лидеров...
@@ -1227,7 +838,7 @@ export const WelcomeScreen: React.FC = () => {
                 <div className="flex flex-col items-center justify-center text-center py-12 text-muted-foreground gap-2">
                   <Award className="w-10 h-10 opacity-20" />
                   <span className="text-xs">
-                    Сыграйте первый матч, чтобы занять верхнюю строчку рейтинга!
+                    Авторизуйтесь и сыграйте первый матч, чтобы занять верхнюю строчку рейтинга!
                   </span>
                 </div>
               ) : (
@@ -1273,15 +884,8 @@ export const WelcomeScreen: React.FC = () => {
                               )}
                             </div>
                             <span className="text-[10px] text-muted-foreground">
-                              Побед: {user.gamesWon || 0} из{" "}
-                              {user.gamesPlayed || 0} (
-                              {user.gamesPlayed
-                                ? Math.round(
-                                    ((user.gamesWon || 0) / user.gamesPlayed) *
-                                      100,
-                                  )
-                                : 0}
-                              %)
+                              Побед: {user.wins ?? user.gamesWon ?? 0} из{" "}
+                              {user.gamesPlayed || 0} ({user.winRate ?? (user.gamesPlayed ? Math.round(((user.wins || 0) / user.gamesPlayed) * 100) : 0)}%)
                             </span>
                           </div>
                         </div>
@@ -1303,63 +907,8 @@ export const WelcomeScreen: React.FC = () => {
           </Card>
         )}
 
-        {/* TAB 4: RULES & GUIDE */}
-        {activeTab === "rules" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full text-xs">
-            {/* Rule 1 */}
-            <Card className="border-white/10 bg-card/80 backdrop-blur-xl p-4 flex flex-col gap-2">
-              <div className="flex items-center gap-2 text-sm font-bold text-amber-400">
-                <Dices className="w-4 h-4" />
-                <span>1. Броски кубиков и дубли</span>
-              </div>
-              <p className="text-muted-foreground leading-relaxed">
-                Игроки по очереди бросают два кубика и перемещаются по периметру
-                24 клеток. Выпадение дубля даёт право на дополнительный ход. Три
-                дубля подряд отправляют игрока в тюрьму за превышение скорости!
-              </p>
-            </Card>
-
-            {/* Rule 2 */}
-            <Card className="border-white/10 bg-card/80 backdrop-blur-xl p-4 flex flex-col gap-2">
-              <div className="flex items-center gap-2 text-sm font-bold text-blue-400">
-                <Building2 className="w-4 h-4" />
-                <span>2. Монополии и застройка</span>
-              </div>
-              <p className="text-muted-foreground leading-relaxed">
-                Выкупайте улицы и собирайте полные цветовые монополии (по 2
-                улицы в группе). Монополия удваивает базовую ренту и открывает
-                строительство до 4 домов и 1 отеля для максимального дохода.
-              </p>
-            </Card>
-
-            {/* Rule 3 */}
-            <Card className="border-white/10 bg-card/80 backdrop-blur-xl p-4 flex flex-col gap-2">
-              <div className="flex items-center gap-2 text-sm font-bold text-emerald-400">
-                <Gavel className="w-4 h-4" />
-                <span>3. Аукционы и Сделки</span>
-              </div>
-              <p className="text-muted-foreground leading-relaxed">
-                При отказе от покупки улица уходит на аукцион или предлагается
-                сопернику напрямую. В любой момент вне броска можно заключить
-                прямую сделку по обмену улицами и деньгами через кнопку
-                «Сделка».
-              </p>
-            </Card>
-
-            {/* Rule 4 */}
-            <Card className="border-white/10 bg-card/80 backdrop-blur-xl p-4 flex flex-col gap-2">
-              <div className="flex items-center gap-2 text-sm font-bold text-purple-400">
-                <Key className="w-4 h-4" />
-                <span>4. Тюрьма и Спасение от долгов</span>
-              </div>
-              <p className="text-muted-foreground leading-relaxed">
-                Выйти из тюрьмы можно штрафом $50, картой свободы или дублем.
-                Если у вас возникла задолженность, игра не заканчивается сразу:
-                заложите улицы или продайте дома в меню «Моя недвижимость»!
-              </p>
-            </Card>
-          </div>
-        )}
+        {/* TAB 4: RULES & GUIDE BY MODE */}
+        {activeTab === "rules" && <RulesTab />}
       </div>
 
       {/* 4. Bottom Live Stats & Legal Footer */}

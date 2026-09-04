@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { THEMES } from '@/lib/constants';
-import { Sliders, Snowflake, Sparkles, Gauge } from 'lucide-react';
+import { Sliders, Snowflake, Gauge, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export const SettingsModal: React.FC = () => {
@@ -19,20 +19,17 @@ export const SettingsModal: React.FC = () => {
     activeModal,
     closeModal,
     theme,
-    is3D,
-    tiltX,
-    rotZ,
     snowEnabled,
     animSpeed,
     applySettings,
+    currentUser,
+    openModal,
+    showToast,
   } = useGame();
 
   const isOpen = activeModal === 'settings';
 
   const [draftTheme, setDraftTheme] = useState(theme);
-  const [draft3D, setDraft3D] = useState(is3D);
-  const [draftTiltX, setDraftTiltX] = useState(tiltX);
-  const [draftRotZ, setDraftRotZ] = useState(rotZ);
   const [draftSnow, setDraftSnow] = useState(snowEnabled);
   const [draftSpeed, setDraftSpeed] = useState(animSpeed);
 
@@ -40,25 +37,23 @@ export const SettingsModal: React.FC = () => {
   React.useEffect(() => {
     if (isOpen) {
       setDraftTheme(theme);
-      setDraft3D(is3D);
-      setDraftTiltX(tiltX);
-      setDraftRotZ(rotZ);
       setDraftSnow(snowEnabled);
       setDraftSpeed(animSpeed);
     }
-  }, [isOpen, theme, is3D, tiltX, rotZ, snowEnabled, animSpeed]);
+  }, [isOpen, theme, snowEnabled, animSpeed]);
 
   const handleSave = () => {
     applySettings({
       theme: draftTheme,
-      is3D: draft3D,
-      tiltX: draftTiltX,
-      rotZ: draftRotZ,
       snow: draftSnow,
       speed: draftSpeed,
     });
     closeModal();
   };
+
+  const isUserAuthed = Boolean(
+    currentUser || (typeof window !== 'undefined' && localStorage.getItem('monopoly_tg_user'))
+  );
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && closeModal()}>
@@ -66,81 +61,62 @@ export const SettingsModal: React.FC = () => {
         <DialogHeader className="border-b border-white/10 pb-3">
           <DialogTitle className="flex items-center gap-2 text-base sm:text-lg font-black">
             <Sliders className="w-5 h-5 text-primary" />
-            Настройки графики и вида
+            Настройки графики и темы
           </DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col gap-4 py-2">
-          {/* 1. 3D Isometric View */}
-          <div className="flex flex-col gap-3 p-3.5 rounded-xl bg-black/30 border border-white/5">
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col">
-                <span className="text-sm font-bold flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-amber-400" />
-                  3D Изометрический вид
-                </span>
-                <span className="text-xs text-muted-foreground">Объёмная перспектива и наклон поля</span>
-              </div>
-              <Switch checked={draft3D} onCheckedChange={setDraft3D} />
-            </div>
-
-            {draft3D && (
-              <div className="flex flex-col gap-3 pt-2 border-t border-white/5">
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex justify-between text-xs font-semibold text-muted-foreground">
-                    <span>Наклон по X:</span>
-                    <span className="text-foreground font-bold">{draftTiltX}°</span>
-                  </div>
-                  <Slider
-                    min={20}
-                    max={65}
-                    step={1}
-                    value={[draftTiltX]}
-                    onValueChange={(val) => setDraftTiltX(val[0])}
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex justify-between text-xs font-semibold text-muted-foreground">
-                    <span>Вращение по Z:</span>
-                    <span className="text-foreground font-bold">{draftRotZ}°</span>
-                  </div>
-                  <Slider
-                    min={-45}
-                    max={45}
-                    step={1}
-                    value={[draftRotZ]}
-                    onValueChange={(val) => setDraftRotZ(val[0])}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
 
           {/* 2. Theme Picker */}
           <div className="flex flex-col gap-2">
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Тема оформления
-            </span>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                Тема оформления
+              </span>
+              {!isUserAuthed && (
+                <span className="text-[10px] text-amber-400 font-semibold flex items-center gap-1">
+                  <Lock className="w-2.5 h-2.5" /> Советская тема требует входа
+                </span>
+              )}
+            </div>
             <div className="grid grid-cols-2 gap-2">
-              {THEMES.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => setDraftTheme(t.id)}
-                  className={cn(
-                    'flex flex-col items-start p-2.5 rounded-xl border text-left transition-all',
-                    draftTheme === t.id
-                      ? 'border-primary bg-primary/10 ring-2 ring-primary/40'
-                      : 'border-white/10 bg-black/20 hover:bg-white/5'
-                  )}
-                >
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: t.primary }} />
-                    <span className="text-xs font-bold text-foreground">{t.name}</span>
-                  </div>
-                  <span className="text-[10px] text-muted-foreground">{t.desc}</span>
-                </button>
-              ))}
+              {THEMES.map((t) => {
+                const isLocked = Boolean(t.authOnly && !isUserAuthed);
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => {
+                      if (isLocked) {
+                        showToast(`Тема «${t.name}» доступна только авторизованным игрокам!`, 'warning');
+                        openModal('telegramLogin');
+                        return;
+                      }
+                      setDraftTheme(t.id);
+                    }}
+                    className={cn(
+                      'flex flex-col items-start p-2.5 rounded-xl border text-left transition-all relative overflow-hidden',
+                      draftTheme === t.id
+                        ? 'border-primary bg-primary/10 ring-2 ring-primary/40'
+                        : isLocked
+                        ? 'border-white/5 bg-black/40 opacity-75 hover:opacity-100 hover:border-amber-500/40'
+                        : 'border-white/10 bg-black/20 hover:bg-white/5'
+                    )}
+                  >
+                    <div className="flex items-center justify-between w-full mb-1">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: t.primary }} />
+                        <span className="text-xs font-bold text-foreground truncate">{t.name}</span>
+                      </div>
+                      {isLocked && (
+                        <span className="shrink-0 ml-1 px-1.5 py-0.2 bg-amber-500/20 text-amber-300 text-[9px] font-bold rounded flex items-center gap-0.5 border border-amber-500/30">
+                          <Lock className="w-2.5 h-2.5" /> Вход
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-muted-foreground line-clamp-1">{t.desc}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 

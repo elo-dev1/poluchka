@@ -77,13 +77,13 @@ export const CharacterPickerModal: React.FC = () => {
                 </div>
 
                 <div className="flex flex-col items-center gap-0.5 mt-1 w-full">
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs">{pet.emoji}</span>
-                    <span className="font-bold text-xs text-foreground truncate max-w-[85px]">
+                  <div className="flex items-center justify-center gap-1 w-full">
+                    <span className="text-xs shrink-0">{pet.emoji}</span>
+                    <span className="font-bold text-xs text-foreground truncate max-w-[100px] whitespace-nowrap">
                       {pet.name}
                     </span>
                   </div>
-                  <span className="text-[10px] text-muted-foreground line-clamp-1 leading-tight">
+                  <span className="text-[10px] text-muted-foreground line-clamp-1 leading-tight text-center">
                     {pet.description}
                   </span>
                 </div>

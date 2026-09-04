@@ -84,6 +84,33 @@ class TradeManager {
       throw new Error('Сделка не может быть пустой');
     }
 
+    // Anti-Dumping / Anti-Collusion check in competitive games
+    // Blocks 1-sided resource dumping (e.g., gifting $1000+ or multiple properties for free)
+    if (!options.isBotGame && !options.skipAntiDumping) {
+      const evaluateItems = (items) => {
+        let val = items.money || 0;
+        val += (items.jailFreeCards || 0) * 50;
+        for (const tileId of items.properties) {
+          const tile = board[tileId];
+          if (tile) {
+            val += (tile.price || 0) + (tile.houses || 0) * (tile.housePrice || 50);
+          }
+        }
+        return val;
+      };
+
+      const offerVal = evaluateItems(cleanOffer);
+      const requestVal = evaluateItems(cleanRequest);
+
+      // If one side gives away substantial assets (> $300) for almost nothing (< 20% value), block as collusion dumping
+      const isExtremeDumpingOffer = offerVal > 300 && requestVal < offerVal * 0.2;
+      const isExtremeDumpingRequest = requestVal > 300 && offerVal < requestVal * 0.2;
+
+      if (isExtremeDumpingOffer || isExtremeDumpingRequest) {
+        throw new Error('Несбалансированная сделка отклонена: в рейтинговой игре запрещена безвозмездная передача активов для защиты от сговора');
+      }
+    }
+
     return {
       id: `trade_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       fromPlayerId: fromPlayer.id,

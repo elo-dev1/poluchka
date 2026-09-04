@@ -1,8 +1,9 @@
 import React from 'react';
+import { useGame } from '@/context/GameContext';
 import { TileData, PlayerData } from '@/types/game';
 import { TileIconImage } from '@/lib/pixelIcons';
 import { PetAvatar } from '@/components/common/PetAvatar';
-import { cn, formatMoney } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 
 interface BoardTileProps {
   tile: TileData;
@@ -12,22 +13,12 @@ interface BoardTileProps {
   animatedPositions?: Record<string, number>;
   movingPlayers?: Record<string, boolean>;
   onClick: (tile: TileData) => void;
+  isSelected?: boolean;
 }
 
-export type TileSide = 'bottom' | 'left' | 'top' | 'right' | 'corner-br' | 'corner-bl' | 'corner-tl' | 'corner-tr';
+type TileSide = 'bottom' | 'left' | 'top' | 'right' | 'corner-br' | 'corner-bl' | 'corner-tl' | 'corner-tr';
 
-/**
- * Clockwise Board Layout starting from Bottom-Left (Tile 0):
- * - Tile 0: Bottom-Left (START) -> corner-bl
- * - Tiles 1..9: Left column going UP -> left
- * - Tile 10: Top-Left (JAIL) -> corner-tl
- * - Tiles 11..19: Top row going RIGHT -> top
- * - Tile 20: Top-Right (FREE PARKING) -> corner-tr
- * - Tiles 21..29: Right column going DOWN -> right
- * - Tile 30: Bottom-Right (GO TO JAIL) -> corner-br
- * - Tiles 31..39: Bottom row going LEFT -> bottom
- */
-export function getTileSide(index: number, totalTiles: number = 40): TileSide {
+function getTileSide(index: number, totalTiles: number = 40): TileSide {
   if (totalTiles === 40) {
     if (index === 0) return 'corner-bl';
     if (index > 0 && index < 10) return 'left';
@@ -38,7 +29,6 @@ export function getTileSide(index: number, totalTiles: number = 40): TileSide {
     if (index === 30) return 'corner-br';
     return 'bottom';
   } else {
-    // 24 tiles (Blitz)
     if (index === 0) return 'corner-bl';
     if (index > 0 && index < 6) return 'left';
     if (index === 6) return 'corner-tl';
@@ -50,40 +40,32 @@ export function getTileSide(index: number, totalTiles: number = 40): TileSide {
   }
 }
 
-export function getTileGridArea(index: number, totalTiles: number = 40): { gridRow: string; gridColumn: string } {
+function getTileGridArea(index: number, totalTiles: number = 40): { gridRow: string; gridColumn: string } {
   if (totalTiles === 40) {
-    // 1. Bottom-Left Corner: START (Tile 0)
     if (index === 0) {
       return { gridRow: '11 / 12', gridColumn: '1 / 2' };
     }
-    // 2. Left Column going UP: Tiles 1 to 9 (Rows 10 down to 2)
     else if (index >= 1 && index <= 9) {
       const row = 11 - index;
       return { gridRow: `${row} / ${row + 1}`, gridColumn: '1 / 2' };
     }
-    // 3. Top-Left Corner: JAIL (Tile 10)
     else if (index === 10) {
       return { gridRow: '1 / 2', gridColumn: '1 / 2' };
     }
-    // 4. Top Row going RIGHT: Tiles 11 to 19 (Cols 2 to 10)
     else if (index >= 11 && index <= 19) {
       const col = index - 10 + 1;
       return { gridRow: '1 / 2', gridColumn: `${col} / ${col + 1}` };
     }
-    // 5. Top-Right Corner: FREE PARKING (Tile 20)
     else if (index === 20) {
       return { gridRow: '1 / 2', gridColumn: '11 / 12' };
     }
-    // 6. Right Column going DOWN: Tiles 21 to 29 (Rows 2 to 10)
     else if (index >= 21 && index <= 29) {
       const row = index - 20 + 1;
       return { gridRow: `${row} / ${row + 1}`, gridColumn: '11 / 12' };
     }
-    // 7. Bottom-Right Corner: GO TO JAIL (Tile 30)
     else if (index === 30) {
       return { gridRow: '11 / 12', gridColumn: '11 / 12' };
     }
-    // 8. Bottom Row going LEFT: Tiles 31 to 39 (Cols 10 down to 2)
     else if (index >= 31 && index <= 39) {
       const col = 11 - (index - 30);
       return { gridRow: '11 / 12', gridColumn: `${col} / ${col + 1}` };
@@ -91,7 +73,6 @@ export function getTileGridArea(index: number, totalTiles: number = 40): { gridR
     return { gridRow: '11 / 12', gridColumn: '1 / 2' };
   }
 
-  // 7x7 Grid Layout for blitz 24 tiles (0..23) Clockwise from Bottom-Left
   if (index === 0) {
     return { gridRow: '7 / 8', gridColumn: '1 / 2' };
   } else if (index >= 1 && index <= 5) {
@@ -117,6 +98,43 @@ export function getTileGridArea(index: number, totalTiles: number = 40): { gridR
   return { gridRow: '7 / 8', gridColumn: '1 / 2' };
 }
 
+interface SpecialTileVisualConfig {
+  podClass: string;
+  textColor: string;
+  priceColor: string;
+}
+
+function getSpecialTileVisualConfig(tile: TileData, isNoir?: boolean, isSoviet?: boolean): SpecialTileVisualConfig | null {
+  const type = tile.type;
+  const name = (tile.name || '').toLowerCase();
+  const isSpecial =
+    type === 'chance' ||
+    type === 'chest' ||
+    type === 'tax' ||
+    type === 'parking' ||
+    type === 'free_parking' ||
+    name.includes('шанс') ||
+    name.includes('казна') ||
+    name.includes('налог') ||
+    name.includes('сбор');
+
+  if (!isSpecial) return null;
+
+  const podClass = isNoir
+    ? 'bg-[#e8d5b5] border border-[#c4b18f] shadow-xs'
+    : isSoviet
+    ? 'bg-[#FAF3E3] border border-[#D4C4A8] shadow-xs'
+    : 'bg-white border border-slate-200/90 shadow-[0_2px_5px_rgba(0,0,0,0.06)]';
+
+  const isTax = type === 'tax' || name.includes('налог') || name.includes('сбор');
+
+  return {
+    podClass,
+    textColor: isNoir ? 'font-noir-body text-[#0a0806]' : isSoviet ? 'tile-name' : 'text-slate-900 font-black tracking-wide',
+    priceColor: isTax ? 'text-red-700 font-black' : (isNoir ? 'font-noir-body text-[#0a0806]' : isSoviet ? 'tile-price' : 'text-slate-700 font-bold'),
+  };
+}
+
 export const BoardTile: React.FC<BoardTileProps> = ({
   tile,
   players,
@@ -125,6 +143,7 @@ export const BoardTile: React.FC<BoardTileProps> = ({
   animatedPositions,
   movingPlayers,
   onClick,
+  isSelected
 }) => {
   const gridPos = getTileGridArea(tile.id, totalTiles);
   const side = getTileSide(tile.id, totalTiles);
@@ -138,145 +157,169 @@ export const BoardTile: React.FC<BoardTileProps> = ({
     return currentPos === tile.id;
   });
 
-  const owner = tile.ownerId ? players.find((p) => p.id === tile.ownerId) : null;
-  const ownerTeamId = tile.teamId || owner?.teamId;
-  const ownerHex = ownerTeamId === 'team_red'
-    ? '#FF5252'
-    : ownerTeamId === 'team_blue'
-    ? '#448AFF'
-    : owner?.color?.hex;
+  const { theme, playerId } = useGame();
+  const isSoviet = theme === 'soviet';
+  const isNoir = theme === 'noir';
+
+  const ownerPlayer = tile.ownerId ? players.find((p) => p.id === tile.ownerId) : null;
+  const isOwned = Boolean(ownerPlayer);
+  const isOwnedByMe = Boolean(tile.ownerId && tile.ownerId === playerId);
+  const myPlayer = players.find((p) => p.id === playerId);
+  const isTeammate = Boolean(
+    !isOwnedByMe &&
+    ownerPlayer &&
+    ownerPlayer.teamId &&
+    myPlayer &&
+    ownerPlayer.teamId === myPlayer.teamId
+  );
 
   const getPlayerHex = (player: PlayerData) => {
     if (player.teamId === 'team_red') return '#FF5252';
     if (player.teamId === 'team_blue') return '#448AFF';
-    return player.color?.hex || '#3b82f6';
+    return player.color?.hex || (isNoir ? '#b8a890' : isSoviet ? '#38bdf8' : '#10b981');
   };
+
+  const ownerHex = ownerPlayer ? getPlayerHex(ownerPlayer) : null;
 
   // Custom Corner Tiles Rendering
   if (side.startsWith('corner')) {
+    const getCornerStyle = () => {
+      if (isNoir) return { backgroundColor: '#f5e6c8', borderColor: '#1a1410' };
+      if (isSoviet) return { backgroundColor: '#EDE0C4', borderColor: '#B8A88A' };
+      return { backgroundColor: '#FAF7EE', borderColor: '#CBD5E1' };
+    };
+
     return (
       <div
         onClick={() => onClick(tile)}
-        className="relative flex flex-col items-center justify-between p-1.5 rounded-xl bg-[#12162a] border border-white/15 hover:border-indigo-400/70 select-none cursor-pointer transition-all duration-200 shadow-md hover:z-30 hover:scale-[1.03] overflow-hidden"
+        className={cn(
+          "flex flex-col items-center justify-between p-1 sm:p-2 select-none cursor-pointer overflow-hidden relative",
+          isNoir ? "noir-corner-tile" : isSoviet ? "soviet-corner-tile" : "classic-tile",
+          isSelected && (isNoir ? "ring-2 ring-inset ring-[#d4a647] bg-[#1a1410]" : isSoviet ? "ring-2 ring-inset ring-[#38bdf8] bg-[#F5ECDA]" : "ring-2 ring-inset ring-slate-500 bg-slate-50")
+        )}
         style={{
           gridRow: gridPos.gridRow,
           gridColumn: gridPos.gridColumn,
+          ...getCornerStyle(),
         }}
       >
-        {/* START Corner (Bottom-Left: tile 0) */}
+        {/* START Corner */}
         {side === 'corner-bl' && (
-          <div className="w-full h-full flex flex-col items-center justify-between p-1 bg-gradient-to-br from-indigo-950/60 to-[#12162a]">
-            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-300 uppercase">
-              Старт
+          <div className="w-full h-full flex flex-col items-center justify-between relative py-0.5">
+            <span className={cn("font-bold uppercase text-[9px] sm:text-[10px] md:text-xs tracking-wide text-center", isNoir ? "font-noir-title text-[#0a0806]" : isSoviet ? "font-soviet text-[#1A0E00]" : "font-sans text-slate-900 font-black")}>
+              {isNoir ? 'БЮРО ДЕТЕКТИВА' : isSoviet ? 'БАЙКОНУР' : (tile.name || 'СТАРТ')}
             </span>
-            <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center my-auto">
-              <span className="text-3xl sm:text-4xl drop-shadow-md">🏁</span>
+            {isNoir ? (
+              <div className="text-3xl sm:text-4xl md:text-5xl rotate-45 transform -translate-x-1 translate-y-1 my-auto drop-shadow-sm">🕵️‍♂️</div>
+            ) : isSoviet ? (
+              <div className="text-3xl sm:text-4xl md:text-5xl rotate-45 transform -translate-x-1 translate-y-1 my-auto drop-shadow-sm">🚀</div>
+            ) : (
+              <div className="w-11 h-11 sm:w-13 sm:h-13 md:w-15 md:h-15 lg:w-16 lg:h-16 rounded-xl bg-white border border-slate-200/90 shadow-[0_2px_5px_rgba(0,0,0,0.06)] flex items-center justify-center my-auto p-1.5 transition-transform hover:scale-105">
+                <TileIconImage
+                  tile={tile}
+                  className="w-full h-full object-contain filter contrast-125 drop-shadow-xs"
+                />
+              </div>
+            )}
+            <div className="flex flex-col items-center leading-none">
+              <span className={cn("font-bold text-[8.5px] sm:text-[9.5px] md:text-[11px]", isNoir ? "font-noir-body text-[#8b0000]" : isSoviet ? "font-space text-[#CC1111]" : "font-sans bg-emerald-600 text-white font-black px-1.5 py-0.5 rounded shadow-xs")}>
+                {isNoir ? '+$200' : isSoviet ? '+200 кР' : '+$200'}
+              </span>
             </div>
-            <span className="text-sm sm:text-base font-black text-emerald-400">
-              +$200
-            </span>
           </div>
         )}
 
-        {/* JAIL Corner (Top-Left: tile 10 or 6) */}
+        {/* JAIL Corner */}
         {side === 'corner-tl' && (
-          <div className="w-full h-full flex flex-col items-center justify-between p-1 bg-[#12162a]">
-            <span className="text-[10px] sm:text-xs font-black text-muted-foreground tracking-tight self-start px-0.5">
-              ПРОСТО
+          <div className="w-full h-full flex flex-col items-center justify-between relative py-0.5">
+            <span className={cn("font-bold uppercase text-[9px] sm:text-[10px] md:text-xs tracking-wide text-center pt-0.5", isNoir ? "font-noir-title text-[#0a0806]" : isSoviet ? "font-soviet text-[#1A0E00]" : "font-sans text-slate-900 font-black")}>
+              {isNoir ? 'КАТАЛАЖКА' : isSoviet ? 'ВАН АЛЛЕН' : (tile.name || 'ШТРАФСТОЯНКА')}
             </span>
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center my-auto">
-              <img
-                src="/assets/tiles/jail_64px.png"
-                alt="Тюрьма"
-                className="w-full h-full object-contain drop-shadow-md"
-                style={{ imageRendering: 'pixelated' }}
-              />
-            </div>
-            <div className="w-full flex items-center justify-between px-0.5">
-              <span className="text-xs sm:text-sm font-black text-amber-400">
-                Тюрьма
-              </span>
-              <span className="text-[9px] sm:text-[10.5px] text-muted-foreground font-bold">
-                ВИЗИТ
-              </span>
-            </div>
+            {isNoir ? (
+              <div className="text-3xl sm:text-4xl md:text-5xl my-auto drop-shadow-sm">⚖️</div>
+            ) : isSoviet ? (
+              <div className="text-3xl sm:text-4xl md:text-5xl my-auto drop-shadow-sm">⚠</div>
+            ) : (
+              <div className="w-11 h-11 sm:w-13 sm:h-13 md:w-15 md:h-15 lg:w-16 lg:h-16 rounded-xl bg-white border border-slate-200/90 shadow-[0_2px_5px_rgba(0,0,0,0.06)] flex items-center justify-center my-auto p-1.5 transition-transform hover:scale-105">
+                <TileIconImage
+                  tile={tile}
+                  className="w-full h-full object-contain filter contrast-125 drop-shadow-xs"
+                />
+              </div>
+            )}
+            <span className={cn("font-bold text-[8px] sm:text-[9px] md:text-[10px] tracking-widest pb-0.5", isNoir ? "font-noir-body text-[#1a1410]" : isSoviet ? "font-space text-[#1A0E00]" : "font-sans bg-slate-700 text-white font-bold text-[7.5px] sm:text-[8.5px] px-1.5 py-0.5 rounded shadow-xs")}>
+              {isNoir ? 'ВИЗИТ' : isSoviet ? 'ИЗОЛЯЦИЯ' : 'ПОСЕЩЕНИЕ'}
+            </span>
           </div>
         )}
 
-        {/* FREE PARKING Corner (Top-Right: tile 20 or 12) */}
+        {/* FREE PARKING Corner */}
         {side === 'corner-tr' && (
-          <div className="w-full h-full flex flex-col items-center justify-between p-1 bg-gradient-to-br from-blue-950/40 to-[#12162a]">
-            <span className="text-[11px] sm:text-xs font-black text-blue-300 uppercase text-center leading-tight">
-              Парковка
+          <div className="w-full h-full flex flex-col items-center justify-between relative py-0.5">
+            <span className={cn("font-bold uppercase text-[9px] sm:text-[10px] md:text-xs tracking-wide text-center leading-none pt-0.5", isNoir ? "font-noir-title text-[#0a0806]" : isSoviet ? "font-soviet text-[#1A0E00]" : "font-sans text-slate-900 font-black")}>
+              {isNoir ? 'ТЁМНЫЙ ПЕРЕУЛОК' : isSoviet ? 'ГЕОСТАЦИОНАР' : (tile.name || 'ПИТ-СТОП')}
             </span>
-            <div className="w-9 h-9 sm:w-11 sm:h-11 flex items-center justify-center my-auto">
-              <img
-                src="/assets/tiles/free_parking_64px.png"
-                alt="Парковка"
-                className="w-full h-full object-contain drop-shadow-md"
-                style={{ imageRendering: 'pixelated' }}
-              />
-            </div>
-            <span className="text-[10px] sm:text-xs text-muted-foreground font-bold">
-              Отдых
+            {isNoir ? (
+              <div className="text-3xl sm:text-4xl md:text-5xl my-auto drop-shadow-sm">🧥</div>
+            ) : isSoviet ? (
+              <div className="text-3xl sm:text-4xl md:text-5xl my-auto drop-shadow-sm">🛸</div>
+            ) : (
+              <div className="w-11 h-11 sm:w-13 sm:h-13 md:w-15 md:h-15 lg:w-16 lg:h-16 rounded-xl bg-white border border-slate-200/90 shadow-[0_2px_5px_rgba(0,0,0,0.06)] flex items-center justify-center my-auto p-1.5 transition-transform hover:scale-105">
+                <TileIconImage
+                  tile={tile}
+                  className="w-full h-full object-contain filter contrast-125 drop-shadow-xs"
+                />
+              </div>
+            )}
+            <span className={cn("font-bold text-[8px] sm:text-[9px] md:text-[10px] tracking-widest pb-0.5", isNoir ? "font-noir-body text-[#0a0806]" : isSoviet ? "font-space text-[#004890]" : "font-sans bg-slate-700 text-white font-bold text-[7.5px] sm:text-[8.5px] px-1.5 py-0.5 rounded shadow-xs")}>
+              {isNoir ? 'ЗАСАДА' : isSoviet ? 'ДРЕЙФ' : 'ОТДЫХ'}
             </span>
           </div>
         )}
 
-        {/* GO TO JAIL Corner (Bottom-Right: tile 30 or 18) */}
+        {/* GO TO JAIL Corner */}
         {side === 'corner-br' && (
-          <div className="w-full h-full flex flex-col items-center justify-between p-1 bg-gradient-to-br from-red-950/40 to-[#12162a]">
-            <span className="text-[11px] sm:text-xs font-black text-red-300 uppercase text-center leading-tight">
-              В тюрьму
+          <div className="w-full h-full flex flex-col items-center justify-between relative py-0.5">
+            <span className={cn("font-bold uppercase text-[9px] sm:text-[10px] md:text-xs tracking-wide text-center leading-tight pt-0.5", isNoir ? "font-noir-title text-[#8b0000]" : isSoviet ? "font-soviet text-[#CC1111]" : "font-sans text-slate-900 font-black")}>
+              {isNoir ? <>ОБЛАВА<br/>АРЕСТ</> : isSoviet ? <>АВАРИЙНЫЙ<br/>СХОД</> : (tile.name ? tile.name.toUpperCase() : 'ЭВАКУАЦИЯ')}
             </span>
-            <div className="w-9 h-9 sm:w-11 sm:h-11 flex items-center justify-center my-auto">
-              <img
-                src="/assets/tiles/police_64px.png"
-                alt="Арест"
-                className="w-full h-full object-contain drop-shadow-md"
-                style={{ imageRendering: 'pixelated' }}
-              />
-            </div>
-            <span className="text-[10px] sm:text-xs font-black text-red-400">
-              Арест
+            {isNoir ? (
+              <div className="text-3xl sm:text-4xl md:text-5xl my-auto drop-shadow-sm">🚓</div>
+            ) : isSoviet ? (
+              <div className="text-3xl sm:text-4xl md:text-5xl my-auto drop-shadow-sm">🔻</div>
+            ) : (
+              <div className="w-11 h-11 sm:w-13 sm:h-13 md:w-15 md:h-15 lg:w-16 lg:h-16 rounded-xl bg-white border border-slate-200/90 shadow-[0_2px_5px_rgba(0,0,0,0.06)] flex items-center justify-center my-auto p-1.5 transition-transform hover:scale-105">
+                <TileIconImage
+                  tile={tile}
+                  className="w-full h-full object-contain filter contrast-125 drop-shadow-xs"
+                />
+              </div>
+            )}
+            <span className={cn("font-bold text-[8px] sm:text-[9px] md:text-[10px] tracking-widest pb-0.5", isNoir ? "font-noir-body text-[#8b0000]" : isSoviet ? "font-space text-[#CC1111]" : "font-sans bg-red-600 text-white font-bold text-[7.5px] sm:text-[8.5px] px-1.5 py-0.5 rounded shadow-xs")}>
+              ШТРАФ
             </span>
           </div>
         )}
 
         {/* Player Tokens on corner */}
         {playersOnTile.length > 0 && (
-          <div className="absolute inset-0 flex items-center justify-center gap-1.5 z-30 pointer-events-none p-1 flex-wrap content-center">
+          <div className="absolute inset-0 flex items-center justify-center gap-1 z-30 pointer-events-none p-1 flex-wrap content-center">
             {playersOnTile.map((player) => {
               const isMoving = Boolean(movingPlayers?.[player.id]);
               const anim = isMoving ? 'jump' : player.inJail ? 'sleep' : (currentPlayerId === player.id ? 'happy' : 'idle');
               const playerHex = getPlayerHex(player);
-              const isBlitz = totalTiles === 24;
+              const tokenSize = playersOnTile.length <= 2 ? 'lg' : 'md';
               return (
-                <div
-                  key={player.id}
-                  className="relative flex flex-col items-center justify-center filter drop-shadow-[0_6px_12px_rgba(0,0,0,0.9)] transition-transform animate-in fade-in zoom-in-75 duration-200"
-                  title={`${player.name}`}
-                >
+                <div key={player.id} className="relative flex flex-col items-center justify-center drop-shadow-md">
                   <PetAvatar
                     characterId={player.characterId}
                     anim={anim}
-                    size="lg"
+                    size={tokenSize}
                     showPedestal={true}
                     pedestalColor={playerHex}
-                    className={cn(
-                      'transition-transform',
-                      isBlitz ? 'scale-120 sm:scale-135' : 'scale-100 sm:scale-115'
-                    )}
+                    className={cn('transition-transform', isMoving && 'scale-125 z-40 -translate-y-2')}
                   />
-                  <div
-                    className={cn(
-                      'mt-[-4px] px-2 py-0.5 rounded-full font-black text-white leading-none truncate shadow-md border border-white/60',
-                      isBlitz
-                        ? 'text-[10px] sm:text-[12px] max-w-[65px] sm:max-w-[80px]'
-                        : 'text-[9px] sm:text-[11px] max-w-[56px] sm:max-w-[70px]'
-                    )}
-                    style={{ backgroundColor: playerHex, boxShadow: `0 0 10px ${playerHex}aa` }}
-                  >
+                  <div className="mt-[-2px] player-tag" style={{ borderColor: playerHex, color: playerHex }}>
                     {player.name || 'Игрок'}
                   </div>
                 </div>
@@ -288,9 +331,18 @@ export const BoardTile: React.FC<BoardTileProps> = ({
     );
   }
 
-  // Special Non-Property Tiles (Шанс / Казна / Налог)
-  const isSpecial = tile.type !== 'property';
+  // Regular Tiles
+  const isSpecial =
+    tile.type === 'chance' ||
+    tile.type === 'chest' ||
+    tile.type === 'tax' ||
+    tile.type === 'parking' ||
+    tile.type === 'free_parking' ||
+    tile.type === 'start' ||
+    tile.type === 'jail' ||
+    tile.type === 'go_to_jail';
 
+  const specialVisual = getSpecialTileVisualConfig(tile, isNoir, isSoviet);
   const isBottom = side === 'bottom';
   const isTop = side === 'top';
   const isLeft = side === 'left';
@@ -300,254 +352,172 @@ export const BoardTile: React.FC<BoardTileProps> = ({
     <div
       onClick={() => onClick(tile)}
       className={cn(
-        'relative flex select-none cursor-pointer transition-all duration-200 shadow-sm hover:z-30 hover:scale-[1.06] hover:shadow-xl overflow-hidden rounded-xl',
-        isBottom && 'flex-col justify-between p-1',
-        isTop && 'flex-col justify-between p-1',
-        isLeft && 'flex-row items-stretch justify-between p-0.5',
-        isRight && 'flex-row items-stretch justify-between p-0.5',
-        ownerHex ? 'border-2' : 'border border-white/10 hover:border-indigo-400/50',
-        tile.isMortgaged && 'opacity-55 saturate-0'
+        'relative flex cursor-pointer transition-colors overflow-hidden',
+        isNoir ? 'noir-tile' : isSoviet ? 'soviet-tile' : 'classic-tile',
+        isSelected && (isNoir ? 'ring-2 ring-inset ring-[#d4a647] bg-[#1a1410]' : isSoviet ? 'ring-2 ring-inset ring-[#38bdf8] bg-[#F5ECDA]' : 'ring-2 ring-inset ring-slate-500 bg-slate-50'),
+        isBottom && 'flex-col justify-between',
+        isTop && 'flex-col-reverse justify-between',
+        isLeft && 'flex-row-reverse justify-between',
+        isRight && 'flex-row justify-between',
+        tile.isMortgaged && (isNoir ? 'opacity-60 saturate-50 sepia' : isSoviet ? 'tile-mortgaged' : 'opacity-60 saturate-50')
       )}
       style={{
         gridRow: gridPos.gridRow,
         gridColumn: gridPos.gridColumn,
-        backgroundColor: ownerHex
-          ? `color-mix(in srgb, ${ownerHex} 22%, #121528)`
-          : isSpecial && tile.type === 'chance'
-          ? '#21153b'
-          : isSpecial && tile.type === 'chest'
-          ? '#15213b'
-          : '#121528',
-        borderColor: ownerHex ? ownerHex : tile.color && !isSpecial ? `${tile.color}44` : undefined,
-        boxShadow: ownerHex
-          ? `0 0 12px ${ownerHex}55, inset 0 0 10px ${ownerHex}22`
-          : tile.color && !isSpecial
-          ? `inset 0 0 14px ${tile.color}1c`
+        borderColor: isOwned && !isSpecial && ownerHex
+          ? ownerHex
+          : isNoir ? '#1a1410' : isSoviet ? '#B8A88A' : '#CBD5E1',
+        borderWidth: isOwned && !isSpecial && ownerHex ? '2px' : undefined,
+        backgroundColor: isOwned && !isSpecial && ownerHex
+          ? (isNoir ? `${ownerHex}22` : isSoviet ? `${ownerHex}22` : `${ownerHex}15`)
+          : (isNoir ? '#f5e6c8' : isSoviet ? '#EDE0C4' : '#FAF7EE'),
+        backgroundImage: isOwned && !isSpecial && ownerHex
+          ? `linear-gradient(135deg, ${ownerHex}25 0%, ${ownerHex}08 100%)`
+          : undefined,
+        boxShadow: isOwned && !isSpecial && ownerHex
+          ? `inset 0 0 0 1px ${ownerHex}44, 0 1px 3px rgba(0,0,0,0.08)`
           : undefined,
       }}
-      title={`${tile.name} ${tile.price ? `($${tile.price})` : ''}`}
     >
-      {/* 1. LEFT COL TILES (1 to 9): Vertical content + Color Stripe Right (facing center) */}
-      {isLeft && (
-        <>
-          <div className="flex-1 flex flex-col items-center justify-between min-w-0 h-full p-0.5">
-            <span className="font-black leading-tight tracking-tight text-white text-center w-full truncate text-[11px] sm:text-[13px]">
-              {tile.name}
-            </span>
-            <div className="flex-1 flex items-center justify-center min-h-0 w-full my-auto p-0.5">
-              <TileIconImage tile={tile} className="w-full h-full max-w-[36px] max-h-[36px] sm:max-w-[42px] sm:max-h-[42px] object-contain drop-shadow-md" />
+      {/* 1. Property Color Band (Center facing) */}
+      {tile.color && !isSpecial ? (
+        <div
+          className={cn(
+            'shrink-0 border-black/10',
+            isBottom && (isNoir ? 'noir-tile-band-top w-full' : 'soviet-tile-band-top w-full'),
+            isTop && (isNoir ? 'noir-tile-band-bottom w-full' : 'soviet-tile-band-bottom w-full'),
+            isLeft && (isNoir ? 'noir-tile-band-right h-full' : 'soviet-tile-band-right h-full'),
+            isRight && (isNoir ? 'noir-tile-band-left h-full' : 'soviet-tile-band-left h-full')
+          )}
+          style={{ borderColor: tile.color }}
+        >
+          {Boolean(tile.houses && tile.houses > 0) && (
+            <div className={cn(
+              "flex items-center justify-center gap-[1.5px]",
+              (isBottom || isTop) ? "flex-row h-full -mt-1.5" : "flex-col w-full -ml-1.5"
+            )}>
+              {tile.houses === 5 ? (
+                isNoir ? (
+                  <div className="text-[10px] leading-none" title="Штаб 🏛">🏛</div>
+                ) : isSoviet ? (
+                  <div className="tile-hotel scale-110" title="Орбитальный Комплекс МИР" />
+                ) : (
+                  <div className="w-3 h-2.5 bg-red-600 rounded-[1px] border border-red-800 shadow-xs" title="Отель 🏨" />
+                )
+              ) : (
+                Array.from({ length: tile.houses || 0 }).map((_, i) => (
+                  isNoir ? (
+                    <div key={i} className="text-[8px] leading-none" title="Явка 🏚">🏚</div>
+                  ) : isSoviet ? (
+                    <div key={i} className="tile-house scale-110" title="Модуль связи" />
+                  ) : (
+                    <div key={i} className="w-2 h-2 bg-slate-600 rounded-[1px] border border-slate-800 shadow-xs" title="Дом 🏠" />
+                  )
+                ))
+              )}
             </div>
-            {(tile.price || tile.amount || tile.bonus) && (
-              <div className="flex items-center justify-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_6px_#fbbf24] shrink-0" />
-                <span className="font-black text-xs sm:text-[13.5px] text-amber-300 leading-none">
-                  {tile.price || tile.amount || tile.bonus}
-                </span>
-              </div>
+          )}
+        </div>
+      ) : (
+        <div className={cn(
+          'shrink-0',
+          (isBottom || isTop) ? 'h-1.5 w-full' : 'w-1.5 h-full'
+        )} />
+      )}
+
+      {/* 2. Content Container */}
+      <div className={cn(
+        "flex-1 flex min-w-0 min-h-0 overflow-hidden relative z-10",
+        isBottom && "flex-col items-center justify-between py-0.5 px-0.5 gap-px",
+        isTop && "flex-col-reverse items-center justify-between py-0.5 px-0.5 gap-px",
+        (isLeft || isRight) && "flex-col items-center justify-between py-0.5 px-0.5 gap-px",
+      )}>
+        <span
+          className={cn(
+            "w-full leading-none text-center font-bold text-[8px] sm:text-[9px] md:text-[10.5px] lg:text-[11.5px] xl:text-xs",
+            isNoir ? "font-noir-body text-[#0a0806]" : isSoviet ? "tile-name" : specialVisual ? specialVisual.textColor : "text-slate-900 font-sans"
+          )}
+          style={{
+            lineHeight: '1.15',
+            wordBreak: 'break-word',
+            hyphens: 'auto',
+          }}
+        >
+          {tile.name}
+        </span>
+
+        <div className="flex items-center justify-center shrink-0 my-auto flex-1 py-0.5 w-full">
+          {specialVisual ? (
+            <div className={cn(
+              "rounded-lg sm:rounded-xl p-1 sm:p-1.5 flex items-center justify-center max-w-[88%] max-h-[90%] transition-transform hover:scale-105",
+              specialVisual.podClass
+            )}>
+              <TileIconImage
+                tile={tile}
+                className="w-9 h-7 sm:w-11 sm:h-8 md:w-12 md:h-9 lg:w-14 lg:h-10 xl:w-16 xl:h-12 max-w-full object-contain filter contrast-125 drop-shadow-xs"
+              />
+            </div>
+          ) : (
+            <TileIconImage
+              tile={tile}
+              className="w-10 h-8 sm:w-12 sm:h-9 md:w-14 md:h-11 lg:w-16 lg:h-12 xl:w-20 xl:h-14 max-w-full object-contain filter contrast-125"
+            />
+          )}
+        </div>
+
+        {(tile.price || tile.amount || tile.bonus) && (
+          <span
+            className={cn(
+              "text-center leading-none font-bold text-[8px] sm:text-[9px] md:text-[10px] lg:text-[11px] xl:text-xs",
+              isNoir ? "font-noir-body text-[#0a0806]" : isSoviet ? "tile-price" : specialVisual ? specialVisual.priceColor : "text-slate-700 font-sans"
             )}
-          </div>
-
-          {tile.color && !isSpecial && (
-            <div
-              className="h-full w-2.5 sm:w-3.5 rounded-r-md shrink-0 relative transition-all duration-300"
-              style={{
-                backgroundColor: tile.color,
-                boxShadow: `0 0 10px ${tile.color}dd, 0 0 20px ${tile.color}77, inset 0 1px 2px rgba(255,255,255,0.5)`,
-              }}
-            >
-              {Boolean(tile.houses && tile.houses > 0) ? (
-                <div className="w-full h-full flex flex-col items-center justify-center gap-0.5">
-                  {tile.houses === 5 ? (
-                    <div className="w-1.5 h-1.5 rounded-xs bg-red-500 ring-1 ring-white shadow-[0_0_6px_#ef4444]" />
-                  ) : (
-                    Array.from({ length: tile.houses || 0 }).map((_, i) => (
-                      <div key={i} className="w-1.5 h-1.5 rounded-xs bg-emerald-400 ring-1 ring-white shadow-[0_0_4px_#34d399]" />
-                    ))
-                  )}
-                </div>
-              ) : null}
-            </div>
-          )}
-        </>
-      )}
-
-      {/* 2. TOP ROW TILES (11 to 19): Name Top -> Icon -> Price -> Color Stripe Bottom (facing center) */}
-      {isTop && (
-        <>
-          <span className="font-black leading-tight tracking-tight text-white text-center w-full text-[11px] sm:text-[13px] truncate pt-0.5 px-0.5">
-            {tile.name}
+          >
+            {isNoir ? `$${tile.price || tile.amount || tile.bonus}` : isSoviet ? `${tile.price || tile.amount || tile.bonus} кР` : `$${tile.price || tile.amount || tile.bonus}`}
           </span>
-          <div className="flex-1 flex items-center justify-center my-auto min-h-0 w-full p-0.5">
-            <TileIconImage tile={tile} className="w-full h-full max-w-[36px] max-h-[36px] sm:max-w-[44px] sm:max-h-[44px] object-contain drop-shadow-md" />
-          </div>
-          {(tile.price || tile.amount || tile.bonus) && (
-            <div className="flex items-center justify-center gap-1 pb-0.5">
-              <span className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_6px_#fbbf24] shrink-0" />
-              <span className="font-black text-xs sm:text-[13.5px] text-amber-300 leading-none">
-                {tile.price || tile.amount || tile.bonus}
-              </span>
-            </div>
-          )}
-          {tile.color && !isSpecial && (
-            <div
-              className="w-full h-2.5 sm:h-3.5 rounded-b-md shrink-0 relative transition-all duration-300"
-              style={{
-                backgroundColor: tile.color,
-                boxShadow: `0 0 10px ${tile.color}dd, 0 0 20px ${tile.color}77, inset 0 1px 2px rgba(255,255,255,0.5)`,
-              }}
-            >
-              {Boolean(tile.houses && tile.houses > 0) ? (
-                <div className="w-full h-full flex items-center justify-center gap-0.5">
-                  {tile.houses === 5 ? (
-                    <div className="w-1.5 h-1.5 rounded-xs bg-red-500 ring-1 ring-white shadow-[0_0_6px_#ef4444]" />
-                  ) : (
-                    Array.from({ length: tile.houses || 0 }).map((_, i) => (
-                      <div key={i} className="w-1.5 h-1.5 rounded-xs bg-emerald-400 ring-1 ring-white shadow-[0_0_4px_#34d399]" />
-                    ))
-                  )}
-                </div>
-              ) : null}
-            </div>
-          )}
-        </>
-      )}
+        )}
+      </div>
 
-      {/* 3. RIGHT COL TILES (21 to 29): Color Stripe Left (facing center) + Vertical content */}
-      {isRight && (
-        <>
-          {tile.color && !isSpecial && (
-            <div
-              className="h-full w-2.5 sm:w-3.5 rounded-l-md shrink-0 relative transition-all duration-300"
-              style={{
-                backgroundColor: tile.color,
-                boxShadow: `0 0 10px ${tile.color}dd, 0 0 20px ${tile.color}77, inset 0 1px 2px rgba(255,255,255,0.5)`,
-              }}
-            >
-              {Boolean(tile.houses && tile.houses > 0) ? (
-                <div className="w-full h-full flex flex-col items-center justify-center gap-0.5">
-                  {tile.houses === 5 ? (
-                    <div className="w-1.5 h-1.5 rounded-xs bg-red-500 ring-1 ring-white shadow-[0_0_6px_#ef4444]" />
-                  ) : (
-                    Array.from({ length: tile.houses || 0 }).map((_, i) => (
-                      <div key={i} className="w-1.5 h-1.5 rounded-xs bg-emerald-400 ring-1 ring-white shadow-[0_0_4px_#34d399]" />
-                    ))
-                  )}
-                </div>
-              ) : null}
-            </div>
-          )}
-
-          <div className="flex-1 flex flex-col items-center justify-between min-w-0 h-full p-0.5">
-            <span className="font-black leading-tight tracking-tight text-white text-center w-full truncate text-[11px] sm:text-[13px]">
-              {tile.name}
-            </span>
-            <div className="flex-1 flex items-center justify-center min-h-0 w-full my-auto p-0.5">
-              <TileIconImage tile={tile} className="w-full h-full max-w-[36px] max-h-[36px] sm:max-w-[42px] sm:max-h-[42px] object-contain drop-shadow-md" />
-            </div>
-            {(tile.price || tile.amount || tile.bonus) && (
-              <div className="flex items-center justify-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_6px_#fbbf24] shrink-0" />
-                <span className="font-black text-xs sm:text-[13.5px] text-amber-300 leading-none">
-                  {tile.price || tile.amount || tile.bonus}
-                </span>
-              </div>
-            )}
-          </div>
-        </>
-      )}
-
-      {/* 4. BOTTOM ROW TILES (31 to 39): Color Stripe Top (facing center) -> Price -> Icon -> Name Bottom */}
-      {isBottom && (
-        <>
-          {tile.color && !isSpecial && (
-            <div
-              className="w-full h-2.5 sm:h-3.5 rounded-t-md shrink-0 relative transition-all duration-300"
-              style={{
-                backgroundColor: tile.color,
-                boxShadow: `0 0 10px ${tile.color}dd, 0 0 20px ${tile.color}77, inset 0 1px 2px rgba(255,255,255,0.5)`,
-              }}
-            >
-              {Boolean(tile.houses && tile.houses > 0) ? (
-                <div className="w-full h-full flex items-center justify-center gap-0.5">
-                  {tile.houses === 5 ? (
-                    <div className="w-1.5 h-1.5 rounded-xs bg-red-500 ring-1 ring-white shadow-[0_0_6px_#ef4444]" />
-                  ) : (
-                    Array.from({ length: tile.houses || 0 }).map((_, i) => (
-                      <div key={i} className="w-1.5 h-1.5 rounded-xs bg-emerald-400 ring-1 ring-white shadow-[0_0_4px_#34d399]" />
-                    ))
-                  )}
-                </div>
-              ) : null}
-            </div>
-          )}
-          {(tile.price || tile.amount || tile.bonus) && (
-            <div className="flex items-center justify-center gap-1 pt-0.5">
-              <span className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_6px_#fbbf24] shrink-0" />
-              <span className="font-black text-xs sm:text-[13.5px] text-amber-300 leading-none">
-                {tile.price || tile.amount || tile.bonus}
-              </span>
-            </div>
-          )}
-          <div className="flex-1 flex items-center justify-center my-auto min-h-0 w-full p-0.5">
-            <TileIconImage tile={tile} className="w-full h-full max-w-[36px] max-h-[36px] sm:max-w-[44px] sm:max-h-[44px] object-contain drop-shadow-md" />
-          </div>
-          <span className="font-black leading-tight tracking-tight text-white text-center w-full text-[11px] sm:text-[13px] truncate pb-0.5 px-0.5">
-            {tile.name}
-          </span>
-        </>
-      )}
-
-      {/* Mortgage Stamp Overlay */}
+      {/* Mortgage stamp overlay */}
       {tile.isMortgaged && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/75 backdrop-blur-[1px] rounded-md z-10">
-          <span className="bg-red-950/90 text-red-300 border border-red-500 font-black text-[10px] px-1.5 py-0.5 rounded tracking-tighter shadow-md select-none transform -rotate-12">
-            ЗАЛОГ
-          </span>
+        <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-20">
+          {isNoir ? (
+            <span className="noir-stamp-red px-1 py-0.5 -rotate-12 rounded text-[7px] font-bold">
+              ЗАЛОЖЕНО
+            </span>
+          ) : isSoviet ? (
+            <span className="text-[6px] text-red-500 font-bold border border-red-500 bg-black/80 px-1 py-0.5 -rotate-12 rounded">
+              РЕЗЕРВ АН СССР
+            </span>
+          ) : (
+            <span className="text-[7px] text-red-300 font-bold border border-red-500 bg-red-950/90 px-1 py-0.5 -rotate-12 rounded">
+              ЗАЛОЖЕНО В БАНК
+            </span>
+          )}
         </div>
       )}
 
       {/* Standing Player Tokens on Tile */}
       {playersOnTile.length > 0 && (
-        <div
-          className={cn(
-            'absolute z-30 pointer-events-none flex items-center justify-center gap-1 flex-wrap',
-            isBottom && 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
-            isTop && 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
-            isLeft && 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex-col',
-            isRight && 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex-col'
-          )}
-        >
+        <div className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center gap-0.5 flex-wrap content-center">
           {playersOnTile.map((player) => {
             const isMoving = Boolean(movingPlayers?.[player.id]);
             const anim = isMoving ? 'jump' : player.inJail ? 'sleep' : (currentPlayerId === player.id ? 'happy' : 'idle');
             const playerHex = getPlayerHex(player);
-            const isBlitz = totalTiles === 24;
+            const tokenSize = playersOnTile.length === 1 ? 'md' : 'sm';
+            const scaleClass = playersOnTile.length === 1
+              ? (isMoving ? 'scale-125 z-40 -translate-y-2' : 'scale-110')
+              : (isMoving ? 'scale-115 z-40 -translate-y-1' : 'scale-100');
             return (
-              <div
-                key={player.id}
-                className="relative flex flex-col items-center justify-center filter drop-shadow-[0_6px_10px_rgba(0,0,0,0.9)] transition-transform animate-in fade-in zoom-in-75 duration-200"
-                title={`${player.name}`}
-              >
+              <div key={player.id} className="relative flex flex-col items-center justify-center drop-shadow-md">
                 <PetAvatar
                   characterId={player.characterId}
                   anim={anim}
-                  size={isBlitz ? 'lg' : 'md'}
+                  size={tokenSize}
                   showPedestal={true}
                   pedestalColor={playerHex}
-                  className={cn(
-                    'origin-center transition-transform',
-                    isBlitz ? 'scale-110 sm:scale-125' : 'scale-100 sm:scale-115'
-                  )}
+                  className={cn('transition-transform', scaleClass)}
                 />
-                <div
-                  className={cn(
-                    'mt-[-4px] px-1.5 py-0.5 rounded-full font-black text-white leading-none truncate shadow-md border border-white/60',
-                    isBlitz
-                      ? 'text-[9px] sm:text-[10.5px] max-w-[52px] sm:max-w-[66px]'
-                      : 'text-[8px] sm:text-[9.5px] max-w-[42px] sm:max-w-[54px]'
-                  )}
-                  style={{ backgroundColor: playerHex, boxShadow: `0 0 8px ${playerHex}aa` }}
-                >
+                <div className="mt-[-2px] player-tag" style={{ borderColor: playerHex, color: playerHex }}>
                   {player.name || 'Игрок'}
                 </div>
               </div>

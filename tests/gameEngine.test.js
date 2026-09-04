@@ -66,13 +66,36 @@ assert.strictEqual(p1.money, p1MoneyBefore + rent);
 console.log('✅ Rent payment passed');
 
 // Test 6: Go to Jail mechanics
-console.log('Test 6: Go To Jail tile teleportation');
+console.log('Test 6: Go To Jail tile teleportation & lastRoll metadata');
 const goToJailTile = room.board.find(t => t.type === 'go_to_jail');
 const jailTile = room.board.find(t => t.type === 'jail');
 p2.position = goToJailTile.id;
 room.handleTileLanding(p2, goToJailTile);
 assert.strictEqual(p2.position, jailTile.id); // Teleported to Jail
 assert.strictEqual(p2.inJail, true);
+
+// Test rollDice landing on Go to Jail generates lastRoll metadata
+const dummyRoom = roomManager.createRoom('tester1', 'Tester 1');
+dummyRoom.addPlayer('tester2', 'Tester 2');
+dummyRoom.startGame('tester1');
+// Place tester1 right before Go to Jail (tile 30 - 4 = tile 26)
+dummyRoom.players[0].position = 26;
+// Mock Math.random so die1=2, die2=2 (sum=4, lands on 30)
+const origRandom = Math.random;
+Math.random = () => 0.2; // (Math.floor(0.2*6)+1 = 2)
+const rollResult = dummyRoom.rollDice('tester1');
+Math.random = origRandom;
+assert.strictEqual(rollResult.newPosition, 30);
+assert.strictEqual(rollResult.tile.type, 'go_to_jail');
+assert.strictEqual(dummyRoom.lastRoll.rolledPosition, 30);
+assert.strictEqual(dummyRoom.lastRoll.finalPosition, 10);
+assert.strictEqual(dummyRoom.lastRoll.isGoToJail, true);
+assert.strictEqual(dummyRoom.players[0].position, 10);
+assert.strictEqual(dummyRoom.players[0].inJail, true);
+dummyRoom.clearTurnTimer();
+dummyRoom.stopActivePlayTracker();
+dummyRoom.stopDisconnectWaitingTimer();
+
 room.endTurn('p2');
 
 // Now p1's turn

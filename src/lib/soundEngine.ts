@@ -142,17 +142,40 @@ class SoundEngine {
     try {
       this.initCtx();
       if (!this.ctx) return;
+      const now = this.ctx.currentTime;
+      // Siren wail
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(220, this.ctx.currentTime);
-      osc.frequency.linearRampToValueAtTime(110, this.ctx.currentTime + 0.4);
-      gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.4);
+      osc.frequency.setValueAtTime(550, now);
+      osc.frequency.linearRampToValueAtTime(880, now + 0.18);
+      osc.frequency.linearRampToValueAtTime(440, now + 0.38);
+      osc.frequency.linearRampToValueAtTime(880, now + 0.58);
+      osc.frequency.linearRampToValueAtTime(220, now + 0.75);
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.linearRampToValueAtTime(0.01, now + 0.75);
       osc.connect(gain);
       gain.connect(this.ctx.destination);
       osc.start();
-      osc.stop(this.ctx.currentTime + 0.4);
+      osc.stop(now + 0.75);
+
+      // Deep slam tone
+      setTimeout(() => {
+        try {
+          if (!this.ctx) return;
+          const osc2 = this.ctx.createOscillator();
+          const gain2 = this.ctx.createGain();
+          osc2.type = 'triangle';
+          osc2.frequency.setValueAtTime(130, this.ctx.currentTime);
+          osc2.frequency.exponentialRampToValueAtTime(35, this.ctx.currentTime + 0.3);
+          gain2.gain.setValueAtTime(0.22, this.ctx.currentTime);
+          gain2.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+          osc2.connect(gain2);
+          gain2.connect(this.ctx.destination);
+          osc2.start();
+          osc2.stop(this.ctx.currentTime + 0.3);
+        } catch {}
+      }, 500);
     } catch {}
   }
 

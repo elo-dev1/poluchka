@@ -7,7 +7,7 @@
     "dev": "node --watch --watch-path=server server/server.js",
     "build": "vite build",
     "start": "node server/server.js",
-    "test": "node tests/gameEngine.test.js && node tests/advancedMonopoly.test.js && node tests/turnTimeoutAfk.test.js && node tests/disconnectTimer.test.js && node tests/roomsBrowser.test.js && node tests/telegramAuth.test.js && node tests/botEngine.test.js && node tests/turnRestrictionsAndTradeLimits.test.js && node tests/auctionTimerAndProgressiveUpgrades.test.js && node tests/jailTurnBugFix.test.js && node tests/botTradeAndTurn.test.js && node tests/auctionPassLogic.test.js && node tests/botDirectOfferAuction.test.js && node tests/reverseMode.test.js && node tests/teamMode.test.js && node tests/e2eMultiplayer.test.js"
+    "test": "node tests/gameEngine.test.js && node tests/advancedMonopoly.test.js && node tests/turnTimeoutAfk.test.js && node tests/disconnectTimer.test.js && node tests/roomsBrowser.test.js && node tests/telegramAuth.test.js && node tests/botEngine.test.js && node tests/turnRestrictionsAndTradeLimits.test.js && node tests/auctionTimerAndProgressiveUpgrades.test.js && node tests/jailTurnBugFix.test.js && node tests/botTradeAndTurn.test.js && node tests/auctionPassLogic.test.js && node tests/botDirectOfferAuction.test.js && node tests/reverseMode.test.js && node tests/teamMode.test.js && node tests/e2eMultiplayer.test.js && node tests/ratingAntiAbuse.test.js && node tests/securityFixes.test.js && node tests/profanityFilter.test.js"
   },
   "keywords": [
     "monopoly",
@@ -25,11 +25,14 @@
     "@radix-ui/react-switch": "^1.3.7",
     "@radix-ui/react-tabs": "^1.1.21",
     "@radix-ui/react-tooltip": "^1.2.16",
+    "better-sqlite3": "^12.11.1",
     "canvas-confetti": "^1.9.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "express": "^4.19.2",
+    "express-rate-limit": "^8.7.0",
     "framer-motion": "^13.1.1",
+    "helmet": "^8.3.0",
     "lucide-react": "^1.33.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

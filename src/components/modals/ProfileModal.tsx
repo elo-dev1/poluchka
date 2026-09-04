@@ -100,7 +100,7 @@ export const ProfileModal: React.FC = () => {
                         />
                         <Button
                           size="sm"
-                          className="h-8 w-8 p-0 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white shrink-0"
+                          className="h-8 w-8 p-0 rounded-lg bg-slate-600 hover:bg-slate-500 text-white shrink-0"
                           onClick={handleSaveNickname}
                           disabled={isSaving || !nicknameInput.trim()}
                           title="Сохранить"
@@ -162,7 +162,7 @@ export const ProfileModal: React.FC = () => {
                 </div>
 
                 <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-black/30 border border-white/5 text-center">
-                  <TrendingUp className="w-5 h-5 text-emerald-400 mb-1" />
+                  <TrendingUp className="w-5 h-5 text-slate-400 mb-1" />
                   <span className="text-xl font-black text-foreground">{currentUser.winRate || 0}%</span>
                   <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Винрейт</span>
                 </div>

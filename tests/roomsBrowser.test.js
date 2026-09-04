@@ -100,6 +100,14 @@ async function testRoomsBrowser() {
   assert.strictEqual(listAfterLeave.rooms.some(r => r.roomId === tempRoomCode), false, 'Empty room after leave must be removed');
   console.log('✅ Left room immediately removed from open tables browser');
 
+  // Step 6: Duel room creation has maxPlayers = 2
+  const duelRes = await new Promise((resolve) => {
+    client1.emit('create_room', { playerName: 'Дуэлянт 1', mode: 'ranked' }, resolve);
+  });
+  assert.strictEqual(duelRes.success, true);
+  assert.strictEqual(duelRes.state.maxPlayers, 2, 'Ranked duel mode must have maxPlayers: 2');
+  console.log('✅ Duel mode room created with maxPlayers = 2');
+
   // Cleanup
   client1.disconnect();
   client2.disconnect();

@@ -6,6 +6,7 @@ import { Volume2, VolumeX, Sliders, Trophy, LogOut, Copy, Check, LogIn, Maximize
 import { soundEngine } from '@/lib/soundEngine';
 
 import { UserAvatar } from '@/components/ui/UserAvatar';
+import { cn } from '@/lib/utils';
 
 export const TopBar: React.FC = () => {
   const {
@@ -17,7 +18,11 @@ export const TopBar: React.FC = () => {
     soundEnabled,
     applySettings,
     showToast,
+    theme,
   } = useGame();
+
+  const isSoviet = theme === 'soviet';
+  const isNoir = theme === 'noir';
 
   const [copied, setCopied] = React.useState(false);
   const [isFullscreen, setIsFullscreen] = React.useState<boolean>(() => {
@@ -60,41 +65,55 @@ export const TopBar: React.FC = () => {
   };
 
   return (
-    <header className="w-full flex items-center justify-between px-3 md:px-6 py-2.5 bg-black/40 border-b border-white/10 backdrop-blur-xl z-40 relative select-none">
+    <header className={cn(
+      "w-full flex items-center justify-between px-3 md:px-6 py-2 z-40 relative select-none shadow-md border-b",
+      isNoir ? "bg-[#1a1410] border-[#d4a647] font-noir-title" : isSoviet ? "bg-[#0c1420] border-[#38bdf8] font-soviet" : "bg-[#0f172a] border-slate-500/40 font-sans"
+    )}>
       {/* Left: Brand Logo & Room Code */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2 select-none">
-          <span className="text-xl md:text-2xl">🎲</span>
-          <span className="font-black text-sm md:text-base tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-primary via-blue-400 to-indigo-400 hidden sm:inline">
-            ПОЛУЧКА
+          <span className={cn("text-lg md:text-xl", isNoir ? "text-[#d4a647] drop-shadow-sm" : isSoviet ? "text-[#dc2626] drop-shadow-[0_0_8px_rgba(220,38,38,0.8)]" : "text-amber-400 drop-shadow-sm")}>
+            {isNoir ? '🔍' : isSoviet ? '★' : '🎲'}
           </span>
+          <div className="flex flex-col">
+            <span className={cn("font-bold text-sm md:text-base tracking-wider hidden sm:inline leading-tight uppercase", isNoir ? "text-[#d4a647]" : isSoviet ? "text-[#e2e8f0]" : "text-white")}>
+              ПОЛУЧКА
+            </span>
+            <span className={cn("text-[8px] tracking-widest uppercase hidden sm:inline -mt-0.5", isNoir ? "font-noir-body text-[#b8a890]" : isSoviet ? "font-space text-[#38bdf8]" : "text-slate-400 font-medium")}>
+              {isNoir ? 'УГОЛОВНОЕ ДЕЛО №1947 • ЛОС-АНДЖЕЛЕС' : isSoviet ? 'КОСМИЧЕСКАЯ ПРОГРАММА СССР • ОКБ-1' : 'КЛАССИЧЕСКАЯ НАСТОЛЬНАЯ ИГРА'}
+            </span>
+          </div>
         </div>
 
         {roomId && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 text-xs font-mono font-bold flex items-center gap-1.5 bg-black/40 border-white/10"
+          <button
+            className={cn(
+              "h-7 text-xs font-bold flex items-center gap-1.5 px-2.5 rounded-none transition-colors border",
+              isNoir ? "font-noir-body bg-[#1a1410] border-[#d4a647] text-[#d4a647] hover:bg-[#2a2420]" : isSoviet ? "font-space bg-[#0f172a] border-[#38bdf8] text-[#38bdf8] hover:bg-[#1e293b]" : "font-sans bg-[#020617] border-slate-500/60 text-slate-300 hover:bg-[#1e293b]"
+            )}
             onClick={handleCopyCode}
             title="Скопировать код стола"
           >
-            <span>[{roomId}]</span>
-            {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-muted-foreground" />}
-          </Button>
+            <span>{isNoir ? `[ ДЕЛО № ${roomId} ]` : isSoviet ? `[ СЕКТОР ЦУП № ${roomId} ]` : `[ СТОЛ № ${roomId} ]`}</span>
+            {copied ? <Check className="w-3 h-3 text-[#00e676]" /> : <Copy className="w-3 h-3 text-[#94a3b8]" />}
+          </button>
         )}
 
         {gameState && gameState.status !== 'LOBBY' && (
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 font-space">
             {gameState.gameMode === 'reverse' ? (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-purple-950/60 border border-purple-500/40 text-xs font-black text-purple-200 shadow-sm" title="Круг стола: завершается после хода каждого игрока">
-                <span>🔄 Наоборот</span>
-                <span className="text-[11px] text-purple-300 font-bold">
-                  • Раунд {Math.min(gameState.roundNumber || 1, gameState.maxRounds || (gameState.boardSize === 24 ? 10 : 20))}/{gameState.maxRounds || (gameState.boardSize === 24 ? 10 : 20)}
+              <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-none bg-[#1e1026] border border-[#a855f7] text-xs text-[#e9d5ff] shadow-xs" title="Круг стола">
+                <span>🔄 РЕЖИМ «НАОБОРОТ»</span>
+                <span className="text-[10px] text-[#c084fc]">
+                  • РАУНД {Math.min(gameState.roundNumber || 1, gameState.maxRounds || (gameState.boardSize === 24 ? 10 : 20))}/{gameState.maxRounds || (gameState.boardSize === 24 ? 10 : 20)}
                 </span>
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-indigo-950/50 border border-indigo-500/30 text-xs font-black text-indigo-200 shadow-sm">
-                <span>🎲 Раунд #{gameState.roundNumber || gameState.turnNumber || 1}</span>
+              <div className={cn(
+                "flex items-center gap-1.5 px-2.5 py-0.5 rounded-none text-xs font-bold shadow-xs border",
+                isNoir ? "bg-[#1a1410] border-[#d4a647] text-[#d4a647]" : isSoviet ? "bg-[#0f172a] border-[#38bdf8] text-[#38bdf8]" : "bg-[#020617] border-slate-500/50 text-slate-300"
+              )}>
+                <span>{isNoir ? `ГЛАВА #${gameState.roundNumber || gameState.turnNumber || 1}` : isSoviet ? `ВИТОК #${gameState.roundNumber || gameState.turnNumber || 1}` : `РАУНД #${gameState.roundNumber || gameState.turnNumber || 1}`}</span>
               </div>
             )}
           </div>
@@ -103,12 +122,15 @@ export const TopBar: React.FC = () => {
 
       {/* Right Actions */}
       <div className="flex items-center gap-2">
-        {/* Profile Badge / Login Button (Only shown in TopBar when inside a room/game) */}
+        {/* Profile Badge / Login Button */}
         {roomId && (
           currentUser ? (
             <button
               onClick={() => openModal('profile')}
-              className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 hover:border-primary/50 transition-all cursor-pointer shadow-sm"
+              className={cn(
+                "flex items-center gap-2 px-2.5 py-1 rounded-none border transition-all cursor-pointer shadow-xs",
+                isNoir ? "bg-[#1a1410] border-[#d4a647] hover:bg-[#2a2420]" : isSoviet ? "bg-[#0f172a] border-[#38bdf8] hover:bg-[#1e293b]" : "bg-[#020617] border-slate-500/50 hover:bg-[#1e293b]"
+              )}
             >
               <UserAvatar
                 avatarUrl={currentUser.avatarUrl}
@@ -116,78 +138,76 @@ export const TopBar: React.FC = () => {
                 size="xs"
               />
               <div className="flex flex-col text-left">
-                <span className="text-[11px] font-bold text-foreground leading-tight max-w-[90px] truncate">
+                <span className="text-[11px] font-bold text-[#e2e8f0] leading-tight max-w-[90px] truncate">
                   {currentUser.firstName}
                 </span>
-                <span className="text-[9px] font-black text-amber-400 leading-none">
-                  ⭐ {currentUser.rating ?? 0} ELO
+                <span className={cn("text-[9px] font-bold leading-none", isNoir ? "text-[#d4a647]" : isSoviet ? "text-[#38bdf8]" : "text-slate-400")}>
+                  {currentUser.rating ?? 0} ELO
                 </span>
               </div>
             </button>
           ) : (
-            <Button
-              variant="default"
-              size="sm"
-              className="h-8 text-xs font-bold flex items-center gap-1.5 shadow-md bg-gradient-to-r from-primary to-blue-600 hover:brightness-110 text-white rounded-xl px-3"
+            <button
+              className={cn(
+                "h-7 text-xs px-3 rounded-none flex items-center gap-1.5 font-bold",
+                isNoir ? "noir-btn-amber font-noir-title" : isSoviet ? "soviet-btn-cyan font-soviet" : "classic-btn-primary font-sans"
+              )}
               onClick={() => openModal('telegramLogin')}
             >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>Войти</span>
-            </Button>
+              <LogIn className="w-3.5 h-3.5 text-white" />
+              <span>ВОЙТИ</span>
+            </button>
           )
         )}
 
-        {/* Sound Toggle (Always accessible) */}
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-8 w-8 sm:h-9 sm:w-9"
+        {/* Settings Button */}
+        <button
+          className={cn(
+            "w-8 h-8 rounded-none flex items-center justify-center transition-colors border",
+            isNoir ? "bg-[#1a1410] border-[#d4a647]/60 hover:border-[#d4a647] text-[#d4a647]" : isSoviet ? "bg-[#0f172a] border-[#38bdf8]/60 hover:border-[#38bdf8] text-[#38bdf8]" : "bg-[#020617] border-slate-500/40 hover:border-slate-400 text-slate-300"
+          )}
+          onClick={() => openModal('settings')}
+          title="Настройки графики и темы"
+        >
+          <Sliders className="w-4 h-4" />
+        </button>
+
+        {/* Global Sound Toggle */}
+        <button
+          className={cn(
+            "w-8 h-8 rounded-none flex items-center justify-center transition-colors border",
+            isNoir ? "bg-[#1a1410] border-[#d4a647]/60 hover:border-[#d4a647] text-[#d4a647]" : isSoviet ? "bg-[#0f172a] border-[#38bdf8]/60 hover:border-[#38bdf8] text-[#38bdf8]" : "bg-[#020617] border-slate-500/40 hover:border-slate-400 text-slate-300"
+          )}
           onClick={toggleSound}
           title={soundEnabled ? 'Выключить звук' : 'Включить звук'}
         >
-          {soundEnabled ? <Volume2 className="w-4 h-4 text-emerald-400" /> : <VolumeX className="w-4 h-4 text-muted-foreground" />}
-        </Button>
+          {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4 text-[#ef4444]" />}
+        </button>
 
-        {/* Settings Button (Always accessible in TopBar) */}
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-8 w-8 sm:h-9 sm:w-9"
-          onClick={() => openModal('settings')}
-          title="Настройки игры"
-        >
-          <Sliders className="w-4 h-4" />
-        </Button>
-
-        {/* Fullscreen Toggle Button */}
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-8 w-8 sm:h-9 sm:w-9"
-          onClick={toggleFullscreen}
-          title={isFullscreen ? "Выйти из полноэкранного режима" : "Во весь экран"}
-        >
-          {isFullscreen ? (
-            <Minimize className="w-4 h-4 text-amber-400" />
-          ) : (
-            <Maximize className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+        {/* Fullscreen Button */}
+        <button
+          className={cn(
+            "w-8 h-8 rounded-none flex items-center justify-center transition-colors border",
+            isNoir ? "bg-[#1a1410] border-[#d4a647]/60 hover:border-[#d4a647] text-[#d4a647]" : isSoviet ? "bg-[#0f172a] border-[#38bdf8]/60 hover:border-[#38bdf8] text-[#38bdf8]" : "bg-[#020617] border-slate-500/40 hover:border-slate-400 text-slate-300"
           )}
-        </Button>
+          onClick={toggleFullscreen}
+          title={isFullscreen ? 'Выйти из полноэкранного режима' : 'На весь экран'}
+        >
+          {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+        </button>
 
-        {/* Leave Room Button (if in game or lobby) */}
-        {roomId && (
-          <Button
-            variant="destructive"
-            size="sm"
-            className="h-8 sm:h-9 text-xs font-bold flex items-center gap-1.5 px-2.5 sm:px-3"
-            onClick={leaveRoom}
-            title="Покинуть комнату"
+        {/* In-Game Surrender / Leave Button */}
+        {gameState && gameState.status !== 'LOBBY' && (
+          <button
+            className="w-8 h-8 rounded-none bg-[#260a0e] border border-[#dc2626] hover:bg-[#3f1016] flex items-center justify-center text-[#ef4444] transition-colors"
+            onClick={() => openModal('surrender')}
+            title={isNoir ? "Закрыть дело (Сдаться)" : isSoviet ? "Прервать миссию (Аварийное закрытие)" : "Сдаться / Покинуть стол"}
           >
-            <LogOut className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Выйти</span>
-          </Button>
+            <LogOut className="w-4 h-4" />
+          </button>
         )}
       </div>
     </header>
   );
 };
+

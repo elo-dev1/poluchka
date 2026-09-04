@@ -46,11 +46,11 @@ export const InventorySidebar: React.FC = () => {
           </Button>
         </div>
 
-        {/* Section 1: Real Estate (Недвижимость) */}
+        {/* Section 1: Real Estate (Активы) */}
         <div className="flex flex-col gap-1 min-h-0 flex-1">
           <div className="flex items-center justify-between px-0.5">
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-              Недвижимость ({myProperties.length})
+              Активы ({myProperties.length})
             </span>
             {totalPropertyValue > 0 && (
               <span className="text-[9px] font-bold text-amber-400">
@@ -62,7 +62,7 @@ export const InventorySidebar: React.FC = () => {
           {myProperties.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center p-3 rounded-2xl bg-white/[0.02] border border-dashed border-white/10 text-center text-muted-foreground text-xs gap-1">
               <Building2 className="w-6 h-6 text-muted-foreground/40 mb-0.5" />
-              <span className="font-semibold text-white/70 text-[10px]">Нет недвижимости</span>
+              <span className="font-semibold text-white/70 text-[10px]">Нет активов</span>
               <span className="text-[9px] text-muted-foreground/60 leading-tight">
                 Покупайте свободные компании
               </span>

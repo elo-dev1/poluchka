@@ -19,6 +19,8 @@ import {
   Scale,
   Zap,
   RotateCw,
+  Swords,
+  Trophy,
 } from 'lucide-react';
 import { PetAvatar } from '@/components/common/PetAvatar';
 import { getPetCharacter } from '@/lib/petCharacters';
@@ -37,16 +39,21 @@ export const LobbyScreen: React.FC = () => {
     setPlayerTeam,
     showToast,
     openModal,
+    theme,
   } = useGame();
+
+  const isSoviet = theme === 'soviet';
+  const isNoir = theme === 'noir';
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [selectedBotDiff, setSelectedBotDiff] = useState<'careful' | 'balanced' | 'aggressive'>('balanced');
 
   if (!gameState) return null;
 
+  const isDuelMode = gameState.mode === 'ranked' || (gameState as any).gameMode === 'ranked' || gameState.maxPlayers === 2;
   const isTeamMode = gameState.gameMode === 'team';
   const players = gameState.players || [];
-  const maxPlayers = isTeamMode ? 4 : 6;
+  const maxPlayers = gameState.maxPlayers || (isDuelMode ? 2 : (isTeamMode ? 4 : 6));
   const emptySlotsCount = Math.max(0, maxPlayers - players.length);
   const canStart = isHost && players.length >= 2;
 
@@ -89,44 +96,103 @@ export const LobbyScreen: React.FC = () => {
           {/* Room Mode Badge & Code Banner */}
           <div className="flex flex-col items-center gap-2 mt-3">
             {gameState.gameMode === 'reverse' && (
-              <div className="w-full p-2.5 rounded-2xl bg-purple-500/20 border border-purple-400/40 flex items-center justify-between gap-2 text-left">
+              <div className={cn(
+                "w-full p-2.5 border flex items-center justify-between gap-2 text-left shadow-md",
+                isNoir
+                  ? "bg-[#1c1410] border-2 border-[#8b0000] rounded-none font-noir-body text-[#f5e6c8]"
+                  : isSoviet
+                  ? "bg-[#0c1826] border-2 border-[#f59e0b] rounded-none font-soviet text-[#e2e8f0]"
+                  : "bg-[#0f172a] border-2 border-[#d4af37] rounded-xl font-sans text-slate-100"
+              )}>
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-xl bg-purple-400/20 border border-purple-400/40 flex items-center justify-center shrink-0">
-                    <RotateCw className="w-4 h-4 text-purple-300" />
+                  <div className={cn(
+                    "w-7 h-7 rounded-none sm:rounded-lg border flex items-center justify-center shrink-0",
+                    isNoir ? "bg-[#14100c] border-[#8b0000]" : isSoviet ? "bg-[#050b14] border-[#f59e0b]" : "bg-slate-950 border-[#d4af37]"
+                  )}>
+                    <RotateCw className={cn("w-4 h-4", isNoir ? "text-[#fca5a5]" : isSoviet ? "text-[#fcd34d]" : "text-amber-300")} />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-xs font-black text-purple-200">
-                      Режим «Наоборот» (Reverse) 🔄
+                    <span className="text-xs font-bold">
+                      {isNoir ? "ДЕЛО «НАОБОРОТ»: ИНВЕРСИЯ" : isSoviet ? "РЕВЕРС-ОРБИТА: НАОБОРОТ" : "Режим «Наоборот» (Reverse) 🔄"}
                     </span>
-                    <span className="text-[10px] text-purple-300">
+                    <span className={cn("text-[10px]", isNoir ? "text-[#b8a890]" : isSoviet ? "text-[#94a3b8]" : "text-slate-300")}>
                       Побеждает игрок с МЕНЬШИМ капиталом • Лимит: {gameState.maxRounds || 20} раундов
                     </span>
                   </div>
                 </div>
-                <Badge className="bg-purple-500/30 text-purple-200 border-purple-400/50 text-[10px] font-black px-2 py-0.5 shrink-0">
+                <span className={cn(
+                  "text-[10px] font-bold px-2 py-0.5 rounded-none border shrink-0",
+                  isNoir ? "bg-[#14100c] border-[#8b0000] text-[#fca5a5]" : isSoviet ? "bg-[#050b14] border-[#f59e0b] text-[#fcd34d]" : "bg-slate-950 border-[#d4af37] text-amber-300"
+                )}>
                   {gameState.maxRounds || 20} РАУНДОВ
-                </Badge>
+                </span>
               </div>
             )}
 
             {isTeamMode && (
-              <div className="w-full p-2.5 rounded-2xl bg-gradient-to-r from-blue-500/20 via-indigo-500/20 to-red-500/20 border border-blue-400/40 flex items-center justify-between gap-2 text-left">
+              <div className={cn(
+                "w-full p-2.5 border flex items-center justify-between gap-2 text-left shadow-md",
+                isNoir
+                  ? "bg-[#1a1410] border-2 border-[#3d2e1a] rounded-none font-noir-body text-[#f5e6c8]"
+                  : isSoviet
+                  ? "bg-[#09111c] border-2 border-[#2A3848] rounded-none font-soviet text-[#e2e8f0]"
+                  : "bg-[#020617] border-2 border-slate-600/40 rounded-xl font-sans text-slate-100"
+              )}>
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-xl bg-blue-400/20 border border-blue-400/40 flex items-center justify-center shrink-0">
-                    <Users className="w-4 h-4 text-blue-300" />
+                  <div className={cn(
+                    "w-7 h-7 rounded-none sm:rounded-lg border flex items-center justify-center shrink-0",
+                    isNoir ? "bg-[#14100c] border-[#d4a647]" : isSoviet ? "bg-[#050b14] border-[#38bdf8]" : "bg-slate-950 border-slate-600"
+                  )}>
+                    <Users className={cn("w-4 h-4", isNoir ? "text-[#d4a647]" : isSoviet ? "text-[#38bdf8]" : "text-slate-400")} />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-xs font-black text-blue-200">
-                      Командный режим 2v2 👥
+                    <span className="text-xs font-bold">
+                      {isNoir ? "КОМАНДНЫЙ СИНДИКАТ (2v2)" : isSoviet ? "СОВМЕСТНЫЙ ЭКИПАЖ (2v2)" : "Командный режим 2v2 👥"}
                     </span>
-                    <span className="text-[10px] text-blue-300">
+                    <span className={cn("text-[10px]", isNoir ? "text-[#b8a890]" : isSoviet ? "text-[#94a3b8]" : "text-slate-300")}>
                       🔴 Красные vs 🔵 Синие • Общая казна $2250 • Командные монополии и $0 рента своим
                     </span>
                   </div>
                 </div>
-                <Badge className="bg-blue-500/30 text-blue-200 border-blue-400/50 text-[10px] font-black px-2 py-0.5 shrink-0">
+                <span className={cn(
+                  "text-[10px] font-bold px-2 py-0.5 rounded-none border shrink-0",
+                  isNoir ? "bg-[#14100c] border-[#d4a647] text-[#d4a647]" : isSoviet ? "bg-[#050b14] border-[#38bdf8] text-[#38bdf8]" : "bg-slate-950 border-slate-600 text-slate-400"
+                )}>
                   2v2 КОМАНДЫ
-                </Badge>
+                </span>
+              </div>
+            )}
+
+            {isDuelMode && (
+              <div className={cn(
+                "w-full p-2.5 border flex items-center justify-between gap-2 text-left shadow-md",
+                isNoir
+                  ? "bg-[#1a1410] border-2 border-[#d4a647]/40 rounded-none font-noir-body text-[#f5e6c8]"
+                  : isSoviet
+                  ? "bg-[#09111c] border-2 border-[#38bdf8]/40 rounded-none font-soviet text-[#e2e8f0]"
+                  : "bg-[#1f090d] border-2 border-red-500/40 rounded-xl font-sans text-slate-100"
+              )}>
+                <div className="flex items-center gap-2">
+                  <div className={cn(
+                    "w-7 h-7 rounded-none sm:rounded-lg border flex items-center justify-center shrink-0",
+                    isNoir ? "bg-[#14100c] border-[#d4a647]" : isSoviet ? "bg-[#050b14] border-[#38bdf8]" : "bg-slate-950 border-red-500/50"
+                  )}>
+                    <Swords className={cn("w-4 h-4", isNoir ? "text-[#d4a647]" : isSoviet ? "text-[#38bdf8]" : "text-red-400")} />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold">
+                      Дуэль (1 на 1) ⚔️
+                    </span>
+                    <span className={cn("text-[10px]", isNoir ? "text-[#b8a890]" : isSoviet ? "text-[#94a3b8]" : "text-slate-300")}>
+                      Поединок двух соперников • 30 сек на ход • 2x ELO
+                    </span>
+                  </div>
+                </div>
+                <span className={cn(
+                  "text-[10px] font-bold px-2 py-0.5 rounded-none border shrink-0 text-amber-300 border-amber-400/40 bg-amber-400/10"
+                )}>
+                  2 ИГРОКА (1v1)
+                </span>
               </div>
             )}
 
@@ -136,6 +202,9 @@ export const LobbyScreen: React.FC = () => {
                 <span className="font-mono text-xl font-black text-amber-400 tracking-widest">
                   {roomId}
                 </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border border-white/10 bg-white/5 ml-1">
+                  {gameState.isPrivate ? '🔒 Приватный' : '🌐 Открытый'}
+                </span>
               </div>
 
               <Button
@@ -144,7 +213,7 @@ export const LobbyScreen: React.FC = () => {
                 className="h-10 text-xs font-semibold flex items-center gap-1.5"
                 onClick={handleCopyCode}
               >
-                {copiedCode ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
+                {copiedCode ? <Check className="w-4 h-4 text-slate-500" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
                 {copiedCode ? 'Скопировано' : 'Копировать код'}
               </Button>
 
@@ -154,7 +223,7 @@ export const LobbyScreen: React.FC = () => {
                 className="h-10 text-xs font-semibold flex items-center gap-1.5"
                 onClick={handleCopyLink}
               >
-                {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <LinkIcon className="w-4 h-4 text-muted-foreground" />}
+                {copiedLink ? <Check className="w-4 h-4 text-slate-500" /> : <LinkIcon className="w-4 h-4 text-muted-foreground" />}
                 {copiedLink ? 'Скопировано' : 'Ссылка'}
               </Button>
             </div>

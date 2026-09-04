@@ -14,10 +14,12 @@ import { TileIconImage } from '@/lib/pixelIcons';
 import { soundEngine } from '@/lib/soundEngine';
 
 export const AuctionModal: React.FC = () => {
-  const { gameState, playerId, bidAuction, passAuction } = useGame();
+  const { gameState, playerId, bidAuction, passAuction, theme } = useGame();
   const auction = gameState?.activeAuction;
   const isOpen = Boolean(auction && gameState?.status === 'AUCTION');
 
+  const isSoviet = theme === 'soviet';
+  const isNoir = theme === 'noir';
   const [countdown, setCountdown] = useState<number>(10);
 
   useEffect(() => {
@@ -60,182 +62,189 @@ export const AuctionModal: React.FC = () => {
   return (
     <Dialog open={isOpen}>
       <DialogContent
-        overlayClassName="bg-black/20 backdrop-blur-none"
-        className="max-w-sm sm:max-w-md text-center p-4 sm:p-5 bg-[#0c1022]/95 border border-amber-500/30 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85)] rounded-2xl"
+        overlayClassName="bg-black/80 backdrop-blur-none"
+        className={cn(
+          "max-w-sm sm:max-w-md text-center p-4 sm:p-5 shadow-2xl rounded-none border",
+          isNoir ? "noir-panel text-[#f5e6c8] border-[#d4a647] font-noir-body" : isSoviet ? "soviet-steel-panel text-[#e2e8f0] border-[#38bdf8] font-soviet" : "classic-panel text-white border-slate-500/50 font-sans"
+        )}
       >
         <DialogHeader className="flex flex-col items-center">
           <div className="flex items-center gap-2 mb-1 flex-wrap justify-center">
             {auction.isDirectOffer ? (
-              <Badge variant="gold" className="text-xs px-3 py-1 font-black flex items-center gap-1.5 animate-pulse bg-amber-500/20 text-amber-300 border-amber-500/40">
+              <span className={cn("text-xs px-3 py-0.5 flex items-center gap-1.5 rounded-none border font-bold", isNoir ? "font-noir-title bg-[#1a1410] border-[#d4a647] text-[#d4a647]" : isSoviet ? "font-soviet bg-[#09111c] border-[#38bdf8] text-[#38bdf8]" : "bg-[#020617] border-slate-500/50 text-slate-300 font-sans")}>
                 <ShoppingBag className="w-3.5 h-3.5" />
-                ПРЕДЛОЖЕНИЕ ВЫКУПА
-              </Badge>
+                {isNoir ? "ПРЕДЛОЖЕНИЕ ОТ СИНДИКАТА" : isSoviet ? "ПРЕДЛОЖЕНИЕ ЦУП" : "ПРЯМАЯ ПРОДАЖА"}
+              </span>
             ) : (
-              <Badge variant="gold" className="text-xs px-3 py-1 font-black flex items-center gap-1.5 animate-pulse bg-amber-500/20 text-amber-300 border-amber-500/40">
-                <Gavel className="w-3.5 h-3.5" />
-                ИДЁТ АУКЦИОН!
-              </Badge>
+              <span className={cn("text-xs px-3 py-0.5 flex items-center gap-1.5 rounded-none border font-bold", isNoir ? "font-noir-title bg-[#1a1410] border-[#d4a647] text-[#d4a647]" : isSoviet ? "font-soviet bg-[#09111c] border-[#38bdf8] text-[#38bdf8]" : "bg-[#020617] border-slate-500/50 text-slate-300 font-sans")}>
+                <Gavel className={cn("w-3.5 h-3.5", isNoir ? "text-[#d4a647]" : isSoviet ? "text-[#38bdf8]" : "text-slate-400")} />
+                {isNoir ? "ТОРГИ НА ЧЁРНОМ РЫНКЕ" : isSoviet ? "ТОРГИ ГОСКОМИССИИ ОКБ-1" : "АУКЦИОН"}
+              </span>
             )}
 
-            {/* 10s Countdown Timer Badge */}
+            {/* Countdown Timer Badge */}
             <div className={cn(
-              "flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-black border transition-all",
+              "flex items-center gap-1 px-2.5 py-0.5 rounded-none text-xs font-bold border transition-all",
               countdown <= 3
-                ? "bg-red-500/25 text-red-300 border-red-500/50 animate-pulse"
-                : "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                ? (isNoir ? "bg-[#2a0800] text-[#ff4444] border-[#8b0000] animate-pulse" : "bg-[#450a0a] text-[#fca5a5] border-[#dc2626] animate-pulse")
+                : (isNoir ? "bg-[#1a1410] text-[#d4a647] border-[#d4a647]/40 font-noir-body" : isSoviet ? "bg-[#09111c] text-[#38bdf8] border-[#38bdf8]/40 font-space" : "bg-[#020617] text-slate-300 border-slate-500/40 font-sans")
             )}>
-              <Clock className="w-3 h-3 text-amber-400" />
+              <Clock className="w-3 h-3" />
               <span>{countdown}с</span>
             </div>
           </div>
 
-          <DialogTitle className="text-lg sm:text-xl justify-center font-black text-white">{tile.name}</DialogTitle>
-          <span className="text-xs text-muted-foreground">{tile.groupName || 'Недвижимость'}</span>
+          <DialogTitle className={cn("text-lg sm:text-xl justify-center font-bold", isNoir ? "font-noir-title text-[#d4a647]" : isSoviet ? "font-soviet text-[#e2e8f0]" : "text-white font-sans")}>{tile.name}</DialogTitle>
+          <span className={cn("text-xs", isNoir ? "font-noir-body text-[#b8a890]" : isSoviet ? "font-space text-[#38bdf8]" : "text-slate-400 font-medium")}>
+            {tile.groupName || (isNoir ? 'ДОСЬЕ НА ТЕРРИТОРИЮ' : isSoviet ? 'ТЕХНИЧЕСКИЙ ПАСПОРТ ОКБ-1' : 'ДОКУМЕНТ НА СОБСТВЕННОСТЬ')}
+          </span>
         </DialogHeader>
 
-        <div className="flex flex-col items-center gap-3.5 py-2">
+        <div className="flex flex-col items-center gap-3 py-2">
           {/* Tile Preview */}
-          <div className="w-14 h-14 p-2 rounded-2xl bg-black/40 border border-white/10 shadow-lg flex items-center justify-center">
-            <TileIconImage tile={tile} />
+          <div className={cn("w-12 h-12 p-1.5 rounded-none shadow-inner flex items-center justify-center border", isNoir ? "bg-[#1a1410] border-[#d4a647]/40" : isSoviet ? "bg-[#050b14] border-[#38bdf8]/40" : "bg-[#020617] border-slate-500/40")}>
+            <TileIconImage tile={tile} className="w-full h-full object-contain filter contrast-125 brightness-95" />
           </div>
 
           {/* Price / Current Bid Display */}
-          <div className="flex flex-col items-center p-3 w-full rounded-2xl bg-black/30 border border-white/5">
-            <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
-              {auction.isDirectOffer ? 'Стоимость недвижимости' : 'Текущая ставка'}
+          <div className={cn("flex flex-col items-center p-3 w-full rounded-none border", isNoir ? "bg-[#1a1410] border-[#d4a647]/30 font-noir-body" : isSoviet ? "bg-[#09111c]/80 border-[#38bdf8]/30 font-space" : "bg-[#020617]/90 border-slate-500/30 font-sans")}>
+            <span className={cn("text-[10px] uppercase tracking-wider font-bold", isNoir ? "text-[#b8a890] font-noir-title" : isSoviet ? "text-[#94a3b8] font-soviet" : "text-slate-300")}>
+              {auction.isDirectOffer ? (isNoir ? 'Стоимость территории' : isSoviet ? 'Стоимость объекта' : 'Цена покупки') : (isNoir ? 'Текущая ставка' : isSoviet ? 'Текущая ставка' : 'Текущая ставка')}
             </span>
-            <span className="text-3xl font-black text-amber-400 my-0.5">
-              {formatMoney(auction.currentBid)}
+            <span className={cn("text-3xl font-bold my-0.5", isNoir ? "font-noir-title text-[#d4a647]" : isSoviet ? "font-space text-[#00e676]" : "text-slate-400")}>
+              {isNoir ? `$${auction.currentBid}` : isSoviet ? `${auction.currentBid} кР` : `$${auction.currentBid}`}
             </span>
             {!auction.isDirectOffer && (
               highestBidder ? (
-                <span className="text-xs text-foreground font-bold flex items-center gap-1.5 mt-1">
-                  Лидер: <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: highestBidder.color.hex }} />
+                <span className="text-xs text-[#e2e8f0] font-bold flex items-center gap-1.5 mt-1">
+                  Лидер торгов: <span className="w-2.5 h-2.5 rounded-none" style={{ backgroundColor: highestBidder.color.hex }} />
                   {highestBidder.name} {isHighestBidder && '(Вы)'}
                 </span>
               ) : (
-                <span className="text-xs text-muted-foreground mt-1">Ставок пока нет</span>
+                <span className="text-xs text-[#94a3b8] mt-1">Ставок пока не поступило</span>
               )
             )}
             {!auction.isDirectOffer && (
-              <span className="text-[10px] text-muted-foreground/80 mt-1">
-                Если за 10с никто не поднимет ставку, объект достанется лидеру
+              <span className="text-[10px] text-[#94a3b8] mt-1">
+                При отсутствии встречных ставок объект передается лидеру
               </span>
             )}
           </div>
 
-          {/* Direct Offer Mode (1-on-1) */}
+          {/* Direct Offer Mode */}
           {auction.isDirectOffer ? (
             isTargetOfDirectOffer && !myPlayer?.isBankrupt ? (
-              <div className="flex flex-col gap-2.5 w-full">
-                <p className="text-xs text-foreground font-medium bg-white/5 p-2.5 rounded-xl border border-white/10">
-                  Соперник отказался от покупки. Желаете приобрести{' '}
-                  <strong className="text-amber-300">"{tile.name}"</strong> за{' '}
-                  <strong className="text-emerald-400">{formatMoney(auction.currentBid)}</strong>?
+              <div className="flex flex-col gap-2 w-full">
+                <p className={cn("text-xs p-2.5 rounded-none border", isNoir ? "text-[#f5e6c8] bg-[#1a1410] border-[#d4a647]/30 font-noir-body" : isSoviet ? "text-[#cbd5e1] bg-[#09111c] border-[#38bdf8]/30 font-space" : "text-slate-200 bg-[#020617] border-slate-500/30 font-sans")}>
+                  {isNoir ? (
+                    <>
+                      Детектив отказался от объекта. Желаете присвоить{' '}
+                      <strong className="font-noir-title text-[#d4a647]">«{tile.name}»</strong> за{' '}
+                      <strong className="font-bold text-sm text-[#d4a647]">${auction.currentBid}</strong>?
+                    </>
+                  ) : isSoviet ? (
+                    <>
+                      Экипаж отказался от объекта. Желаете закрепить{' '}
+                      <strong className="font-soviet text-[#e2e8f0]">«{tile.name}»</strong> за{' '}
+                      <strong className="font-space font-bold text-sm text-[#00e676]">{auction.currentBid} кР</strong>?
+                    </>
+                  ) : (
+                    <>
+                      Игрок отказался от покупки. Желаете приобрести{' '}
+                      <strong className="text-white">«{tile.name}»</strong> за{' '}
+                      <strong className="font-bold text-sm text-slate-300">${auction.currentBid}</strong>?
+                    </>
+                  )}
                 </p>
 
-                <Button
-                  variant="gold"
-                  size="lg"
-                  className="w-full font-black shadow-xl shadow-amber-500/30 flex items-center justify-center gap-2 h-11"
+                <button
+                  className={cn("w-full text-xs py-2.5 rounded-none flex items-center justify-center gap-2 font-bold", isNoir ? "noir-btn-amber font-noir-title" : isSoviet ? "soviet-btn-cyan font-soviet" : "classic-btn-primary font-sans")}
                   onClick={() => bidAuction(auction.currentBid)}
                   disabled={!myPlayer || myPlayer.money < auction.currentBid}
                 >
-                  <ShoppingBag className="w-5 h-5" />
-                  Купить за {formatMoney(auction.currentBid)} 🏢
-                </Button>
+                  <ShoppingBag className="w-4 h-4 text-white" />
+                  <span>{isNoir ? `ПРИСВОИТЬ ЗА $${auction.currentBid}` : isSoviet ? `ВЗЯТЬ НА БАЛАНС ЗА ${auction.currentBid} кР` : `КУПИТЬ ЗА $${auction.currentBid}`}</span>
+                </button>
 
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="w-full font-bold flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground h-11"
+                <button
+                  className={cn("w-full text-xs py-2 rounded-none flex items-center justify-center gap-1 font-bold", isNoir ? "noir-btn-blood font-noir-title" : isSoviet ? "soviet-btn-steel text-[#fca5a5] border-[#dc2626] font-soviet" : "classic-btn-danger font-sans")}
                   onClick={passAuction}
                 >
-                  <XCircle className="w-4 h-4 text-red-400" />
-                  Отказаться от выкупа
-                </Button>
+                  <XCircle className="w-3.5 h-3.5" />
+                  <span>ОТКАЗАТЬСЯ</span>
+                </button>
               </div>
             ) : (
-              <div className="p-3.5 rounded-2xl bg-black/40 border border-white/10 text-xs text-muted-foreground w-full flex items-center justify-center gap-2">
-                <UserCheck className="w-4 h-4 text-amber-400 shrink-0" />
+              <div className={cn("p-3 rounded-none border text-xs text-[#94a3b8] w-full flex items-center justify-center gap-2", isNoir ? "bg-[#1a1410] border-[#d4a647]/30 font-noir-body" : isSoviet ? "bg-[#09111c] border-[#38bdf8]/30 font-space" : "bg-[#020617] border-slate-500/30 font-sans")}>
+                <UserCheck className={cn("w-4 h-4 shrink-0", isNoir ? "text-[#d4a647]" : isSoviet ? "text-[#38bdf8]" : "text-slate-400")} />
                 <span>
                   {isInitiator
-                    ? `Вы отказались от покупки. Предложение направлено ${auction.targetPlayerName || 'сопернику'} (${formatMoney(auction.currentBid)})...`
-                    : 'Ожидание решения игрока...'}
+                    ? `Лот предложен игроку ${auction.targetPlayerName || ''} (${isNoir ? `$${auction.currentBid}` : isSoviet ? `${auction.currentBid} кР` : `$${auction.currentBid}`})...`
+                    : 'Ожидание решения участника...'}
                 </span>
               </div>
             )
           ) : (
-            /* Multi-opponent Competitive Auction Mode (3+ players) */
+            /* Multi-opponent Competitive Auction Mode */
             !hasPassed && !isInitiator && !myPlayer?.isBankrupt ? (
               <div className="flex flex-col gap-2 w-full">
                 {auction.highestBidderId === null ? (
-                  <Button
-                    variant="gold"
-                    size="lg"
-                    className="w-full font-black text-sm h-11 shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2"
+                  <button
+                    className={cn("w-full text-xs py-2.5 rounded-none flex items-center justify-center gap-2 font-bold", isNoir ? "noir-btn-amber font-noir-title" : isSoviet ? "soviet-btn-cyan font-soviet" : "classic-btn-primary font-sans")}
                     onClick={() => bidAuction(auction.currentBid)}
                     disabled={!myPlayer || myPlayer.money < auction.currentBid}
                   >
-                    <Gavel className="w-4 h-4" />
-                    Сделать стартовую ставку {formatMoney(auction.currentBid)}
-                  </Button>
+                    <Gavel className="w-4 h-4 text-white" />
+                    <span>{isNoir ? `СТАРТОВАЯ СТАВКА $${auction.currentBid}` : isSoviet ? `СТАРТОВАЯ СТАВКА ${auction.currentBid} кР` : `СТАРТОВАЯ СТАВКА $${auction.currentBid}`}</span>
+                  </button>
                 ) : (
                   <div className="grid grid-cols-3 gap-2">
-                    <Button
-                      variant="gold"
-                      size="sm"
-                      className="font-bold text-xs h-10"
+                    <button
+                      className={cn("text-xs py-2 rounded-none font-bold", isNoir ? "noir-btn-amber font-noir-title" : isSoviet ? "soviet-btn-cyan font-soviet" : "classic-btn-primary font-sans")}
                       onClick={() => bidAuction(auction.currentBid + 10)}
                       disabled={!myPlayer || myPlayer.money < auction.currentBid + 10}
                     >
-                      <Plus className="w-3 h-3 mr-0.5" /> +$10
-                    </Button>
-                    <Button
-                      variant="gold"
-                      size="sm"
-                      className="font-bold text-xs h-10"
+                      {isNoir ? "+$10" : isSoviet ? "+10 кР" : "+$10"}
+                    </button>
+                    <button
+                      className={cn("text-xs py-2 rounded-none font-bold", isNoir ? "noir-btn-amber font-noir-title" : isSoviet ? "soviet-btn-cyan font-soviet" : "classic-btn-primary font-sans")}
                       onClick={() => bidAuction(auction.currentBid + 50)}
                       disabled={!myPlayer || myPlayer.money < auction.currentBid + 50}
                     >
-                      <Plus className="w-3 h-3 mr-0.5" /> +$50
-                    </Button>
-                    <Button
-                      variant="gold"
-                      size="sm"
-                      className="font-bold text-xs h-10"
+                      {isNoir ? "+$50" : isSoviet ? "+50 кР" : "+$50"}
+                    </button>
+                    <button
+                      className={cn("text-xs py-2 rounded-none font-bold", isNoir ? "noir-btn-amber font-noir-title" : isSoviet ? "soviet-btn-cyan font-soviet" : "classic-btn-primary font-sans")}
                       onClick={() => bidAuction(auction.currentBid + 100)}
                       disabled={!myPlayer || myPlayer.money < auction.currentBid + 100}
                     >
-                      <Plus className="w-3 h-3 mr-0.5" /> +$100
-                    </Button>
+                      {isNoir ? "+$100" : isSoviet ? "+100 кР" : "+$100"}
+                    </button>
                   </div>
                 )}
 
-                <Button
-                  variant="destructive"
-                  size="lg"
-                  className="w-full font-bold flex items-center justify-center gap-2 mt-1 h-11"
+                <button
+                  className={cn("w-full text-xs py-2 rounded-none flex items-center justify-center gap-1 font-bold mt-1", isNoir ? "noir-btn-blood font-noir-title" : isSoviet ? "soviet-btn-steel text-[#fca5a5] border-[#dc2626] font-soviet" : "classic-btn-danger font-sans")}
                   onClick={passAuction}
                 >
-                  <XCircle className="w-4 h-4" />
-                  Пас (Выйти из аукциона)
-                </Button>
+                  <XCircle className="w-3.5 h-3.5" />
+                  <span>ПАС (ВЫЙТИ ИЗ ТОРГОВ)</span>
+                </button>
               </div>
             ) : (
-              <div className="p-3.5 rounded-2xl bg-black/40 border border-white/10 text-xs text-muted-foreground w-full flex items-center justify-center gap-2">
+              <div className={cn("p-3 rounded-none border text-xs text-[#94a3b8] w-full flex items-center justify-center gap-2", isNoir ? "bg-[#1a1410] border-[#d4a647]/30 font-noir-body" : isSoviet ? "bg-[#09111c] border-[#38bdf8]/30 font-space" : "bg-[#020617] border-slate-500/30 font-sans")}>
                 {isInitiator ? (
                   <>
-                    <UserCheck className="w-4 h-4 text-amber-400 shrink-0" />
-                    <span>Вы выставили недвижимость на аукцион. Торгуются соперники...</span>
+                    <UserCheck className={cn("w-4 h-4 shrink-0", isNoir ? "text-[#d4a647]" : isSoviet ? "text-[#38bdf8]" : "text-slate-400")} />
+                    <span>Объект выставлен на торги. Ожидание завершения...</span>
                   </>
                 ) : hasPassed ? (
                   <>
-                    <XCircle className="w-4 h-4 text-red-400 shrink-0" />
-                    <span>Вы отказались от участия. Ожидание завершения...</span>
+                    <XCircle className="w-4 h-4 text-[#ef4444] shrink-0" />
+                    <span>Вы вышли из торгов. Ожидание завершения...</span>
                   </>
                 ) : (
-                  <span>Вы банкрот</span>
+                  <span>Выбыли из игры</span>
                 )}
               </div>
             )

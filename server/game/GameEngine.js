@@ -14,7 +14,7 @@ class GameEngine {
     this.hostId = hostId;
     this.status = 'LOBBY'; // LOBBY, ROLLING, AWAITING_ACTION, TURN_END, AUCTION, GAME_OVER
     this.isPrivate = !!options.isPrivate;
-    this.maxPlayers = options.maxPlayers || ((options.gameMode === 'team' || options.mode === 'team') ? 4 : (GAME_SETTINGS.MAX_PLAYERS || 6));
+    this.maxPlayers = options.maxPlayers || ((options.mode === 'ranked' || options.gameMode === 'ranked') ? 2 : ((options.gameMode === 'team' || options.mode === 'team') ? 4 : (GAME_SETTINGS.MAX_PLAYERS || 6)));
     this.mode = options.mode || 'standard'; // 'standard' (40 tiles) | 'blitz' (24 tiles) | 'ranked'
     this.boardSize = options.boardSize || (this.mode === 'blitz' ? 24 : 40);
     this.startingCash = options.startingCash || GAME_SETTINGS.STARTING_CASH || 1500;
@@ -46,6 +46,7 @@ class GameEngine {
       isMortgaged: false
     }));
     this.lastDice = null;
+    this.lastRoll = null;
     this.pendingAction = null; // { type: 'BUY_PROPERTY', tileId, price }
     this.rolledDoubleInCurrentTurn = false;
     this.activeAuction = null;
@@ -82,6 +83,8 @@ class GameEngine {
     this.disconnectWaitingState = null; // { disconnectedPlayerId, disconnectedPlayerName, remainingSeconds }
     this.disconnectInterval = null;
     this.activePlayTrackerInterval = null;
+    this.endedReason = null;
+    this.finalRatings = null;
   }
 
   setStateChangeCallback(cb) {
@@ -247,6 +250,7 @@ class GameEngine {
       telegramId: options.telegramId || null,
       username: options.username || null,
       avatarUrl: options.avatarUrl || null,
+      clientIp: options.clientIp || null,
       disconnectBudgetSeconds: 60, // 1 min initial disconnect pool
       activePlaySeconds: 0, // Accumulator for 5 min replenishment
       missedTurns: 0, // AFK strike counter (2 strikes = defeat)
@@ -480,6 +484,7 @@ class GameEngine {
         player.isConnected = false;
         player.isBankrupt = true;
         player.disqualifiedReason = 'LEFT_GAME';
+        this.endedReason = this.endedReason || 'SURRENDER';
 
         // Release properties back to bank
         this.board.forEach(tile => {
@@ -633,6 +638,7 @@ class GameEngine {
   }
 
   endGameOnDisconnectTimeout(disconnectedPlayer) {
+    this.endedReason = 'DISCONNECT_TIMEOUT';
     this.stopDisconnectWaitingTimer();
     this.clearTurnTimer();
 
@@ -990,9 +996,27 @@ class GameEngine {
     player.position = newPosition;
     const tile = this.board[newPosition];
 
+    // Record last roll metadata before landing resolution
+    this.lastRoll = {
+      playerId: player.id,
+      dice: this.lastDice,
+      skipped: false,
+      passedStart,
+      oldPosition,
+      rolledPosition: newPosition,
+      finalPosition: newPosition,
+      tileId: tile.id,
+      tileType: tile.type,
+      isGoToJail: tile.type === 'go_to_jail',
+      timestamp: Date.now()
+    };
+
     // Handle tile landing logic
     this.handleTileLanding(player, tile);
     this.resetTurnTimer();
+
+    // Update final position after landing resolution (e.g. if jailed, finalPosition becomes jail tile)
+    this.lastRoll.finalPosition = player.position;
 
     return {
       dice: this.lastDice,
@@ -1946,6 +1970,7 @@ class GameEngine {
       this.stopDisconnectWaitingTimer();
     }
 
+    this.endedReason = this.endedReason || 'SURRENDER';
     this.handleBankruptcy(player, null);
     return this.getPublicState();
   }
@@ -2117,6 +2142,7 @@ class GameEngine {
       throw new Error('Только создатель комнаты может досрочно завершить игру');
     }
 
+    this.endedReason = 'HOST_ABORT';
     this.status = 'GAME_OVER';
     this.endedAt = Date.now();
     this.clearTurnTimer();
@@ -2333,11 +2359,19 @@ class GameEngine {
       }
       return b.netWorth - a.netWorth;
     });
-    return sorted.map((p, idx) => ({
-      ...p,
-      rank: idx + 1,
-      isWinner: this.winner ? this.winner.id === p.id : (idx === 0)
-    }));
+    const ratingMap = new Map((this.finalRatings || []).map(r => [r.id, r]));
+    return sorted.map((p, idx) => {
+      const ratingInfo = ratingMap.get(p.id);
+      return {
+        ...p,
+        rank: idx + 1,
+        isWinner: this.winner ? this.winner.id === p.id : (idx === 0),
+        ratingDelta: ratingInfo ? ratingInfo.ratingDelta : undefined,
+        ratingNote: ratingInfo ? ratingInfo.note : undefined,
+        newRating: ratingInfo ? ratingInfo.newRating : undefined,
+        oldRating: ratingInfo ? ratingInfo.oldRating : undefined
+      };
+    });
   }
 
   recordFinalGameResults() {
@@ -2345,7 +2379,28 @@ class GameEngine {
       const rankings = this.calculateRankings();
       const winnerId = this.winner ? this.winner.id : (rankings[0] ? rankings[0].id : null);
       const hasBots = Boolean(this.everHadBot || this.players.some(p => p.isBot));
-      database.recordGameResults(rankings, winnerId, this.roomId, hasBots);
+      const durationSeconds = this.startedAt ? Math.floor(((this.endedAt || Date.now()) - this.startedAt) / 1000) : 0;
+
+      const matchContext = {
+        roomId: this.roomId,
+        mode: this.mode,
+        gameMode: this.gameMode,
+        isPrivate: Boolean(this.isPrivate),
+        startedAt: this.startedAt,
+        endedAt: this.endedAt || Date.now(),
+        durationSeconds,
+        roundsPlayed: this.roundNumber || 1,
+        turnsPlayed: this.turnNumber || 1,
+        endReason: this.endedReason || 'NORMAL_WIN',
+        hasBots,
+        playerIps: this.players.reduce((acc, p) => {
+          if (p.clientIp) acc[p.id] = p.clientIp;
+          return acc;
+        }, {})
+      };
+
+      const calculatedRatings = database.recordGameResults(rankings, winnerId, this.roomId, hasBots, matchContext);
+      this.finalRatings = calculatedRatings;
     } catch (err) {
       console.error('Error recording game results to database:', err);
     }
@@ -2364,6 +2419,7 @@ class GameEngine {
       mode: this.mode,
       gameMode: this.gameMode || 'classic',
       maxRounds: this.maxRounds,
+      maxPlayers: this.maxPlayers,
       isPrivate: this.isPrivate,
       hasBots: Boolean(this.everHadBot || this.players.some(p => p.isBot)),
       currentTurnIndex: this.currentTurnIndex,
@@ -2371,6 +2427,7 @@ class GameEngine {
       roundNumber: this.maxRounds ? Math.min(this.roundNumber || 1, this.maxRounds) : (this.roundNumber || 1),
       currentPlayerId: this.getCurrentPlayer() ? this.getCurrentPlayer().id : null,
       lastDice: this.lastDice,
+      lastRoll: this.lastRoll || null,
       lastDrawnCard: this.lastDrawnCard,
       pendingAction: this.pendingAction,
       activeAuction: this.activeAuction,

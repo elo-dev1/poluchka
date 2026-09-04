@@ -17,7 +17,7 @@ export const PlayerToken: React.FC<PlayerTokenProps> = ({
   size = 'md',
 }) => {
   const anim = isMoving ? 'jump' : player.inJail ? 'sleep' : 'idle';
-  const avatarSize = size === 'sm' ? 'sm' : size === 'md' ? 'md' : 'lg';
+  const avatarSize = size === 'sm' ? 'md' : size === 'md' ? 'lg' : 'xl';
   const playerHex = player.teamId === 'team_red'
     ? '#FF5252'
     : player.teamId === 'team_blue'
@@ -49,10 +49,10 @@ export const PlayerToken: React.FC<PlayerTokenProps> = ({
 
       {/* Player Color Ring Badge */}
       <div
-        className="w-3.5 h-1.5 rounded-full mt-[-2px] border border-white/80 shadow-md"
+        className="w-3.5 h-1.5 rounded-full mt-[-2px] border border-[#c59f58] shadow-md"
         style={{
           backgroundColor: playerHex,
-          boxShadow: `0 0 8px ${playerHex}`,
+          boxShadow: `0 0 6px ${playerHex}88`,
         }}
       />
     </div>

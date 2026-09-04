@@ -16,7 +16,15 @@ class YandexAuth {
       return { success: false, error: 'Данные Яндекс ID отсутствуют' };
     }
 
-    // 1. Direct or dev payload
+    const isProduction = process.env.NODE_ENV === 'production' && process.env.ALLOW_DEV_AUTH !== 'true';
+
+    // In production, strictly require official Yandex OAuth token verification
+    if (isProduction && (authData.isDirect || authData.isDemo || !authData.token)) {
+      console.warn('[YandexAuth] Rejected unverified login attempt in production mode');
+      return { success: false, error: 'Вход без официального токена Яндекс ID запрещён в рабочем режиме' };
+    }
+
+    // 1. Direct or dev payload (only allowed outside of production or when explicitly allowed)
     if (authData.isDirect || authData.isDemo || !authData.token) {
       const cleanLogin = authData.login ? authData.login.trim() : (authData.username || 'yandex_user');
       const cleanName = authData.display_name || authData.first_name || cleanLogin;

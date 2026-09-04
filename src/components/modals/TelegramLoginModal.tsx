@@ -346,7 +346,7 @@ export const TelegramLoginModal: React.FC = () => {
 
           {/* Legal Compliance Notice (152-ФЗ и 406-ФЗ) */}
           <div className="pt-1.5 border-t border-white/10 text-[11px] text-muted-foreground leading-relaxed flex items-center justify-center gap-1 w-full">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <ShieldCheck className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             <span>
               Авторизуясь, вы принимаете{" "}
               <button

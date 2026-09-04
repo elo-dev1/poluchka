@@ -10,7 +10,8 @@ const PET_CHARACTERS = [
   { id: 'chick', name: 'Цыплёнок', folder: 'Chick', slug: 'chick', emoji: '🐥', themeColor: '#EAB308' },
   { id: 'frog', name: 'Лягушонок', folder: 'Frog', slug: 'frog', emoji: '🐸', themeColor: '#22C55E' },
   { id: 'ghost', name: 'Привидение', folder: 'Ghost', slug: 'ghost', emoji: '👻', themeColor: '#A855F7' },
-  { id: 'slime', name: 'Слайм', folder: 'Slime', slug: 'slime', emoji: '🟢', themeColor: '#14B8A6' }
+  { id: 'slime', name: 'Слайм', folder: 'Slime', slug: 'slime', emoji: '🟢', themeColor: '#14B8A6' },
+  { id: 'detective', name: 'Детектив', folder: 'Detective', slug: 'detective', emoji: '🕵️', themeColor: '#D4A647' }
 ];
 
 function getPetCharacter(id) {

@@ -158,14 +158,16 @@ export interface GameLog {
 
 export interface ChatMessage {
   id: string;
-  playerId: string;
+  playerId?: string;
+  senderId?: string;
   senderName: string;
   senderColor?: string;
   senderIcon?: string;
-  message: string;
+  message?: string;
   timestamp: number;
   playerName?: string;
   text?: string;
+  type?: string;
 }
 
 export interface RankingPlayer extends PlayerData {
@@ -179,6 +181,10 @@ export interface RankingPlayer extends PlayerData {
   monopoliesCount: number;
   housesCount: number;
   hotelsCount: number;
+  ratingDelta?: number;
+  ratingNote?: string;
+  newRating?: number;
+  oldRating?: number;
 }
 
 export interface DiceObject {
@@ -204,6 +210,20 @@ export interface DrawnCardData {
   drawnAt: number;
 }
 
+export interface LastRollData {
+  playerId: string;
+  dice?: DiceObject | [number, number];
+  skipped?: boolean;
+  passedStart?: boolean;
+  oldPosition: number;
+  rolledPosition: number;
+  finalPosition?: number;
+  tileId?: number;
+  tileType?: string;
+  isGoToJail?: boolean;
+  timestamp?: number;
+}
+
 export interface GameState {
   roomId: string;
   hostId: string;
@@ -213,12 +233,14 @@ export interface GameState {
   gameMode?: 'classic' | 'reverse' | 'team';
   maxRounds?: number;
   boardSize?: number;
+  maxPlayers?: number;
   hasBots?: boolean;
   currentTurnIndex: number;
   turnNumber?: number;
   roundNumber?: number;
   currentPlayerId: string | null;
   lastDice: DiceObject | [number, number] | null;
+  lastRoll?: LastRollData | null;
   lastDrawnCard?: DrawnCardData | null;
   pendingAction: {
     type: string;
@@ -231,6 +253,7 @@ export interface GameState {
   activeTrade: ActiveTrade | null;
   tradeOffersThisRound?: Record<string, number>;
   builtTilesThisTurn?: number[];
+  pendingDebt?: { debtorId: string; creditorId?: string | null; amount: number } | null;
   disconnectWaitingState: {
     disconnectedPlayerId: string;
     disconnectedPlayerName: string;

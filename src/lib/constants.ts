@@ -1,8 +1,16 @@
-export const THEMES = [
-  { id: 'midnight', name: '🌙 Midnight Neon', desc: 'Тёмный неон', primary: '#3b82f6', bg: '#0b0f19' },
-  { id: 'classic', name: '🏛 Classic Emerald', desc: 'Изумруд и золото', primary: '#10b981', bg: '#062016' },
-  { id: 'sunset', name: '🌅 Sunset Gold', desc: 'Золотой люкс', primary: '#f59e0b', bg: '#1c1004' },
-  { id: 'light', name: '🏙 Minimal Light', desc: 'Светлая чистая', primary: '#2563eb', bg: '#f8fafc' },
+export interface ThemeOption {
+  id: string;
+  name: string;
+  desc: string;
+  primary: string;
+  bg: string;
+  authOnly?: boolean;
+}
+
+export const THEMES: ThemeOption[] = [
+  { id: 'classic', name: '🏛 Классическая Монополия', desc: 'Изумрудный стол и классическая доска', primary: '#10b981', bg: '#062016' },
+  { id: 'soviet', name: '★ ЦУП Байконур 1961', desc: 'Советский космос (Только для авторизованных)', primary: '#dc2626', bg: '#040711', authOnly: true },
+  { id: 'noir', name: '🔍 Film Noir 1947', desc: 'Детективный нуар (Только для авторизованных)', primary: '#d4a647', bg: '#0a0806', authOnly: true },
 ];
 
 export const UI_SCALES = [
@@ -12,14 +20,14 @@ export const UI_SCALES = [
 ];
 
 export const PROPERTY_GROUPS: Record<string, { name: string; color: string }> = {
-  BROWN: { name: 'Коричневая', color: '#8d6e63' },
-  CYAN: { name: 'Голубая', color: '#00b0ff' },
-  PINK: { name: 'Розовая', color: '#ec407a' },
-  ORANGE: { name: 'Оранжевая', color: '#ff9800' },
-  RED: { name: 'Красная', color: '#f44336' },
-  YELLOW: { name: 'Жёлтая', color: '#fdd835' },
-  GREEN: { name: 'Зелёная', color: '#4caf50' },
-  BLUE: { name: 'Тёмно-синяя', color: '#2962ff' },
-  RAILROAD: { name: 'Вокзалы', color: '#455a64' },
-  UTILITY: { name: 'Коммунальные', color: '#78909c' },
+  BROWN: { name: 'Разработка & IT', color: '#8d6e63' },
+  CYAN: { name: 'Мессенджеры & Связь', color: '#00b0ff' },
+  PINK: { name: 'Медиа & Музыка', color: '#ec407a' },
+  ORANGE: { name: 'Видео & Стриминг', color: '#ff9800' },
+  RED: { name: 'Игровые платформы', color: '#f44336' },
+  YELLOW: { name: 'E-commerce & Маркетплейсы', color: '#fdd835' },
+  GREEN: { name: 'Мировые бренды', color: '#4caf50' },
+  BLUE: { name: 'AI & Технологии', color: '#2962ff' },
+  RAILROAD: { name: 'Транспортная сеть', color: '#455a64' },
+  UTILITY: { name: 'Цифровые сервисы', color: '#78909c' },
 };

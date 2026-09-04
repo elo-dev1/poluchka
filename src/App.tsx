@@ -24,7 +24,7 @@ import { RulesModal } from '@/components/modals/RulesModal';
 import { SurrenderModal } from '@/components/modals/SurrenderModal';
 
 export const App: React.FC = () => {
-  const { gameState } = useGame();
+  const { gameState, theme } = useGame();
 
   const renderActiveScreen = () => {
     if (!gameState) {
@@ -37,9 +37,10 @@ export const App: React.FC = () => {
   };
 
   const isPlayingGame = Boolean(gameState && gameState.status !== 'LOBBY');
+  const appBgClass = theme === 'soviet' ? 'soviet-space-table' : theme === 'noir' ? 'noir-game-table' : 'classic-game-table';
 
   return (
-    <div className="flex flex-col h-screen max-h-screen w-screen max-w-screen bg-[#090c1a] text-foreground relative overflow-hidden select-none">
+    <div className={cn("flex flex-col h-screen max-h-screen w-screen max-w-screen text-foreground relative overflow-hidden select-none", appBgClass)}>
       {/* Top Header (Only shown on Welcome and Lobby screens) */}
       {!isPlayingGame && <TopBar />}
 

@@ -20,7 +20,8 @@ export const PET_CHARACTERS: PetCharacter[] = [
   { id: 'chick', name: 'Цыплёнок', folder: 'Chick', slug: 'chick', emoji: '🐥', themeColor: '#EAB308', description: 'Золотая курочка' },
   { id: 'frog', name: 'Лягушонок', folder: 'Frog', slug: 'frog', emoji: '🐸', themeColor: '#22C55E', description: 'Мастер длинных прыжков' },
   { id: 'ghost', name: 'Привидение', folder: 'Ghost', slug: 'ghost', emoji: '👻', themeColor: '#A855F7', description: 'Теневой олигарх' },
-  { id: 'slime', name: 'Слайм', folder: 'Slime', slug: 'slime', emoji: '🟢', themeColor: '#14B8A6', description: 'Гибкий партнер' }
+  { id: 'slime', name: 'Слайм', folder: 'Slime', slug: 'slime', emoji: '🟢', themeColor: '#14B8A6', description: 'Гибкий партнер' },
+  { id: 'detective', name: 'Детектив', folder: 'Detective', slug: 'detective', emoji: '🕵️', themeColor: '#D4A647', description: 'Сыщик noir' }
 ];
 
 export const DEFAULT_PET_ID = 'cat';

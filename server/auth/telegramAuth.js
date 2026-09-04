@@ -23,23 +23,32 @@ class TelegramAuth {
     if (!authData || !authData.id) return null;
 
     const botToken = this.getBotToken();
+    const isProduction = process.env.NODE_ENV === 'production' && process.env.ALLOW_DEV_AUTH !== 'true';
 
-    // 1. Direct login & dev support (when hash is not provided or bot token is empty)
-    if (authData.isDirect || authData.isDemo || !botToken || botToken === 'demo' || !authData.hash) {
-      const cleanUsername = authData.username ? authData.username.trim().replace(/^@/, '') : '';
-      const cleanName = authData.first_name ? authData.first_name.trim() : (cleanUsername || 'Игрок');
-      const tgId = authData.id
-        ? String(authData.id)
-        : `tg_${(cleanUsername || cleanName || 'player').toLowerCase().replace(/[^a-z0-9_]/g, '_')}`;
+    // In production, strictly disallow bypasses and require cryptographic HMAC hash
+    if (isProduction) {
+      if (authData.isDirect || authData.isDemo || !authData.hash || !botToken) {
+        console.warn('[TelegramAuth] Rejected unverified login attempt in production mode');
+        return null;
+      }
+    } else {
+      // 1. Direct login & dev support (when hash is not provided or bot token is empty in dev/test)
+      if (authData.isDirect || authData.isDemo || !botToken || botToken === 'demo' || !authData.hash) {
+        const cleanUsername = authData.username ? authData.username.trim().replace(/^@/, '') : '';
+        const cleanName = authData.first_name ? authData.first_name.trim() : (cleanUsername || 'Игрок');
+        const tgId = authData.id
+          ? String(authData.id)
+          : `tg_${(cleanUsername || cleanName || 'player').toLowerCase().replace(/[^a-z0-9_]/g, '_')}`;
 
-      return {
-        id: tgId,
-        first_name: cleanName,
-        last_name: authData.last_name || '',
-        username: cleanUsername,
-        photo_url: authData.photo_url || '',
-        auth_date: Math.floor(Date.now() / 1000)
-      };
+        return {
+          id: tgId,
+          first_name: cleanName,
+          last_name: authData.last_name || '',
+          username: cleanUsername,
+          photo_url: authData.photo_url || '',
+          auth_date: Math.floor(Date.now() / 1000)
+        };
+      }
     }
 
     // 2. Production Cryptographic HMAC-SHA256 Verification
@@ -104,7 +113,14 @@ class TelegramAuth {
       }
       const dataCheckString = dataCheckArr.join('\n');
 
-      if (!this.botToken || this.botToken === 'demo') {
+      const token = this.getBotToken();
+      const isProduction = process.env.NODE_ENV === 'production' && process.env.ALLOW_DEV_AUTH !== 'true';
+
+      if (!token || token === 'demo') {
+        if (isProduction) {
+          console.warn('[TelegramAuth] WebApp auth rejected: TELEGRAM_BOT_TOKEN required in production');
+          return null;
+        }
         const userStr = params.get('user');
         if (userStr) {
           const userObj = JSON.parse(userStr);
@@ -119,7 +135,7 @@ class TelegramAuth {
         return null;
       }
 
-      const secretKey = crypto.createHmac('sha256', 'WebAppData').update(this.botToken).digest();
+      const secretKey = crypto.createHmac('sha256', 'WebAppData').update(token).digest();
       const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
 
       if (calculatedHash.toLowerCase() !== hash.toLowerCase()) {

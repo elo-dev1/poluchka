@@ -2,6 +2,13 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { io, Socket } from 'socket.io-client';
 import { GameState, PublicRoomSummary, TelegramUser, ChatMessage } from '@/types/game';
 import { soundEngine } from '@/lib/soundEngine';
+import {
+  canBuildHouse,
+  canSellHouse,
+  canMortgage,
+  canUnmortgage,
+} from '@/lib/propertyRules';
+import { getPetCharacter } from '@/lib/petCharacters';
 
 export interface ToastItem {
   id: string;
@@ -24,9 +31,6 @@ interface GameContextType {
   chatMessages: ChatMessage[];
   // Settings
   theme: string;
-  is3D: boolean;
-  tiltX: number;
-  rotZ: number;
   uiScale: number;
   soundEnabled: boolean;
   snowEnabled: boolean;
@@ -63,7 +67,7 @@ interface GameContextType {
   unmortgageProperty: (tileId: number) => void;
   bidAuction: (amount: number) => void;
   passAuction: () => void;
-  proposeTrade: (tradeData: any) => void;
+  proposeTrade: (tradeDataOrPartnerId: any, offerProperties?: number[], offerCash?: number, requestProperties?: number[], requestCash?: number) => void;
   acceptTrade: (tradeId: string) => void;
   rejectTrade: (tradeId: string) => void;
   declareBankruptcy: () => void;
@@ -80,9 +84,6 @@ interface GameContextType {
   updateNickname: (newNickname: string) => Promise<boolean>;
   applySettings: (settings: {
     theme?: string;
-    is3D?: boolean;
-    tiltX?: number;
-    rotZ?: number;
     uiScale?: number;
     sound?: boolean;
     snow?: boolean;
@@ -115,9 +116,6 @@ const STORAGE_CHARACTER_KEY = 'monopoly_saved_character_id';
 const STORAGE_TG_USER_KEY = 'monopoly_tg_user';
 const STORAGE_TG_TOKEN_KEY = 'monopoly_tg_token';
 const STORAGE_THEME_KEY = 'monopoly_saved_theme';
-const STORAGE_VIEW_3D_KEY = 'monopoly_saved_3d_mode';
-const STORAGE_TILT_X_KEY = 'monopoly_saved_tilt_x';
-const STORAGE_ROT_Z_KEY = 'monopoly_saved_rot_z';
 const STORAGE_UI_SCALE_KEY = 'monopoly_saved_ui_scale';
 const STORAGE_SNOW_KEY = 'monopoly_saved_snow';
 const STORAGE_SOUND_KEY = 'monopoly_saved_sound';
@@ -165,16 +163,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [modalData, setModalData] = useState<any>(null);
-  const [selectedCharacterId, setSelectedCharacterId] = useState<string>('cat');
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string>(() => {
+    const saved = safeGetStorage(STORAGE_CHARACTER_KEY);
+    return getPetCharacter(saved).id;
+  });
   const [isTokenMoving, setIsTokenMoving] = useState<boolean>(false);
 
-  // Appearance & View Settings
-  const [theme, setThemeState] = useState<string>('midnight');
-  const [is3D, setIs3DState] = useState<boolean>(true);
-  const [tiltX, setTiltXState] = useState<number>(48);
-  const [rotZ, setRotZState] = useState<number>(-14);
+  // Appearance & View Settings (classic default)
+  const [theme, setThemeState] = useState<string>('classic');
   const [uiScale, setUiScaleState] = useState<number>(1.0);
-  const [snowEnabled, setSnowEnabledState] = useState<boolean>(true);
+  const [snowEnabled, setSnowEnabledState] = useState<boolean>(false);
   const [soundEnabled, setSoundEnabledState] = useState<boolean>(true);
   const [animSpeed, setAnimSpeedState] = useState<number>(180);
 
@@ -234,6 +232,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const playerIdRef = useRef(playerId);
   playerIdRef.current = playerId;
 
+  const currentUserRef = useRef(currentUser);
+  currentUserRef.current = currentUser;
+
   // Initialize client settings and socket (once on mount)
   useEffect(() => {
     // Generate or read playerId safely
@@ -260,32 +261,29 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    // Read theme and view settings
-    const sTheme = safeGetStorage(STORAGE_THEME_KEY) || 'midnight';
-    const s3D = safeGetStorage(STORAGE_VIEW_3D_KEY) === 'true';
-    const sTilt = Number(safeGetStorage(STORAGE_TILT_X_KEY)) || 48;
-    const sRot = Number(safeGetStorage(STORAGE_ROT_Z_KEY)) || -14;
+    // Read theme and view settings (classic by default; soviet/noir restricted to authorized users)
+    let sTheme = safeGetStorage(STORAGE_THEME_KEY) || 'classic';
+    if (sTheme !== 'classic' && sTheme !== 'soviet' && sTheme !== 'noir') {
+      sTheme = 'classic';
+      safeSetStorage(STORAGE_THEME_KEY, 'classic');
+    }
+    if ((sTheme === 'soviet' || sTheme === 'noir') && !savedTgUser) {
+      sTheme = 'classic';
+      safeSetStorage(STORAGE_THEME_KEY, 'classic');
+    }
     const sScale = Number(safeGetStorage(STORAGE_UI_SCALE_KEY)) || 1.0;
-    const sSnow = safeGetStorage(STORAGE_SNOW_KEY) !== 'false';
+    const sSnow = safeGetStorage(STORAGE_SNOW_KEY) === 'true';
     const sSound = safeGetStorage(STORAGE_SOUND_KEY) !== 'false';
 
     setThemeState(sTheme);
-    setIs3DState(s3D);
-    setTiltXState(sTilt);
-    setRotZState(sRot);
     setUiScaleState(sScale);
     setSnowEnabledState(sSnow);
     setSoundEnabledState(sSound);
     soundEngine.isMuted = !sSound;
 
     try {
-      if (sTheme === 'light') {
-        document.documentElement.classList.remove('dark');
-        document.documentElement.classList.add('light');
-      } else {
-        document.documentElement.classList.remove('light');
-        document.documentElement.classList.add('dark');
-      }
+      document.documentElement.classList.remove('light');
+      document.documentElement.classList.add('dark');
       document.documentElement.setAttribute('data-theme', sTheme);
     } catch {}
 
@@ -346,11 +344,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    const handleDiceRoll = (data: { dice?: any; player?: any; newPosition?: number }) => {
+    const handleDiceRoll = (data: { dice?: any; player?: any; playerId?: string; newPosition?: number; isGoToJail?: boolean }) => {
       soundEngine.playDiceRoll();
-      if (data.player && data.player.name) {
+      const playerName = data.player?.name;
+      if (data.isGoToJail) {
+        showToastRef.current(`🚨 ${playerName || 'Игрок'} отправляется в Тюрьму!`, 'warning', 3000);
+      } else if (playerName) {
         const sum = data.dice ? (data.dice.sum || (data.dice.die1 + data.dice.die2) || 2) : 2;
-        showToastRef.current(`🎲 ${data.player.name} выбросил ${sum}!`, 'info', 2500);
+        showToastRef.current(`🎲 ${playerName} выбросил ${sum}!`, 'info', 2500);
       }
     };
 
@@ -432,39 +433,29 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const applySettings = useCallback((settings: {
     theme?: string;
-    is3D?: boolean;
-    tiltX?: number;
-    rotZ?: number;
     uiScale?: number;
     sound?: boolean;
     snow?: boolean;
     speed?: number;
   }, silent: boolean = false) => {
     if (settings.theme !== undefined) {
-      setThemeState(settings.theme);
-      safeSetStorage(STORAGE_THEME_KEY, settings.theme);
+      const isAuthed = Boolean(currentUserRef.current || currentUser || safeGetStorage(STORAGE_TG_USER_KEY));
+      // Auth-only themes (soviet, noir) are exclusive to authorized users
+      if ((settings.theme === 'soviet' || settings.theme === 'noir') && !isAuthed) {
+        const label = settings.theme === 'soviet' ? '«ЦУП Байконур 1961»' : '«Film Noir 1947»';
+        showToast(`Тема ${label} доступна только авторизованным игрокам!`, 'warning');
+        openModal('telegramLogin');
+        return;
+      }
+      const validThemes = ['classic', 'soviet', 'noir'];
+      const chosenTheme = validThemes.includes(settings.theme) ? settings.theme : 'classic';
+      setThemeState(chosenTheme);
+      safeSetStorage(STORAGE_THEME_KEY, chosenTheme);
       try {
-        if (settings.theme === 'light') {
-          document.documentElement.classList.remove('dark');
-          document.documentElement.classList.add('light');
-        } else {
-          document.documentElement.classList.remove('light');
-          document.documentElement.classList.add('dark');
-        }
-        document.documentElement.setAttribute('data-theme', settings.theme);
+        document.documentElement.classList.remove('light');
+        document.documentElement.classList.add('dark');
+        document.documentElement.setAttribute('data-theme', chosenTheme);
       } catch {}
-    }
-    if (settings.is3D !== undefined) {
-      setIs3DState(settings.is3D);
-      safeSetStorage(STORAGE_VIEW_3D_KEY, settings.is3D ? 'true' : 'false');
-    }
-    if (settings.tiltX !== undefined) {
-      setTiltXState(settings.tiltX);
-      safeSetStorage(STORAGE_TILT_X_KEY, String(settings.tiltX));
-    }
-    if (settings.rotZ !== undefined) {
-      setRotZState(settings.rotZ);
-      safeSetStorage(STORAGE_ROT_Z_KEY, String(settings.rotZ));
     }
     if (settings.uiScale !== undefined) {
       setUiScaleState(settings.uiScale);
@@ -488,7 +479,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!silent) {
       showToast('Настройки успешно сохранены! ✅', 'success', 2000);
     }
-  }, [showToast]);
+  }, [currentUser, showToast, openModal]);
 
   const createRoom = useCallback(async (name: string, isPrivate: boolean = false, options: { mode?: 'standard' | 'blitz' | 'ranked'; gameMode?: 'classic' | 'reverse' | 'team'; maxRounds?: number; boardSize?: 40 | 24; startingCash?: number; maxPlayers?: number } = {}) => {
     if (!socket) return { success: false, error: 'Сокет не подключен' };
@@ -506,7 +497,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         maxRounds: options.maxRounds !== undefined ? options.maxRounds : (options.gameMode === 'reverse' ? 20 : 0),
         boardSize: options.boardSize || (options.mode === 'blitz' ? 24 : 40),
         startingCash: options.startingCash || 1500,
-        maxPlayers: options.maxPlayers || 6,
+        maxPlayers: options.maxPlayers || (options.mode === 'ranked' ? 2 : (options.gameMode === 'team' ? 4 : 6)),
         telegramId: currentUser ? currentUser.telegramId : null,
         avatarUrl: currentUser ? currentUser.avatarUrl : null,
         username: currentUser ? currentUser.username : null,
@@ -721,7 +712,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       soundEngine.playBuy();
       socket.emit('buy_property', { roomId, playerId }, (res: SocketResponse) => {
         if (res && res.success) {
-          showToast('Недвижимость успешно куплена! 🏢', 'success');
+          showToast('Актив успешно куплен! 🏢', 'success');
         } else {
           showToast(res ? res.error : 'Ошибка покупки', 'error');
         }
@@ -759,14 +750,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [socket, roomId, playerId]);
 
   const buildHouse = useCallback((tileId: number) => {
-    const isMyTurn = Boolean(
-      gameState &&
-      gameState.players[gameState.currentTurnIndex]?.id === playerId &&
-      gameState.status !== 'GAME_OVER' &&
-      gameState.status !== 'LOBBY'
-    );
-    if (!isMyTurn) {
-      showToast('Строить и улучшать недвижимость можно только во время своего хода ⏳', 'warning');
+    if (!gameState || !playerId) return;
+    const tile = gameState.board?.find((t) => t.id === tileId) || gameState.board?.[tileId];
+    const validation = canBuildHouse(tile, gameState, playerId);
+    if (!validation.allowed) {
+      showToast(validation.reason || 'Улучшение недоступно', 'warning');
       return;
     }
     if (socket && roomId && playerId) {
@@ -782,6 +770,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [socket, roomId, playerId, gameState, showToast]);
 
   const sellHouse = useCallback((tileId: number) => {
+    if (!gameState || !playerId) return;
+    const tile = gameState.board?.find((t) => t.id === tileId) || gameState.board?.[tileId];
+    const validation = canSellHouse(tile, gameState, playerId);
+    if (!validation.allowed) {
+      showToast(validation.reason || 'Снос недоступен', 'warning');
+      return;
+    }
     if (socket && roomId && playerId) {
       soundEngine.playCash();
       socket.emit('sell_house', { roomId, playerId, tileId }, (res: SocketResponse) => {
@@ -792,9 +787,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       });
     }
-  }, [socket, roomId, playerId, showToast]);
+  }, [socket, roomId, playerId, gameState, showToast]);
 
   const mortgageProperty = useCallback((tileId: number) => {
+    if (!gameState || !playerId) return;
+    const tile = gameState.board?.find((t) => t.id === tileId) || gameState.board?.[tileId];
+    const validation = canMortgage(tile, gameState, playerId);
+    if (!validation.allowed) {
+      showToast(validation.reason || 'Залог недоступен', 'warning');
+      return;
+    }
     if (socket && roomId && playerId) {
       soundEngine.playCash();
       socket.emit('mortgage_property', { roomId, playerId, tileId }, (res: SocketResponse) => {
@@ -805,9 +807,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       });
     }
-  }, [socket, roomId, playerId, showToast]);
+  }, [socket, roomId, playerId, gameState, showToast]);
 
   const unmortgageProperty = useCallback((tileId: number) => {
+    if (!gameState || !playerId) return;
+    const tile = gameState.board?.find((t) => t.id === tileId) || gameState.board?.[tileId];
+    const validation = canUnmortgage(tile, gameState, playerId);
+    if (!validation.allowed) {
+      showToast(validation.reason || 'Выкуп недоступен', 'warning');
+      return;
+    }
     if (socket && roomId && playerId) {
       soundEngine.playBuy();
       socket.emit('unmortgage_property', { roomId, playerId, tileId }, (res: SocketResponse) => {
@@ -818,7 +827,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       });
     }
-  }, [socket, roomId, playerId, showToast]);
+  }, [socket, roomId, playerId, gameState, showToast]);
 
   const bidAuction = useCallback((amount: number) => {
     if (socket && roomId && playerId) {
@@ -842,24 +851,31 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [socket, roomId, playerId, showToast]);
 
-  const proposeTrade = useCallback((tradeData: any) => {
+  const proposeTrade = useCallback((tradeData: any, offerProperties?: number[], offerCash?: number, requestProperties?: number[], requestCash?: number) => {
     if (socket && roomId && playerId) {
       soundEngine.playClick();
+      const isObject = typeof tradeData === 'object' && tradeData !== null;
+      const toPlayerId = isObject ? (tradeData.toPlayerId || tradeData.targetId) : tradeData;
+      const oProps = isObject ? (tradeData.offerProperties || tradeData.offer?.properties || []) : (offerProperties || []);
+      const oCash = isObject ? (Number(tradeData.offerCash || tradeData.offer?.money) || 0) : (Number(offerCash) || 0);
+      const rProps = isObject ? (tradeData.requestProperties || tradeData.request?.properties || []) : (requestProperties || []);
+      const rCash = isObject ? (Number(tradeData.requestCash || tradeData.request?.money) || 0) : (Number(requestCash) || 0);
+
       const payload = {
         roomId,
         fromPlayerId: playerId,
         initiatorId: playerId,
-        toPlayerId: tradeData.toPlayerId || tradeData.targetId,
-        targetId: tradeData.toPlayerId || tradeData.targetId,
+        toPlayerId,
+        targetId: toPlayerId,
         offer: {
-          money: Number(tradeData.offerCash || tradeData.offer?.money) || 0,
-          properties: tradeData.offerProperties || tradeData.offer?.properties || [],
+          money: oCash,
+          properties: oProps,
         },
         request: {
-          money: Number(tradeData.requestCash || tradeData.request?.money) || 0,
-          properties: tradeData.requestProperties || tradeData.request?.properties || [],
+          money: rCash,
+          properties: rProps,
         },
-        ...tradeData,
+        ...(isObject ? tradeData : {}),
       };
 
       socket.emit('propose_trade', payload, (res: SocketResponse) => {
@@ -1043,9 +1059,18 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAuthToken(null);
     safeRemoveStorage(STORAGE_TG_USER_KEY);
     safeRemoveStorage(STORAGE_TG_TOKEN_KEY);
+    if (theme === 'soviet' || theme === 'noir') {
+      setThemeState('classic');
+      safeSetStorage(STORAGE_THEME_KEY, 'classic');
+      try {
+        document.documentElement.classList.remove('light');
+        document.documentElement.classList.add('dark');
+        document.documentElement.setAttribute('data-theme', 'classic');
+      } catch {}
+    }
     showToast('Вы вышли из профиля (активен гостевой режим)', 'info', 2000);
     closeModal();
-  }, [showToast, closeModal]);
+  }, [theme, showToast, closeModal]);
 
   const updateNickname = useCallback(async (newNickname: string) => {
     const clean = newNickname.trim().substring(0, 24);
@@ -1108,9 +1133,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toasts,
         chatMessages,
         theme,
-        is3D,
-        tiltX,
-        rotZ,
         uiScale,
         soundEnabled,
         snowEnabled,

@@ -3,6 +3,7 @@ const telegramAuth = require('../auth/telegramAuth');
 const yandexAuth = require('../auth/yandexAuth');
 const database = require('../db/Database');
 const botManager = require('../game/BotManager');
+const profanityFilter = require('../utils/profanityFilter');
 
 function setupSocketHandlers(io) {
   // Helper to broadcast public rooms list to all clients in welcome/menu
@@ -16,6 +17,9 @@ function setupSocketHandlers(io) {
     let currentRoomId = null;
     let currentPlayerId = null;
     let currentTelegramUser = null;
+    const socketClientIp = (socket.handshake.headers['x-forwarded-for']
+      ? socket.handshake.headers['x-forwarded-for'].split(',')[0].trim()
+      : socket.handshake.address) || '';
 
     // Send initial list of open rooms to newly connected socket
     const initialRooms = roomManager.getPublicRooms();
@@ -37,6 +41,48 @@ function setupSocketHandlers(io) {
       } else {
         socket.emit('error_notification', { message });
       }
+    };
+
+    // Socket-level rate limiter (sliding window)
+    let lastChatTimestamp = 0;
+    const actionTimestamps = [];
+    const checkActionRateLimit = (maxActions = 40, windowMs = 5000) => {
+      const now = Date.now();
+      while (actionTimestamps.length > 0 && now - actionTimestamps[0] > windowMs) {
+        actionTimestamps.shift();
+      }
+      if (actionTimestamps.length >= maxActions) {
+        return false;
+      }
+      actionTimestamps.push(now);
+      return true;
+    };
+
+    // Helper to strictly validate that the socket is currently inside the room and acting as its assigned player
+    const validatePlayerAction = (payloadRoomId, payloadPlayerId, callback) => {
+      if (!checkActionRateLimit()) {
+        sendError(callback, 'Слишком много запросов. Пожалуйста, подождите.');
+        return null;
+      }
+      if (!currentRoomId || !currentPlayerId) {
+        sendError(callback, 'Вы не находитесь в активной комнате');
+        return null;
+      }
+      const targetRoomId = (payloadRoomId || currentRoomId).toUpperCase().trim();
+      if (targetRoomId !== currentRoomId) {
+        sendError(callback, 'Действие отклонено: несовпадение комнаты');
+        return null;
+      }
+      const game = roomManager.getRoom(targetRoomId);
+      if (!game) {
+        sendError(callback, 'Комната не найдена');
+        return null;
+      }
+      if (payloadPlayerId && payloadPlayerId !== currentPlayerId) {
+        sendError(callback, 'Действие отклонено: не совпадает идентификатор игрока');
+        return null;
+      }
+      return { game, playerId: currentPlayerId };
     };
 
     // --- 0. Telegram & Yandex Auth & Leaderboard ---
@@ -77,6 +123,9 @@ function setupSocketHandlers(io) {
         const cleanName = (nickname || '').trim().substring(0, 24);
         if (!cleanName) {
           return sendError(callback, 'Имя не может быть пустым');
+        }
+        if (profanityFilter.hasProfanity(cleanName)) {
+          return sendError(callback, 'Имя содержит недопустимые слова');
         }
         const updated = database.updateUserNickname(targetId, cleanName);
         if (updated) {
@@ -120,18 +169,20 @@ function setupSocketHandlers(io) {
     socket.on('create_room', ({ playerName, playerId, isPrivate, telegramId, avatarUrl, username, characterId, mode, gameMode, maxRounds, boardSize, startingCash, maxPlayers }, callback) => {
       try {
         const id = playerId || `p_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-        const name = (playerName || '').trim() || 'Игрок 1';
+        const rawName = (playerName || '').trim() || 'Игрок 1';
+        const name = profanityFilter.censor(rawName);
         const options = {
           telegramId: telegramId || (currentTelegramUser ? currentTelegramUser.telegramId : null),
           avatarUrl: avatarUrl || (currentTelegramUser ? currentTelegramUser.avatarUrl : null),
           username: username || (currentTelegramUser ? currentTelegramUser.username : null),
           characterId: characterId || 'cat',
+          clientIp: socketClientIp,
           mode: mode || 'standard',
           gameMode: gameMode || (mode === 'reverse' ? 'reverse' : 'classic'),
           boardSize: boardSize || (mode === 'blitz' ? 24 : 40),
           maxRounds: maxRounds !== undefined ? Number(maxRounds) : (gameMode === 'reverse' || mode === 'reverse' ? ((boardSize === 24 || mode === 'blitz') ? 10 : 20) : 0),
           startingCash: Number(startingCash) || 1500,
-          maxPlayers: Number(maxPlayers) || 6
+          maxPlayers: Number(maxPlayers) || ((mode === 'ranked' || gameMode === 'ranked') ? 2 : ((gameMode === 'team' || mode === 'team') ? 4 : 6))
         };
 
         if (options.gameMode === 'reverse' && !options.telegramId) {
@@ -170,12 +221,14 @@ function setupSocketHandlers(io) {
     socket.on('quick_match', ({ playerName, playerId, telegramId, avatarUrl, username, characterId }, callback) => {
       try {
         const id = playerId || `p_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-        const name = (playerName || '').trim() || 'Игрок';
+        const rawName = (playerName || '').trim() || 'Игрок';
+        const name = profanityFilter.censor(rawName);
         const options = {
           telegramId: telegramId || (currentTelegramUser ? currentTelegramUser.telegramId : null),
           avatarUrl: avatarUrl || (currentTelegramUser ? currentTelegramUser.avatarUrl : null),
           username: username || (currentTelegramUser ? currentTelegramUser.username : null),
-          characterId: characterId || 'cat'
+          characterId: characterId || 'cat',
+          clientIp: socketClientIp
         };
 
         // Find candidate open rooms that are NOT private, in LOBBY state, and not full
@@ -267,12 +320,14 @@ function setupSocketHandlers(io) {
         }
 
         const id = playerId || `p_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-        const name = (playerName || '').trim() || `Игрок ${game.players.length + 1}`;
+        const rawName = (playerName || '').trim() || `Игрок ${game.players.length + 1}`;
+        const name = profanityFilter.censor(rawName);
         const options = {
           telegramId: telegramId || (currentTelegramUser ? currentTelegramUser.telegramId : null),
           avatarUrl: avatarUrl || (currentTelegramUser ? currentTelegramUser.avatarUrl : null),
           username: username || (currentTelegramUser ? currentTelegramUser.username : null),
-          characterId: characterId || undefined
+          characterId: characterId || undefined,
+          clientIp: socketClientIp
         };
 
         let player = game.players.find(p => p.id === id);
@@ -323,18 +378,17 @@ function setupSocketHandlers(io) {
     // 2.1 Add Bot to Lobby (Host only)
     socket.on('add_bot', ({ roomId, difficulty, teamId }, callback) => {
       try {
-        const rId = roomId || currentRoomId;
-        const game = roomManager.getRoom(rId);
-        if (!game) return sendError(callback, 'Комната не найдена');
-        if (game.hostId !== (currentPlayerId || game.hostId)) {
+        const ctx = validatePlayerAction(roomId, null, callback);
+        if (!ctx) return;
+        if (ctx.game.hostId !== ctx.playerId) {
           return sendError(callback, 'Только создатель стола может добавлять ботов');
         }
 
-        const bot = game.addBot({ difficulty, teamId });
+        const bot = ctx.game.addBot({ difficulty, teamId });
         if (typeof callback === 'function') {
-          callback({ success: true, bot, state: game.getPublicState() });
+          callback({ success: true, bot, state: ctx.game.getPublicState() });
         }
-        broadcastGameState(game);
+        broadcastGameState(ctx.game);
       } catch (err) {
         sendError(callback, err.message);
       }
@@ -343,18 +397,17 @@ function setupSocketHandlers(io) {
     // 2.2 Remove Bot from Lobby (Host only)
     socket.on('remove_bot', ({ roomId, botId }, callback) => {
       try {
-        const rId = roomId || currentRoomId;
-        const game = roomManager.getRoom(rId);
-        if (!game) return sendError(callback, 'Комната не найдена');
-        if (game.hostId !== (currentPlayerId || game.hostId)) {
+        const ctx = validatePlayerAction(roomId, null, callback);
+        if (!ctx) return;
+        if (ctx.game.hostId !== ctx.playerId) {
           return sendError(callback, 'Только создатель стола может удалять ботов');
         }
 
-        const removedBot = game.removeBot(botId);
+        const removedBot = ctx.game.removeBot(botId);
         if (typeof callback === 'function') {
-          callback({ success: true, bot: removedBot, state: game.getPublicState() });
+          callback({ success: true, bot: removedBot, state: ctx.game.getPublicState() });
         }
-        broadcastGameState(game);
+        broadcastGameState(ctx.game);
       } catch (err) {
         sendError(callback, err.message);
       }
@@ -363,18 +416,22 @@ function setupSocketHandlers(io) {
     // 2.3 Set Player Team in Lobby (Team Mode)
     socket.on('set_player_team', ({ roomId, targetPlayerId, teamId }, callback) => {
       try {
-        const rId = roomId || currentRoomId;
-        const game = roomManager.getRoom(rId);
-        if (!game) return sendError(callback, 'Комната не найдена');
-        if (game.status !== 'LOBBY') {
+        const ctx = validatePlayerAction(roomId, null, callback);
+        if (!ctx) return;
+        if (ctx.game.status !== 'LOBBY') {
           return sendError(callback, 'Команды можно менять только в лобби перед началом игры');
         }
 
-        const targetTeam = game.setPlayerTeam(targetPlayerId || currentPlayerId, teamId);
-        if (typeof callback === 'function') {
-          callback({ success: true, team: targetTeam, state: game.getPublicState() });
+        const targetId = targetPlayerId || ctx.playerId;
+        if (targetId !== ctx.playerId && ctx.game.hostId !== ctx.playerId) {
+          return sendError(callback, 'Только хост может менять команду другим игрокам');
         }
-        broadcastGameState(game);
+
+        const targetTeam = ctx.game.setPlayerTeam(targetId, teamId);
+        if (typeof callback === 'function') {
+          callback({ success: true, team: targetTeam, state: ctx.game.getPublicState() });
+        }
+        broadcastGameState(ctx.game);
       } catch (err) {
         sendError(callback, err.message);
       }
@@ -383,13 +440,11 @@ function setupSocketHandlers(io) {
     // 3. Set Player Character (Tiny Pets)
     socket.on('set_character', ({ roomId, playerId, characterId }, callback) => {
       try {
-        const rId = roomId || currentRoomId;
-        const pId = playerId || currentPlayerId;
-        const game = roomManager.getRoom(rId);
-        if (!game) return sendError(callback, 'Комната не найдена');
+        const ctx = validatePlayerAction(roomId, playerId, callback);
+        if (!ctx) return;
 
-        game.setCharacter(pId, characterId);
-        broadcastGameState(game);
+        ctx.game.setCharacter(ctx.playerId, characterId);
+        broadcastGameState(ctx.game);
         if (typeof callback === 'function') callback({ success: true, characterId });
       } catch (err) {
         sendError(callback, err.message);
@@ -437,15 +492,19 @@ function setupSocketHandlers(io) {
     // 4. Start Game (Host only)
     socket.on('start_game', ({ roomId, playerId }, callback) => {
       try {
-        const game = roomManager.getRoom(roomId);
-        if (!game) return sendError(callback, 'Комната не найдена');
+        const ctx = validatePlayerAction(roomId, playerId, callback);
+        if (!ctx) return;
 
-        game.startGame(playerId);
+        if (ctx.game.hostId !== ctx.playerId) {
+          return sendError(callback, 'Только создатель стола может начать игру');
+        }
+
+        ctx.game.startGame(ctx.playerId);
 
         if (typeof callback === 'function') {
-          callback({ success: true, state: game.getPublicState() });
+          callback({ success: true, state: ctx.game.getPublicState() });
         }
-        broadcastGameState(game);
+        broadcastGameState(ctx.game);
       } catch (err) {
         sendError(callback, err.message);
       }
@@ -454,26 +513,31 @@ function setupSocketHandlers(io) {
     // 5. Roll Dice (supports roll_dice and roll_jail_dice)
     const handleRollDice = ({ roomId, playerId }, callback) => {
       try {
-        const game = roomManager.getRoom(roomId);
-        if (!game) return sendError(callback, 'Комната не найдена');
+        const ctx = validatePlayerAction(roomId, playerId, callback);
+        if (!ctx) return;
 
-        const result = game.rollDice(playerId);
+        const result = ctx.game.rollDice(ctx.playerId);
+        const playerObj = ctx.game.players.find(p => p.id === ctx.playerId);
+        const playerName = playerObj ? playerObj.name : 'Игрок';
 
-        io.to(game.roomId).emit('player_rolled', {
-          playerId,
+        io.to(ctx.game.roomId).emit('player_rolled', {
+          playerId: ctx.playerId,
+          player: { id: ctx.playerId, name: playerName },
           dice: result.dice,
           skipped: result.skipped,
           passedStart: result.passedStart,
           oldPosition: result.oldPosition,
           newPosition: result.newPosition,
-          tile: result.tile
+          finalPosition: result.state.players.find(p => p.id === ctx.playerId)?.position,
+          tile: result.tile,
+          isGoToJail: result.tile?.type === 'go_to_jail'
         });
 
         if (typeof callback === 'function') {
           callback({ success: true, result });
         }
 
-        broadcastGameState(game);
+        broadcastGameState(ctx.game);
       } catch (err) {
         sendError(callback, err.message);
       }
@@ -484,15 +548,15 @@ function setupSocketHandlers(io) {
     // 6. Buy Property
     socket.on('buy_property', ({ roomId, playerId }, callback) => {
       try {
-        const game = roomManager.getRoom(roomId);
-        if (!game) return sendError(callback, 'Комната не найдена');
+        const ctx = validatePlayerAction(roomId, playerId, callback);
+        if (!ctx) return;
 
-        game.buyProperty(playerId);
+        ctx.game.buyProperty(ctx.playerId);
 
         if (typeof callback === 'function') {
-          callback({ success: true, state: game.getPublicState() });
+          callback({ success: true, state: ctx.game.getPublicState() });
         }
-        broadcastGameState(game);
+        broadcastGameState(ctx.game);
       } catch (err) {
         sendError(callback, err.message);
       }
@@ -501,15 +565,15 @@ function setupSocketHandlers(io) {
     // 7. Pass Property (Triggers auction)
     socket.on('pass_property', ({ roomId, playerId }, callback) => {
       try {
-        const game = roomManager.getRoom(roomId);
-        if (!game) return sendError(callback, 'Комната не найдена');
+        const ctx = validatePlayerAction(roomId, playerId, callback);
+        if (!ctx) return;
 
-        game.passProperty(playerId);
+        ctx.game.passProperty(ctx.playerId);
 
         if (typeof callback === 'function') {
-          callback({ success: true, state: game.getPublicState() });
+          callback({ success: true, state: ctx.game.getPublicState() });
         }
-        broadcastGameState(game);
+        broadcastGameState(ctx.game);
       } catch (err) {
         sendError(callback, err.message);
       }
@@ -518,15 +582,15 @@ function setupSocketHandlers(io) {
     // 8. End Turn
     socket.on('end_turn', ({ roomId, playerId }, callback) => {
       try {
-        const game = roomManager.getRoom(roomId);
-        if (!game) return sendError(callback, 'Комната не найдена');
+        const ctx = validatePlayerAction(roomId, playerId, callback);
+        if (!ctx) return;
 
-        game.endTurn(playerId);
+        ctx.game.endTurn(ctx.playerId);
 
         if (typeof callback === 'function') {
-          callback({ success: true, state: game.getPublicState() });
+          callback({ success: true, state: ctx.game.getPublicState() });
         }
-        broadcastGameState(game);
+        broadcastGameState(ctx.game);
       } catch (err) {
         sendError(callback, err.message);
       }
@@ -535,20 +599,20 @@ function setupSocketHandlers(io) {
     // 9. Build House / Hotel
     socket.on('build_house', ({ roomId, playerId, tileId }, callback) => {
       try {
-        const game = roomManager.getRoom(roomId);
-        if (!game) return sendError(callback, 'Комната не найдена');
+        const ctx = validatePlayerAction(roomId, playerId, callback);
+        if (!ctx) return;
 
         const numericTileId = Number(tileId);
-        if (isNaN(numericTileId) || numericTileId < 0 || numericTileId >= game.board.length) {
+        if (isNaN(numericTileId) || numericTileId < 0 || numericTileId >= ctx.game.board.length) {
           return sendError(callback, 'Некорректный ID клетки');
         }
 
-        game.buildHouse(playerId, numericTileId);
+        ctx.game.buildHouse(ctx.playerId, numericTileId);
 
         if (typeof callback === 'function') {
-          callback({ success: true, state: game.getPublicState() });
+          callback({ success: true, state: ctx.game.getPublicState() });
         }
-        broadcastGameState(game);
+        broadcastGameState(ctx.game);
       } catch (err) {
         sendError(callback, err.message);
       }
@@ -557,20 +621,20 @@ function setupSocketHandlers(io) {
     // 10. Sell House / Hotel
     socket.on('sell_house', ({ roomId, playerId, tileId }, callback) => {
       try {
-        const game = roomManager.getRoom(roomId);
-        if (!game) return sendError(callback, 'Комната не найдена');
+        const ctx = validatePlayerAction(roomId, playerId, callback);
+        if (!ctx) return;
 
         const numericTileId = Number(tileId);
-        if (isNaN(numericTileId) || numericTileId < 0 || numericTileId >= game.board.length) {
+        if (isNaN(numericTileId) || numericTileId < 0 || numericTileId >= ctx.game.board.length) {
           return sendError(callback, 'Некорректный ID клетки');
         }
 
-        game.sellHouse(playerId, numericTileId);
+        ctx.game.sellHouse(ctx.playerId, numericTileId);
 
         if (typeof callback === 'function') {
-          callback({ success: true, state: game.getPublicState() });
+          callback({ success: true, state: ctx.game.getPublicState() });
         }
-        broadcastGameState(game);
+        broadcastGameState(ctx.game);
       } catch (err) {
         sendError(callback, err.message);
       }
@@ -579,20 +643,20 @@ function setupSocketHandlers(io) {
     // 11. Mortgage Property
     socket.on('mortgage_property', ({ roomId, playerId, tileId }, callback) => {
       try {
-        const game = roomManager.getRoom(roomId);
-        if (!game) return sendError(callback, 'Комната не найдена');
+        const ctx = validatePlayerAction(roomId, playerId, callback);
+        if (!ctx) return;
 
         const numericTileId = Number(tileId);
-        if (isNaN(numericTileId) || numericTileId < 0 || numericTileId >= game.board.length) {
+        if (isNaN(numericTileId) || numericTileId < 0 || numericTileId >= ctx.game.board.length) {
           return sendError(callback, 'Некорректный ID клетки');
         }
 
-        game.mortgageProperty(playerId, numericTileId);
+        ctx.game.mortgageProperty(ctx.playerId, numericTileId);
 
         if (typeof callback === 'function') {
-          callback({ success: true, state: game.getPublicState() });
+          callback({ success: true, state: ctx.game.getPublicState() });
         }
-        broadcastGameState(game);
+        broadcastGameState(ctx.game);
       } catch (err) {
         sendError(callback, err.message);
       }
@@ -601,20 +665,20 @@ function setupSocketHandlers(io) {
     // 12. Unmortgage Property
     socket.on('unmortgage_property', ({ roomId, playerId, tileId }, callback) => {
       try {
-        const game = roomManager.getRoom(roomId);
-        if (!game) return sendError(callback, 'Комната не найдена');
+        const ctx = validatePlayerAction(roomId, playerId, callback);
+        if (!ctx) return;
 
         const numericTileId = Number(tileId);
-        if (isNaN(numericTileId) || numericTileId < 0 || numericTileId >= game.board.length) {
+        if (isNaN(numericTileId) || numericTileId < 0 || numericTileId >= ctx.game.board.length) {
           return sendError(callback, 'Некорректный ID клетки');
         }
 
-        game.unmortgageProperty(playerId, numericTileId);
+        ctx.game.unmortgageProperty(ctx.playerId, numericTileId);
 
         if (typeof callback === 'function') {
-          callback({ success: true, state: game.getPublicState() });
+          callback({ success: true, state: ctx.game.getPublicState() });
         }
-        broadcastGameState(game);
+        broadcastGameState(ctx.game);
       } catch (err) {
         sendError(callback, err.message);
       }
@@ -623,15 +687,15 @@ function setupSocketHandlers(io) {
     // 13. Place Auction Bid (supports place_bid and bid_auction)
     const handlePlaceBid = ({ roomId, playerId, amount }, callback) => {
       try {
-        const game = roomManager.getRoom(roomId);
-        if (!game) return sendError(callback, 'Комната не найдена');
+        const ctx = validatePlayerAction(roomId, playerId, callback);
+        if (!ctx) return;
 
-        game.placeBid(playerId, Number(amount));
+        ctx.game.placeBid(ctx.playerId, Number(amount));
 
         if (typeof callback === 'function') {
-          callback({ success: true, state: game.getPublicState() });
+          callback({ success: true, state: ctx.game.getPublicState() });
         }
-        broadcastGameState(game);
+        broadcastGameState(ctx.game);
       } catch (err) {
         sendError(callback, err.message);
       }
@@ -642,15 +706,15 @@ function setupSocketHandlers(io) {
     // 14. Pass Auction Bid (supports pass_bid and pass_auction)
     const handlePassBid = ({ roomId, playerId }, callback) => {
       try {
-        const game = roomManager.getRoom(roomId);
-        if (!game) return sendError(callback, 'Комната не найдена');
+        const ctx = validatePlayerAction(roomId, playerId, callback);
+        if (!ctx) return;
 
-        game.passBid(playerId);
+        ctx.game.passBid(ctx.playerId);
 
         if (typeof callback === 'function') {
-          callback({ success: true, state: game.getPublicState() });
+          callback({ success: true, state: ctx.game.getPublicState() });
         }
-        broadcastGameState(game);
+        broadcastGameState(ctx.game);
       } catch (err) {
         sendError(callback, err.message);
       }
@@ -661,15 +725,15 @@ function setupSocketHandlers(io) {
     // 15. Pay Jail Bail (supports pay_jail_bail and pay_bail)
     const handlePayBail = ({ roomId, playerId }, callback) => {
       try {
-        const game = roomManager.getRoom(roomId);
-        if (!game) return sendError(callback, 'Комната не найдена');
+        const ctx = validatePlayerAction(roomId, playerId, callback);
+        if (!ctx) return;
 
-        game.payJailBail(playerId);
+        ctx.game.payJailBail(ctx.playerId);
 
         if (typeof callback === 'function') {
-          callback({ success: true, state: game.getPublicState() });
+          callback({ success: true, state: ctx.game.getPublicState() });
         }
-        broadcastGameState(game);
+        broadcastGameState(ctx.game);
       } catch (err) {
         sendError(callback, err.message);
       }
@@ -680,15 +744,15 @@ function setupSocketHandlers(io) {
     // 16. Use Jail Free Card
     socket.on('use_jail_card', ({ roomId, playerId }, callback) => {
       try {
-        const game = roomManager.getRoom(roomId);
-        if (!game) return sendError(callback, 'Комната не найдена');
+        const ctx = validatePlayerAction(roomId, playerId, callback);
+        if (!ctx) return;
 
-        game.useJailCard(playerId);
+        ctx.game.useJailCard(ctx.playerId);
 
         if (typeof callback === 'function') {
-          callback({ success: true, state: game.getPublicState() });
+          callback({ success: true, state: ctx.game.getPublicState() });
         }
-        broadcastGameState(game);
+        broadcastGameState(ctx.game);
       } catch (err) {
         sendError(callback, err.message);
       }
@@ -697,11 +761,11 @@ function setupSocketHandlers(io) {
     // 17. Propose Trade
     socket.on('propose_trade', (data, callback) => {
       try {
-        const { roomId } = data;
-        const game = roomManager.getRoom(roomId);
-        if (!game) return sendError(callback, 'Комната не найдена');
+        if (!data || typeof data !== 'object') return sendError(callback, 'Некорректные данные сделки');
+        const fromPlayerId = data.fromPlayerId || data.initiatorId || data.playerId || currentPlayerId;
+        const ctx = validatePlayerAction(data.roomId, fromPlayerId, callback);
+        if (!ctx) return;
 
-        const fromPlayerId = data.fromPlayerId || data.initiatorId || data.playerId;
         const toPlayerId = data.toPlayerId || data.targetId || data.targetPlayerId;
 
         const offer = data.offer || {
@@ -716,15 +780,15 @@ function setupSocketHandlers(io) {
           jailFreeCards: Number(data.requestJailCards) || 0
         };
 
-        const trade = game.proposeTrade(fromPlayerId, toPlayerId, offer, request);
+        const trade = ctx.game.proposeTrade(ctx.playerId, toPlayerId, offer, request);
 
         // Notify recipient specifically
-        io.to(game.roomId).emit('trade_proposed', { trade });
+        io.to(ctx.game.roomId).emit('trade_proposed', { trade });
 
         if (typeof callback === 'function') {
-          callback({ success: true, trade, state: game.getPublicState() });
+          callback({ success: true, trade, state: ctx.game.getPublicState() });
         }
-        broadcastGameState(game);
+        broadcastGameState(ctx.game);
       } catch (err) {
         sendError(callback, err.message);
       }
@@ -733,18 +797,18 @@ function setupSocketHandlers(io) {
     // 18. Respond Trade (Accept / Decline)
     const handleRespondTrade = ({ roomId, playerId, tradeId, action }, callback) => {
       try {
-        const game = roomManager.getRoom(roomId);
-        if (!game) return sendError(callback, 'Комната не найдена');
+        const ctx = validatePlayerAction(roomId, playerId, callback);
+        if (!ctx) return;
 
-        const targetTradeId = tradeId || (game.activeTrade ? game.activeTrade.id : null);
+        const targetTradeId = tradeId || (ctx.game.activeTrade ? ctx.game.activeTrade.id : null);
         if (!targetTradeId) return sendError(callback, 'Активная сделка не найдена');
 
-        game.respondTrade(playerId, targetTradeId, action);
+        ctx.game.respondTrade(ctx.playerId, targetTradeId, action);
 
         if (typeof callback === 'function') {
-          callback({ success: true, state: game.getPublicState() });
+          callback({ success: true, state: ctx.game.getPublicState() });
         }
-        broadcastGameState(game);
+        broadcastGameState(ctx.game);
       } catch (err) {
         sendError(callback, err.message);
       }
@@ -757,15 +821,19 @@ function setupSocketHandlers(io) {
     // 19. End Game (Host only)
     socket.on('end_game', ({ roomId, playerId }, callback) => {
       try {
-        const game = roomManager.getRoom(roomId);
-        if (!game) return sendError(callback, 'Комната не найдена');
+        const ctx = validatePlayerAction(roomId, playerId, callback);
+        if (!ctx) return;
 
-        game.endGameByHost(playerId);
+        if (ctx.game.hostId !== ctx.playerId) {
+          return sendError(callback, 'Только создатель стола может завершить игру');
+        }
+
+        ctx.game.endGameByHost(ctx.playerId);
 
         if (typeof callback === 'function') {
-          callback({ success: true, state: game.getPublicState() });
+          callback({ success: true, state: ctx.game.getPublicState() });
         }
-        broadcastGameState(game);
+        broadcastGameState(ctx.game);
       } catch (err) {
         sendError(callback, err.message);
       }
@@ -774,15 +842,19 @@ function setupSocketHandlers(io) {
     // 20. Restart Game to Lobby (Host only)
     socket.on('restart_game', ({ roomId, playerId }, callback) => {
       try {
-        const game = roomManager.getRoom(roomId);
-        if (!game) return sendError(callback, 'Комната не найдена');
+        const ctx = validatePlayerAction(roomId, playerId, callback);
+        if (!ctx) return;
 
-        game.restartGame(playerId);
+        if (ctx.game.hostId !== ctx.playerId) {
+          return sendError(callback, 'Только создатель стола может перезапустить игру');
+        }
+
+        ctx.game.restartGame(ctx.playerId);
 
         if (typeof callback === 'function') {
-          callback({ success: true, state: game.getPublicState() });
+          callback({ success: true, state: ctx.game.getPublicState() });
         }
-        broadcastGameState(game);
+        broadcastGameState(ctx.game);
       } catch (err) {
         sendError(callback, err.message);
       }
@@ -791,15 +863,15 @@ function setupSocketHandlers(io) {
     // 21. Declare Bankruptcy / Surrender
     socket.on('declare_bankruptcy', ({ roomId, playerId }, callback) => {
       try {
-        const game = roomManager.getRoom(roomId || currentRoomId);
-        if (!game) return sendError(callback, 'Комната не найдена');
+        const ctx = validatePlayerAction(roomId, playerId, callback);
+        if (!ctx) return;
 
-        game.declareBankruptcy(playerId || currentPlayerId);
+        ctx.game.declareBankruptcy(ctx.playerId);
 
         if (typeof callback === 'function') {
-          callback({ success: true, state: game.getPublicState() });
+          callback({ success: true, state: ctx.game.getPublicState() });
         }
-        broadcastGameState(game);
+        broadcastGameState(ctx.game);
       } catch (err) {
         sendError(callback, err.message);
       }
@@ -808,15 +880,15 @@ function setupSocketHandlers(io) {
     // 22. Dismiss Drawn Card
     socket.on('dismiss_card', ({ roomId }, callback) => {
       try {
-        const game = roomManager.getRoom(roomId || currentRoomId);
-        if (!game) return sendError(callback, 'Комната не найдена');
+        const ctx = validatePlayerAction(roomId, null, callback);
+        if (!ctx) return;
 
-        game.dismissDrawnCard();
+        ctx.game.dismissDrawnCard();
 
         if (typeof callback === 'function') {
-          callback({ success: true, state: game.getPublicState() });
+          callback({ success: true, state: ctx.game.getPublicState() });
         }
-        broadcastGameState(game);
+        broadcastGameState(ctx.game);
       } catch (err) {
         sendError(callback, err.message);
       }
@@ -824,10 +896,16 @@ function setupSocketHandlers(io) {
 
     const handleChatMsg = ({ roomId, playerId, message }, callback) => {
       try {
-        const game = roomManager.getRoom(roomId);
-        if (!game) return sendError(callback, 'Комната не найдена');
+        const now = Date.now();
+        if (now - lastChatTimestamp < 800) {
+          return sendError(callback, 'Слишком частые сообщения в чат');
+        }
+        lastChatTimestamp = now;
 
-        const player = game.players.find(p => p.id === playerId);
+        const ctx = validatePlayerAction(roomId, playerId, callback);
+        if (!ctx) return;
+
+        const player = ctx.game.players.find(p => p.id === ctx.playerId);
         if (!player) return sendError(callback, 'Игрок не найден');
 
         // Block unauthorized players
@@ -838,21 +916,24 @@ function setupSocketHandlers(io) {
         const cleanMsg = (message || '').trim();
         if (!cleanMsg) return;
 
+        // Automatically censor obscenities / profanity in chat
+        const filteredMsg = profanityFilter.censor(cleanMsg);
+
         const senderName = player ? player.name : (currentTelegramUser ? currentTelegramUser.firstName : 'Игрок');
         const senderColor = player ? player.color.hex : '#9CA3AF';
         const senderIcon = player ? player.color.icon : '💬';
 
         const chatPayload = {
           id: `${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-          playerId,
+          playerId: ctx.playerId,
           senderName,
           senderColor,
           senderIcon,
-          message: cleanMsg.substring(0, 300),
+          message: filteredMsg.substring(0, 300),
           timestamp: Date.now()
         };
 
-        io.to(game.roomId).emit('chat_message', chatPayload);
+        io.to(ctx.game.roomId).emit('chat_message', chatPayload);
         if (typeof callback === 'function') callback({ success: true });
       } catch (err) {
         console.error('Chat error:', err);
@@ -865,11 +946,16 @@ function setupSocketHandlers(io) {
     // 24. Leave Room
     socket.on('leave_room', ({ roomId, playerId }, callback) => {
       try {
-        const rId = roomId || currentRoomId;
+        const rId = (roomId || currentRoomId)?.toUpperCase()?.trim();
         const pId = playerId || currentPlayerId;
         if (!rId) {
           if (typeof callback === 'function') callback({ success: true });
           return;
+        }
+
+        // Prevent leaving or disconnecting on behalf of someone else
+        if (currentPlayerId && pId && pId !== currentPlayerId) {
+          return sendError(callback, 'Нельзя покинуть комнату за другого игрока');
         }
 
         // Leave socket room FIRST so this client never receives trailing broadcasts for this room

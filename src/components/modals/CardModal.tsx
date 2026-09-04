@@ -14,8 +14,10 @@ import { soundEngine } from '@/lib/soundEngine';
 import { cn, formatMoney } from '@/lib/utils';
 
 export const CardModal: React.FC = () => {
-  const { gameState, playerId, isTokenMoving } = useGame();
+  const { gameState, playerId, isTokenMoving, theme } = useGame();
 
+  const isSoviet = theme === 'soviet';
+  const isNoir = theme === 'noir';
   const card = gameState?.lastDrawnCard;
   const [dismissedCardKey, setDismissedCardKey] = useState<string | null>(null);
 
@@ -51,14 +53,14 @@ export const CardModal: React.FC = () => {
     if (card.amount !== undefined) {
       if (card.amount > 0) {
         return (
-          <Badge variant="gold" className="text-sm font-black px-3 py-1 bg-emerald-500/20 text-emerald-300 border-emerald-500/40">
-            +{formatMoney(card.amount)}
+          <Badge variant="gold" className="text-sm font-black px-3 py-1 bg-slate-500/20 text-slate-300 border-slate-500/40">
+            +{isNoir ? `$${card.amount}` : isSoviet ? `${card.amount} кР` : `$${card.amount}`}
           </Badge>
         );
       } else if (card.amount < 0) {
         return (
           <Badge variant="destructive" className="text-sm font-black px-3 py-1">
-            -{formatMoney(Math.abs(card.amount))}
+            -{isNoir ? `$${Math.abs(card.amount)}` : isSoviet ? `${Math.abs(card.amount)} кР` : `$${Math.abs(card.amount)}`}
           </Badge>
         );
       }
@@ -68,7 +70,7 @@ export const CardModal: React.FC = () => {
       return (
         <Badge variant="gold" className="text-xs font-bold px-3 py-1 flex items-center gap-1">
           <Key className="w-3.5 h-3.5" />
-          Карта Свободы
+          {isNoir ? 'Связи в мэрии' : isSoviet ? 'Карта Свободы' : 'Освобождение из тюрьмы'}
         </Badge>
       );
     }
@@ -77,7 +79,7 @@ export const CardModal: React.FC = () => {
       return (
         <Badge variant="destructive" className="text-xs font-bold px-3 py-1 flex items-center gap-1">
           <AlertTriangle className="w-3.5 h-3.5" />
-          Арест
+          {isNoir ? 'Облава' : isSoviet ? 'Карантин' : 'Арест'}
         </Badge>
       );
     }
@@ -102,10 +104,11 @@ export const CardModal: React.FC = () => {
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleDismiss()}>
       <DialogContent
         className={cn(
-          'max-w-sm text-center border-2 shadow-2xl p-5',
+          'max-w-sm text-center border shadow-2xl p-5 rounded-none',
+          isNoir ? 'noir-panel text-[#f5e6c8] font-noir-body' : isSoviet ? 'soviet-steel-panel text-[#e2e8f0] font-soviet' : 'classic-panel text-white font-sans',
           isChance
-            ? 'bg-gradient-to-b from-amber-950/90 via-card/95 to-card/95 border-amber-500/40 shadow-amber-500/10'
-            : 'bg-gradient-to-b from-blue-950/90 via-card/95 to-card/95 border-blue-500/40 shadow-blue-500/10'
+            ? (isNoir ? 'border-[#d4a647]' : isSoviet ? 'border-[#38bdf8]' : 'border-cyan-500/50')
+            : (isNoir ? 'border-[#b8a890]' : isSoviet ? 'border-[#dc2626]' : 'border-amber-500/50')
         )}
       >
         <DialogHeader className="flex flex-col items-center">
@@ -114,36 +117,43 @@ export const CardModal: React.FC = () => {
             <img
               src={isChance ? '/assets/tiles/chance_64px.png' : '/assets/tiles/chest_64px.png'}
               alt={isChance ? 'Шанс' : 'Казна'}
-              className="w-7 h-7 object-contain drop-shadow-md"
+              className="w-7 h-7 object-contain filter contrast-125 brightness-95"
               style={{ imageRendering: 'pixelated' }}
             />
-            <Badge
-              variant="outline"
+            <span
               className={cn(
-                'text-xs font-black tracking-wider uppercase px-3 py-0.5',
+                'text-xs tracking-wider uppercase px-3 py-0.5 rounded-none border font-bold',
                 isChance
-                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                  : 'bg-blue-500/20 text-blue-300 border-blue-500/40'
+                  ? (isNoir ? 'bg-[#1a1410] text-[#d4a647] border-[#d4a647]/40 font-noir-title' : isSoviet ? 'bg-[#09111c] text-[#38bdf8] border-[#38bdf8]/40 font-soviet' : 'bg-[#020617] text-cyan-300 border-cyan-500/40 font-sans')
+                  : (isNoir ? 'bg-[#1a1410] text-[#b8a890] border-[#b8a890]/40 font-noir-title' : isSoviet ? 'bg-[#09111c] text-[#fca5a5] border-[#dc2626]/40 font-soviet' : 'bg-[#020617] text-amber-300 border-amber-500/40 font-sans')
               )}
             >
-              {isChance ? 'Карта «Шанс»' : 'Карта «Казна»'}
-            </Badge>
+              {isNoir
+                ? (isChance ? 'АНОНИМКА' : 'ДЕЛО №...')
+                : isSoviet
+                ? (isChance ? 'РАДИОГРАММА «ШАНС»' : 'ПРИКАЗ ГОСКОМИССИИ ОКБ-1')
+                : (isChance ? 'КАРТОЧКА «ШАНС»' : 'ОБЩЕСТВЕННАЯ КАЗНА')}
+            </span>
           </div>
 
-          <DialogTitle className="text-lg font-black text-foreground justify-center">
+          <DialogTitle className={cn("text-lg font-bold justify-center", isNoir ? "font-noir-title text-[#d4a647]" : isSoviet ? "font-soviet text-[#e2e8f0]" : "text-white font-sans")}>
             {card.title}
           </DialogTitle>
 
-          <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-            {isMe ? 'Ваша карта' : `Игрок: ${card.playerName}`}
+          <DialogDescription className="text-xs text-[#94a3b8] mt-0.5">
+            {isNoir
+              ? (isMe ? 'Ваша улика' : `Детектив: ${card.playerName}`)
+              : isSoviet
+              ? (isMe ? 'Ваша директива' : `Экипаж: ${card.playerName}`)
+              : (isMe ? 'Ваша карта' : `Игрок: ${card.playerName}`)}
           </DialogDescription>
         </DialogHeader>
 
         {/* Card Body */}
         <div className="flex flex-col items-center gap-3 py-3">
           {/* Text Container */}
-          <div className="w-full p-4 rounded-2xl bg-black/40 border border-white/10 shadow-inner min-h-[70px] flex items-center justify-center">
-            <p className="text-sm font-semibold text-foreground leading-snug">
+          <div className={cn("w-full p-4 rounded-none shadow-inner min-h-[70px] flex items-center justify-center border", isNoir ? "bg-[#1a1410] border-[#d4a647]/30 font-noir-body" : isSoviet ? "bg-[#09111c] border-[#38bdf8]/30 font-space" : "bg-[#020617] border-slate-500/30 font-sans")}>
+            <p className={cn("text-sm font-bold leading-snug", isNoir ? "text-[#f5e6c8]" : "text-[#e2e8f0]")}>
               {card.text}
             </p>
           </div>
@@ -156,15 +166,13 @@ export const CardModal: React.FC = () => {
 
         {/* Action Button */}
         <div className="mt-1">
-          <Button
-            variant={isChance ? 'gold' : 'default'}
-            size="lg"
-            className="w-full font-black shadow-lg flex items-center justify-center gap-2 h-11"
+          <button
+            className={cn("w-full text-xs py-2.5 rounded-none flex items-center justify-center gap-2 font-bold", isNoir ? "noir-btn-amber font-noir-title" : isSoviet ? "soviet-btn-cyan font-soviet" : "classic-btn-primary font-sans")}
             onClick={handleDismiss}
           >
-            <Check className="w-4 h-4" />
-            Понятно
-          </Button>
+            <Check className="w-4 h-4 text-white" />
+            <span>{isNoir ? "ПРИОБЩИТЬ К ДЕЛУ ✓" : isSoviet ? "ПРИНЯТЬ К ИСПОЛНЕНИЮ ★" : "ПОНЯТНО ✓"}</span>
+          </button>
         </div>
       </DialogContent>
     </Dialog>

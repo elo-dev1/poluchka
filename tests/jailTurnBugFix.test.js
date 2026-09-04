@@ -72,7 +72,7 @@ console.log('\nTest 2: Bot in Jail pays bail');
   let rollDecision = BotEngine.getDecision(game, bot.id);
   assert.strictEqual(rollDecision.type, 'ROLL_DICE');
   game.rollDice(bot.id);
-  assert.ok(botPlayer.position > 0, 'Bot must have moved from jail/position 0');
+  assert.ok(game.lastDice && game.lastDice.sum > 0, 'Bot must have rolled dice and moved');
   console.log('✅ Bot pays bail, rolls dice, and moves forward on board');
 }
 

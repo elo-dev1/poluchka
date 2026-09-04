@@ -34,7 +34,7 @@ export const LegalModal: React.FC = () => {
                 Пользовательское соглашение
               </TabsTrigger>
               <TabsTrigger value="privacy" className="flex items-center gap-1.5 text-xs">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
                 Конфиденциальность (152-ФЗ)
               </TabsTrigger>
             </TabsList>

@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRightLeft, Check, X, Building2, DollarSign, Clock, ShieldAlert } from 'lucide-react';
-import { formatMoney } from '@/lib/utils';
+import { formatMoney, cn } from '@/lib/utils';
 import { TileIconImage } from '@/lib/pixelIcons';
 
 export const TradeModal: React.FC = () => {
@@ -24,7 +24,11 @@ export const TradeModal: React.FC = () => {
     acceptTrade,
     rejectTrade,
     showToast,
+    theme,
   } = useGame();
+
+  const isSoviet = theme === 'soviet';
+  const isNoir = theme === 'noir';
 
   const [selectedPartnerId, setSelectedPartnerId] = useState<string>(
     modalData?.targetPlayerId || ''
@@ -98,33 +102,23 @@ export const TradeModal: React.FC = () => {
 
   const handleSendTrade = () => {
     if (isTradeLimitReached) {
-      showToast('Вы уже предложили 2 обмена в этом раунде. Дождитесь следующего раунда!', 'warning');
+      showToast('Лимит предложений обмена на этот круг исчерпан (макс 2)', 'error');
       return;
     }
     if (!selectedPartnerId) {
-      showToast('Выберите партнера для обмена', 'warning');
+      showToast('Выберите игрока для сделки', 'error');
       return;
     }
     if (offerProperties.length === 0 && offerCash <= 0 && requestProperties.length === 0 && requestCash <= 0) {
-      showToast('Добавьте хотя бы одно условие в обмен', 'warning');
-      return;
-    }
-    if (myPlayer && offerCash > myPlayer.money) {
-      showToast('Недостаточно денег для предложения', 'warning');
+      showToast('Сделка не может быть пустой', 'error');
       return;
     }
 
-    proposeTrade({
-      targetId: selectedPartnerId,
-      toPlayerId: selectedPartnerId,
-      offerProperties,
-      offerCash: Number(offerCash) || 0,
-      requestProperties,
-      requestCash: Number(requestCash) || 0,
-    });
+    proposeTrade(selectedPartnerId, offerProperties, offerCash, requestProperties, requestCash);
+    closeModal();
   };
 
-  const tradeId = activeTrade?.id || activeTrade?.tradeId || '';
+  const tradeId = activeTrade?.id || '';
   const tradeOfferMoney = activeTrade?.offer?.money ?? activeTrade?.offerCash ?? 0;
   const tradeOfferProps: number[] = activeTrade?.offer?.properties ?? activeTrade?.offerProperties ?? [];
   const tradeRequestMoney = activeTrade?.request?.money ?? activeTrade?.requestCash ?? 0;
@@ -142,193 +136,155 @@ export const TradeModal: React.FC = () => {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && closeModal()}>
-      <DialogContent
-        overlayClassName="bg-black/30 backdrop-blur-none"
-        className="max-w-xl md:max-w-2xl max-h-[88vh] flex flex-col p-4 sm:p-5 bg-[#0c1022]/98 border border-white/15 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9)] rounded-3xl"
-      >
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-lg font-black text-white">
-            <ArrowRightLeft className="w-5 h-5 text-primary" />
-            {isIncomingTrade
-              ? 'Входящее предложение о сделке'
-              : isOutgoingTrade
-              ? 'Ожидание ответа по сделке'
-              : partnerPlayer && modalData?.targetPlayerId
-              ? (
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span>Сделка с игроком</span>
-                  <span
-                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg border text-sm font-bold"
-                    style={{
-                      backgroundColor: `color-mix(in srgb, ${partnerPlayer.color?.hex || '#3b82f6'} 20%, #0d1021)`,
-                      borderColor: partnerPlayer.color?.hex || '#3b82f6',
-                      color: partnerPlayer.color?.hex || '#60a5fa',
-                    }}
-                  >
-                    <span
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: partnerPlayer.color?.hex || '#3b82f6' }}
-                    />
-                    {partnerPlayer.name}
-                  </span>
-                </div>
-              )
-              : 'Торговля и обмен имуществом'}
-          </DialogTitle>
+      <DialogContent className={cn(
+        "max-w-2xl max-h-[85vh] flex flex-col p-4 sm:p-5 shadow-2xl select-none rounded-none border",
+        isNoir ? "noir-panel text-[#f5e6c8] border-[#d4a647] font-noir-body" : isSoviet ? "soviet-steel-panel text-[#e2e8f0] border-[#38bdf8] font-soviet" : "classic-panel text-white border-slate-500/50 font-sans"
+      )}>
+        <DialogHeader className={cn("border-b pb-2", isNoir ? "border-[#d4a647]/40" : isSoviet ? "border-[#38bdf8]/40" : "border-slate-500/30")}>
+          <div className="flex items-center gap-2">
+            <div className={cn("w-8 h-8 rounded-none flex items-center justify-center border", isNoir ? "bg-[#1a1410] border-[#d4a647]" : isSoviet ? "bg-[#09111c] border-[#38bdf8]" : "bg-[#020617] border-slate-500/50")}>
+              <ArrowRightLeft className={cn("w-4 h-4", isNoir ? "text-[#d4a647]" : isSoviet ? "text-[#38bdf8]" : "text-slate-400")} />
+            </div>
+            <div>
+              <DialogTitle className={cn("text-base sm:text-lg font-bold tracking-wide flex items-center gap-2", isNoir ? "font-noir-title text-[#d4a647]" : isSoviet ? "font-soviet text-[#e2e8f0]" : "text-white")}>
+                {isNoir ? "СДЕЛКА В ТЕНИ" : isSoviet ? "СЕАНС ОБМЕНА ТЕЛЕМЕТРИЕЙ (ЦУП • ОКБ-1)" : "ОБМЕН ИМУЩЕСТВОМ (СДЕЛКА)"}
+              </DialogTitle>
+              <p className={cn("text-xs", isNoir ? "font-noir-body text-[#b8a890]" : isSoviet ? "font-space text-[#38bdf8]" : "text-slate-400 font-medium")}>
+                {isNoir ? "Взаимная купля-продажа и обмен территориями" : isSoviet ? "Взаимный обмен орбитальными объектами и энергоресурсами кР" : "Взаимная купля-продажа и обмен собственностью"}
+              </p>
+            </div>
+          </div>
         </DialogHeader>
 
-        {/* 1. If incoming trade */}
+        {/* 1. Incoming Trade Offer Screen */}
         {isIncomingTrade && activeTrade ? (
           <div className="flex flex-col gap-3 my-2 text-xs">
-            <div className="p-3 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center gap-2">
-              <span className="font-bold text-amber-200">
-                Игрок <strong>{initiatorName}</strong> предлагает вам заключить сделку:
+            <div className={cn("flex items-center justify-between p-2 rounded-none border", isNoir ? "bg-[#1a1410] border-[#d4a647]/40" : isSoviet ? "bg-[#09111c] border-[#38bdf8]/40" : "bg-[#020617] border-slate-500/40")}>
+              <span className={cn("text-xs font-bold", isNoir ? "font-noir-title text-[#f5e6c8]" : isSoviet ? "font-soviet text-[#e2e8f0]" : "text-white")}>
+                {isNoir ? "СВЯЗНОЙ ОТ: " : isSoviet ? "РАДИОГРАММА ОТ ЭКИПАЖА: " : "ПРЕДЛОЖЕНИЕ ОТ ИГРОКА: "}
+                <strong className={isNoir ? "text-[#d4a647]" : isSoviet ? "text-[#38bdf8]" : "text-slate-400"}>{initiatorName}</strong>
+              </span>
+              <span className={cn("text-[10px] px-1.5 py-0.5 rounded-none border font-bold", isNoir ? "font-noir-body bg-[#1a1410] text-[#d4a647] border-[#d4a647]" : isSoviet ? "font-space bg-[#0f172a] text-[#38bdf8] border-[#38bdf8]" : "bg-[#020617] text-slate-300 border-slate-500/50")}>
+                {isNoir ? `ГЛАВА #${gameState.roundNumber || 1}` : isSoviet ? `ВИТОК #${gameState.roundNumber || 1}` : `РАУНД #${gameState.roundNumber || 1}`}
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              {/* You Receive */}
-              <div className="p-3.5 rounded-2xl bg-black/40 border border-emerald-500/20 flex flex-col gap-2">
-                <span className="font-bold text-emerald-400 flex items-center gap-1">
-                  🎁 Вы получите:
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* You Get */}
+              <div className={cn("p-3.5 rounded-none border flex flex-col gap-2", isNoir ? "bg-[#1a1410] border-[#00e676]/40" : isSoviet ? "bg-[#09111c]/80 border-[#00e676]/40" : "bg-[#020617]/90 border-slate-500/50")}>
+                <span className="font-bold text-[#00e676] flex items-center gap-1">
+                  📥 Вы получаете:
                 </span>
                 <div className="flex flex-col gap-1.5 min-h-[60px]">
                   {tradeOfferMoney > 0 && (
-                    <span className="font-black text-emerald-300 text-sm">
-                      💵 {formatMoney(tradeOfferMoney)}
+                    <span className="font-bold text-[#00e676] text-base">
+                      {isNoir ? `$${tradeOfferMoney}` : isSoviet ? `${tradeOfferMoney} кР` : `$${tradeOfferMoney}`}
                     </span>
                   )}
                   {tradeOfferProps.map((id) => {
                     const tile = gameState.board[id];
                     if (!tile) return null;
                     return (
-                      <div key={id} className="flex items-center gap-1.5 p-1 rounded-lg bg-white/5 border border-white/10">
+                      <div key={id} className={cn("flex items-center gap-1.5 p-1 rounded-none border", isNoir ? "bg-[#1a1410] border-[#d4a647]/30" : isSoviet ? "bg-[#050b14] border-[#38bdf8]/30" : "bg-[#020617] border-slate-500/30")}>
                         <div className="w-4 h-4 shrink-0 flex items-center justify-center">
-                          <TileIconImage tile={tile} />
+                          <TileIconImage tile={tile} className="w-full h-full object-contain filter contrast-125 brightness-95" />
                         </div>
-                        <span className="text-[11px] font-bold text-foreground truncate">{tile.name}</span>
+                        <span className="text-[11px] font-bold text-white truncate">{tile.name}</span>
                       </div>
                     );
                   })}
                   {tradeOfferMoney <= 0 && tradeOfferProps.length === 0 && (
-                    <span className="text-muted-foreground italic my-auto text-center">— Ничего —</span>
+                    <span className="text-slate-400 italic my-auto text-center">— Пусто —</span>
                   )}
                 </div>
               </div>
 
               {/* You Give */}
-              <div className="p-3.5 rounded-2xl bg-black/40 border border-red-500/20 flex flex-col gap-2">
-                <span className="font-bold text-red-400 flex items-center gap-1">
-                  📤 Вы отдадите:
+              <div className={cn("p-3.5 rounded-none border flex flex-col gap-2", isNoir ? "bg-[#1a1410] border-[#ff4444]/40" : isSoviet ? "bg-[#09111c]/80 border-[#dc2626]/40" : "bg-[#260a0e]/80 border-red-500/40")}>
+                <span className="font-bold text-[#fca5a5] flex items-center gap-1">
+                  📤 Вы передаете:
                 </span>
                 <div className="flex flex-col gap-1.5 min-h-[60px]">
                   {tradeRequestMoney > 0 && (
-                    <span className="font-black text-red-300 text-sm">
-                      💵 {formatMoney(tradeRequestMoney)}
+                    <span className="font-bold text-[#ef4444] text-base">
+                      {isNoir ? `$${tradeRequestMoney}` : isSoviet ? `${tradeRequestMoney} кР` : `$${tradeRequestMoney}`}
                     </span>
                   )}
                   {tradeRequestProps.map((id) => {
                     const tile = gameState.board[id];
                     if (!tile) return null;
                     return (
-                      <div key={id} className="flex items-center gap-1.5 p-1 rounded-lg bg-white/5 border border-white/10">
+                      <div key={id} className={cn("flex items-center gap-1.5 p-1 rounded-none border", isNoir ? "bg-[#1a1410] border-[#d4a647]/30" : isSoviet ? "bg-[#050b14] border-[#38bdf8]/30" : "bg-[#020617] border-slate-500/30")}>
                         <div className="w-4 h-4 shrink-0 flex items-center justify-center">
-                          <TileIconImage tile={tile} />
+                          <TileIconImage tile={tile} className="w-full h-full object-contain filter contrast-125 brightness-95" />
                         </div>
-                        <span className="text-[11px] font-bold text-foreground truncate">{tile.name}</span>
+                        <span className="text-[11px] font-bold text-white truncate">{tile.name}</span>
                       </div>
                     );
                   })}
                   {tradeRequestMoney <= 0 && tradeRequestProps.length === 0 && (
-                    <span className="text-muted-foreground italic my-auto text-center">— Ничего —</span>
+                    <span className="text-slate-400 italic my-auto text-center">— Пусто —</span>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Reverse Mode Incoming Asset Balance Indicator */}
-            {gameState.gameMode === 'reverse' && (
-              <div className="p-2.5 rounded-xl bg-purple-950/40 border border-purple-500/30 flex flex-col gap-1 text-left">
-                <div className="flex items-center justify-between text-xs font-bold">
-                  <span className="text-purple-300 flex items-center gap-1">
-                    <span>🔄</span> Изменение вашего капитала при принятии:
-                  </span>
-                  {(() => {
-                    const receivedNominal = tradeOfferProps.reduce((sum, id) => sum + (gameState.board[id]?.price || 0), 0) + (tradeOfferMoney || 0);
-                    const givenNominal = tradeRequestProps.reduce((sum, id) => sum + (gameState.board[id]?.price || 0), 0) + (tradeRequestMoney || 0);
-                    const netChange = receivedNominal - givenNominal;
-                    return (
-                      <span className={netChange < 0 ? 'text-emerald-400 font-mono' : netChange > 0 ? 'text-rose-400 font-mono' : 'text-muted-foreground font-mono'}>
-                        {netChange > 0 ? `+${formatMoney(netChange)} (невыгодно)` : netChange < 0 ? `${formatMoney(netChange)} (выгодно! 📉)` : '$0'}
-                      </span>
-                    );
-                  })()}
-                </div>
-                <span className="text-[10px] text-muted-foreground">
-                  В режиме «Наоборот» побеждает наименьший капитал.
-                </span>
-              </div>
-            )}
-
             {/* Accept / Decline Buttons */}
             <div className="flex gap-2.5 mt-2">
-              <Button
-                variant="success"
-                size="lg"
-                className="flex-1 font-black shadow-lg flex items-center justify-center gap-2 h-11"
+              <button
+                className={cn("flex-1 font-bold text-xs py-2.5 rounded-none flex items-center justify-center gap-1.5", isNoir ? "noir-btn-amber font-noir-title" : isSoviet ? "soviet-btn-cyan font-soviet" : "classic-btn-primary font-sans")}
                 onClick={() => {
                   acceptTrade(tradeId);
                   closeModal();
                 }}
               >
-                <Check className="w-5 h-5" /> Принять сделку
-              </Button>
-              <Button
-                variant="destructive"
-                size="lg"
-                className="flex-1 font-black shadow-lg flex items-center justify-center gap-2 h-11"
+                <Check className="w-4 h-4 text-white" /> <span>{isNoir ? "УДАРИТЬ ПО РУКАМ ✓" : isSoviet ? "УТВЕРДИТЬ ГОСКОМИССИЕЙ ★" : "ПРИНЯТЬ СДЕЛКУ ✓"}</span>
+              </button>
+              <button
+                className={cn("flex-1 font-bold text-xs py-2.5 rounded-none flex items-center justify-center gap-1.5", isNoir ? "noir-btn-blood font-noir-title" : isSoviet ? "soviet-btn-steel text-[#fca5a5] border-[#dc2626] font-soviet" : "classic-btn-danger font-sans")}
                 onClick={() => {
                   rejectTrade(tradeId);
                   closeModal();
                 }}
               >
-                <X className="w-5 h-5" /> Отклонить
-              </Button>
+                <X className="w-4 h-4" /> <span>ОТКЛОНИТЬ</span>
+              </button>
             </div>
           </div>
         ) : isOutgoingTrade && activeTrade ? (
           /* 2. Outgoing waiting screen */
           <div className="flex flex-col items-center gap-4 py-6 text-center text-xs">
-            <div className="w-14 h-14 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center animate-pulse">
-              <Clock className="w-7 h-7 text-amber-400" />
+            <div className={cn("w-12 h-12 rounded-none flex items-center justify-center animate-pulse border", isNoir ? "bg-[#1a1410] border-[#d4a647]" : isSoviet ? "bg-[#09111c] border-[#38bdf8]" : "bg-[#020617] border-slate-500/50")}>
+              <Clock className={cn("w-6 h-6", isNoir ? "text-[#d4a647]" : isSoviet ? "text-[#38bdf8]" : "text-slate-400")} />
             </div>
             <div className="flex flex-col gap-1">
-              <span className="text-sm font-bold text-foreground">
-                Предложение отправлено игроку <strong className="text-amber-300">{targetName}</strong>
+              <span className="text-sm font-bold text-white">
+                {isNoir ? "Связной отправлен к детективу " : isSoviet ? "Радиограмма направлена экипажу " : "Предложение отправлено игроку "}
+                <strong className={isNoir ? "text-[#d4a647]" : isSoviet ? "text-[#38bdf8]" : "text-slate-400"}>{targetName}</strong>
               </span>
-              <span className="text-muted-foreground">
-                Ожидание решения соперника...
+              <span className="text-[#94a3b8]">
+                {isNoir ? "Ожидание ответа от синдиката..." : isSoviet ? "Ожидание подтверждения позывного..." : "Ожидание ответа..."}
               </span>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-2 text-red-400 border-red-500/30 hover:bg-red-950/40"
+            <button
+              className={cn("mt-2 text-xs px-3 py-1.5 rounded-none flex items-center gap-1 font-bold", isNoir ? "noir-btn-blood font-noir-title" : isSoviet ? "soviet-btn-steel text-[#fca5a5] border-[#dc2626] font-soviet" : "classic-btn-danger font-sans")}
               onClick={() => {
                 rejectTrade(tradeId);
                 closeModal();
               }}
             >
-              <X className="w-4 h-4 mr-1" /> Отозвать сделку
-            </Button>
+              <X className="w-3.5 h-3.5" /> <span>{isNoir ? "Отозвать связного" : isSoviet ? "Отозвать радиограмму" : "Отменить предложение"}</span>
+            </button>
           </div>
         ) : (
           /* 3. Create Trade Interface */
-          <div className="flex flex-col gap-3.5 my-2 text-xs overflow-y-auto pr-1">
-            {/* Select Partner - Only show if not opened for a specific player and multiple partners exist */}
+          <div className="flex flex-col gap-3 my-2 text-xs overflow-y-auto pr-1">
+            {/* Select Partner */}
             {!modalData?.targetPlayerId && otherPlayers.length > 1 && (
-              <div className="flex flex-col gap-1.5">
-                <label className="font-bold text-muted-foreground">Выберите игрока для сделки:</label>
+              <div className="flex flex-col gap-1">
+                <label className="font-bold text-xs text-[#94a3b8]">
+                  {isNoir ? "ВЫБЕРИТЕ ДЕТЕКТИВА ДЛЯ СДЕЛКИ:" : isSoviet ? "ВЫБЕРИТЕ ЭКИПАЖ ДЛЯ СВЯЗИ:" : "ВЫБЕРИТЕ ИГРОКА ДЛЯ СДЕЛКИ:"}
+                </label>
                 <div className="flex gap-2 flex-wrap">
                   {otherPlayers.map((p) => (
                     <button
@@ -337,15 +293,16 @@ export const TradeModal: React.FC = () => {
                         setSelectedPartnerId(p.id);
                         setRequestProperties([]);
                       }}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all ${
+                      className={cn(
+                        "flex items-center gap-1.5 px-2.5 py-1 rounded-none border transition-all",
                         selectedPartnerId === p.id
-                          ? 'bg-primary/20 border-primary text-primary font-bold shadow-md'
-                          : 'bg-black/20 border-white/10 text-muted-foreground hover:text-foreground'
-                      }`}
+                          ? (isNoir ? 'bg-[#d4a647] text-[#1a1410] font-bold shadow-sm border-[#d4a647]' : isSoviet ? 'bg-[#0369a1] text-white font-bold shadow-sm border-[#38bdf8]' : 'bg-slate-800 text-white font-bold shadow-sm border-slate-400')
+                          : (isNoir ? 'bg-[#1a1410] border-[#d4a647]/30 text-[#f5e6c8] hover:border-[#d4a647]' : isSoviet ? 'bg-[#09111c] border-[#38bdf8]/30 text-[#e2e8f0] hover:border-[#38bdf8]' : 'bg-[#020617] border-slate-500/30 text-white hover:border-slate-400')
+                      )}
                     >
-                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: p.color.hex }} />
+                      <span className="w-2 h-2 rounded-none" style={{ backgroundColor: p.color.hex }} />
                       <span>{p.name}</span>
-                      <span className="text-[10px] opacity-75">(${p.money})</span>
+                      <span className="text-[10px] font-bold">({isNoir ? `$${p.money}` : isSoviet ? `${p.money} кР` : `$${p.money}`})</span>
                     </button>
                   ))}
                 </div>
@@ -355,32 +312,37 @@ export const TradeModal: React.FC = () => {
             {/* Split Offer & Request Panels */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {/* Left Column: My Offer */}
-              <div className="flex flex-col gap-2 p-3 rounded-2xl bg-black/30 border border-white/5">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-emerald-400">📤 Вы отдаёте:</span>
-                  <span className="text-[11px] text-muted-foreground">Баланс: ${myPlayer?.money || 0}</span>
+              <div className={cn("flex flex-col gap-2 p-3 rounded-none border", isNoir ? "bg-[#1a1410] border-[#d4a647]/30" : isSoviet ? "bg-[#09111c]/80 border-[#38bdf8]/30" : "bg-[#020617]/90 border-slate-500/30")}>
+                <div className="flex items-center justify-between font-bold">
+                  <span className="text-[#00e676]">{isNoir ? "📤 ВЫ ОТДАЕТЕ:" : isSoviet ? "📤 ВЫ ПРЕДЛАГАЕТЕ:" : "📤 ВЫ ОТДАЕТЕ:"}</span>
+                  <span className="text-[10px] text-[#94a3b8]">Баланс: {isNoir ? `$${myPlayer?.money || 0}` : isSoviet ? `${myPlayer?.money || 0} кР` : `$${myPlayer?.money || 0}`}</span>
                 </div>
 
                 {/* Offer Cash Input */}
                 <div className="flex items-center gap-1.5">
-                  <span className="text-muted-foreground font-bold">$</span>
-                  <Input
+                  <span className={cn("font-bold text-sm", isNoir ? "text-[#d4a647]" : isSoviet ? "text-[#38bdf8]" : "text-slate-400")}>{isNoir ? "$" : isSoviet ? "кР" : "$"}</span>
+                  <input
                     type="number"
                     min="0"
                     max={myPlayer?.money || 0}
                     step="10"
-                    placeholder="Сумма денег"
+                    placeholder={isNoir ? "$" : isSoviet ? "кР" : "$"}
                     value={offerCash || ''}
                     onChange={(e) => setOfferCash(Math.max(0, Math.min(myPlayer?.money || 0, Number(e.target.value))))}
-                    className="h-8 text-xs bg-black/40"
+                    className={cn(
+                      "h-7 w-full px-2 text-xs font-bold rounded-none text-white focus:outline-none border",
+                      isNoir ? "bg-[#1a1410] border-[#d4a647]/40 focus:border-[#d4a647]" : isSoviet ? "bg-[#050b14] border-[#38bdf8]/40 focus:border-[#38bdf8]" : "bg-[#020617] border-slate-500/40 focus:border-slate-400"
+                    )}
                   />
                 </div>
 
                 {/* My Properties */}
-                <span className="text-[11px] font-semibold text-muted-foreground mt-1">Ваши улицы:</span>
-                <div className="flex flex-col gap-1 max-h-36 overflow-y-auto pr-1">
+                <span className="text-[10px] font-bold text-[#94a3b8] mt-0.5">
+                  {isNoir ? "ВАШИ ТЕРРИТОРИИ:" : isSoviet ? "ВАШИ ОБЪЕКТЫ:" : "ВАША СОБСТВЕННОСТЬ:"}
+                </span>
+                <div className="flex flex-col gap-1 max-h-32 overflow-y-auto pr-1">
                   {myTiles.length === 0 ? (
-                    <span className="text-muted-foreground italic py-2 text-center text-[11px]">Нет доступных улиц</span>
+                    <span className="text-slate-400 italic py-2 text-center text-[11px]">{isNoir ? "Нет свободных территорий" : "Нет свободных объектов"}</span>
                   ) : (
                     myTiles.map((tile) => {
                       const isSelected = offerProperties.includes(tile.id);
@@ -388,19 +350,20 @@ export const TradeModal: React.FC = () => {
                         <button
                           key={tile.id}
                           onClick={() => handleToggleOfferTile(tile.id)}
-                          className={`flex items-center justify-between p-1.5 rounded-lg border text-left transition-all ${
+                          className={cn(
+                            "flex items-center justify-between p-1.5 rounded-none border text-left transition-all",
                             isSelected
-                              ? 'bg-emerald-950/50 border-emerald-500/60 text-emerald-200'
-                              : 'bg-white/5 border-white/10 text-muted-foreground hover:text-foreground'
-                          }`}
+                              ? (isNoir ? 'bg-[#d4a647] text-[#1a1410] border-[#d4a647] font-bold' : isSoviet ? 'bg-[#0369a1] text-white border-[#38bdf8] font-bold' : 'bg-slate-800 text-white border-slate-400 font-bold')
+                              : (isNoir ? 'bg-[#1a1410] border-[#d4a647]/30 text-[#f5e6c8] hover:border-[#d4a647]' : isSoviet ? 'bg-[#050b14] border-[#38bdf8]/30 text-[#e2e8f0] hover:border-[#38bdf8]' : 'bg-[#020617] border-slate-500/30 text-white hover:border-slate-400')
+                          )}
                         >
                           <div className="flex items-center gap-1.5">
-                            <div className="w-4 h-4 shrink-0 flex items-center justify-center">
-                              <TileIconImage tile={tile} />
+                            <div className="w-3.5 h-3.5 shrink-0 flex items-center justify-center">
+                              <TileIconImage tile={tile} className="w-full h-full object-contain" />
                             </div>
-                            <span className="font-semibold text-[11px] truncate">{tile.name}</span>
+                            <span className="font-bold text-[11px] truncate">{tile.name}</span>
                           </div>
-                          <span className="text-[10px] text-muted-foreground font-mono">${tile.price}</span>
+                          <span className="text-[10px] font-bold">{isNoir ? `$${tile.price}` : isSoviet ? `${tile.price} кР` : `$${tile.price}`}</span>
                         </button>
                       );
                     })
@@ -409,34 +372,37 @@ export const TradeModal: React.FC = () => {
               </div>
 
               {/* Right Column: Requested from Partner */}
-              <div className="flex flex-col gap-2 p-3 rounded-2xl bg-black/30 border border-white/5">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-amber-400">📥 Вы запрашиваете:</span>
-                  <span className="text-[11px] text-muted-foreground">Баланс: ${partnerPlayer?.money || 0}</span>
+              <div className={cn("flex flex-col gap-2 p-3 rounded-none border", isNoir ? "bg-[#1a1410] border-[#d4a647]/30" : isSoviet ? "bg-[#09111c]/80 border-[#38bdf8]/30" : "bg-[#020617]/90 border-slate-500/30")}>
+                <div className="flex items-center justify-between font-bold">
+                  <span className={cn(isNoir ? "text-[#d4a647]" : isSoviet ? "text-[#38bdf8]" : "text-slate-400")}>{isNoir ? "📥 ВЫ ПОЛУЧАЕТЕ:" : isSoviet ? "📥 ВЫ ТРЕБУЕТЕ:" : "📥 ВЫ ПОЛУЧАЕТЕ:"}</span>
+                  <span className="text-[10px] text-[#94a3b8]">Баланс: {isNoir ? `$${partnerPlayer?.money || 0}` : isSoviet ? `${partnerPlayer?.money || 0} кР` : `$${partnerPlayer?.money || 0}`}</span>
                 </div>
 
                 {/* Request Cash Input */}
                 <div className="flex items-center gap-1.5">
-                  <span className="text-muted-foreground font-bold">$</span>
-                  <Input
+                  <span className={cn("font-bold text-sm", isNoir ? "text-[#d4a647]" : isSoviet ? "text-[#38bdf8]" : "text-slate-400")}>{isNoir ? "$" : isSoviet ? "кР" : "$"}</span>
+                  <input
                     type="number"
                     min="0"
                     max={partnerPlayer?.money || 0}
                     step="10"
-                    placeholder="Сумма денег"
+                    placeholder={isNoir ? "$" : isSoviet ? "кР" : "$"}
                     value={requestCash || ''}
                     onChange={(e) => setRequestCash(Math.max(0, Math.min(partnerPlayer?.money || 0, Number(e.target.value))))}
-                    className="h-8 text-xs bg-black/40"
+                    className={cn(
+                      "h-7 w-full px-2 text-xs font-bold rounded-none text-white focus:outline-none border",
+                      isNoir ? "bg-[#1a1410] border-[#d4a647]/40 focus:border-[#d4a647]" : isSoviet ? "bg-[#050b14] border-[#38bdf8]/40 focus:border-[#38bdf8]" : "bg-[#020617] border-slate-500/40 focus:border-slate-400"
+                    )}
                   />
                 </div>
 
                 {/* Partner Properties */}
-                <span className="text-[11px] font-semibold text-muted-foreground mt-1">
-                  Улицы {partnerPlayer?.name || 'соперника'}:
+                <span className="text-[10px] font-bold text-[#94a3b8] mt-0.5">
+                  {isNoir ? `ТЕРРИТОРИИ ДЕТЕКТИВА ${partnerPlayer?.name || ''}:` : isSoviet ? `ОБЪЕКТЫ ЭКИПАЖА ${partnerPlayer?.name || ''}:` : `СОБСТВЕННОСТЬ ИГРОКА ${partnerPlayer?.name || ''}:`}
                 </span>
-                <div className="flex flex-col gap-1 max-h-36 overflow-y-auto pr-1">
+                <div className="flex flex-col gap-1 max-h-32 overflow-y-auto pr-1">
                   {partnerTiles.length === 0 ? (
-                    <span className="text-muted-foreground italic py-2 text-center text-[11px]">У игрока нет улиц</span>
+                    <span className="text-slate-400 italic py-2 text-center text-[11px]">{isNoir ? "У детектива нет свободных территорий" : "У игрока нет свободных объектов"}</span>
                   ) : (
                     partnerTiles.map((tile) => {
                       const isSelected = requestProperties.includes(tile.id);
@@ -444,19 +410,20 @@ export const TradeModal: React.FC = () => {
                         <button
                           key={tile.id}
                           onClick={() => handleToggleRequestTile(tile.id)}
-                          className={`flex items-center justify-between p-1.5 rounded-lg border text-left transition-all ${
+                          className={cn(
+                            "flex items-center justify-between p-1.5 rounded-none border text-left transition-all",
                             isSelected
-                              ? 'bg-amber-950/50 border-amber-500/60 text-amber-200'
-                              : 'bg-white/5 border-white/10 text-muted-foreground hover:text-foreground'
-                          }`}
+                              ? (isNoir ? 'bg-[#d4a647] text-[#1a1410] border-[#d4a647] font-bold' : isSoviet ? 'bg-[#0369a1] text-white border-[#38bdf8] font-bold' : 'bg-slate-800 text-white border-slate-400 font-bold')
+                              : (isNoir ? 'bg-[#1a1410] border-[#d4a647]/30 text-[#f5e6c8] hover:border-[#d4a647]' : isSoviet ? 'bg-[#050b14] border-[#38bdf8]/30 text-[#e2e8f0] hover:border-[#38bdf8]' : 'bg-[#020617] border-slate-500/30 text-white hover:border-slate-400')
+                          )}
                         >
                           <div className="flex items-center gap-1.5">
-                            <div className="w-4 h-4 shrink-0 flex items-center justify-center">
-                              <TileIconImage tile={tile} />
+                            <div className="w-3.5 h-3.5 shrink-0 flex items-center justify-center">
+                              <TileIconImage tile={tile} className="w-full h-full object-contain" />
                             </div>
-                            <span className="font-semibold text-[11px] truncate">{tile.name}</span>
+                            <span className="font-bold text-[11px] truncate">{tile.name}</span>
                           </div>
-                          <span className="text-[10px] text-muted-foreground font-mono">${tile.price}</span>
+                          <span className="text-[10px] font-bold">{isNoir ? `$${tile.price}` : isSoviet ? `${tile.price} кР` : `$${tile.price}`}</span>
                         </button>
                       );
                     })
@@ -465,60 +432,28 @@ export const TradeModal: React.FC = () => {
               </div>
             </div>
 
-            {/* Reverse Mode Asset Balance Indicator */}
-            {gameState.gameMode === 'reverse' && (
-              <div className="p-2.5 rounded-xl bg-purple-950/40 border border-purple-500/30 flex flex-col gap-1 text-left">
-                <div className="flex items-center justify-between text-xs font-bold">
-                  <span className="text-purple-300 flex items-center gap-1">
-                    <span>🔄</span> Изменение вашего капитала:
-                  </span>
-                  {(() => {
-                    const givenNominal = offerProperties.reduce((sum, id) => sum + (gameState.board[id]?.price || 0), 0) + (offerCash || 0);
-                    const receivedNominal = requestProperties.reduce((sum, id) => sum + (gameState.board[id]?.price || 0), 0) + (requestCash || 0);
-                    const netChange = receivedNominal - givenNominal;
-                    return (
-                      <span className={netChange < 0 ? 'text-emerald-400 font-mono' : netChange > 0 ? 'text-rose-400 font-mono' : 'text-muted-foreground font-mono'}>
-                        {netChange > 0 ? `+${formatMoney(netChange)} (невыгодно)` : netChange < 0 ? `${formatMoney(netChange)} (выгодно! 📉)` : '$0'}
-                      </span>
-                    );
-                  })()}
-                </div>
-                <span className="text-[10px] text-muted-foreground">
-                  В режиме «Наоборот» побеждает наименьший капитал. Сбрасывайте активы и заставляйте соперников богатеть!
-                </span>
-              </div>
-            )}
-
-            {/* Trade Limit Status & Warnings */}
-            <div className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/10">
-              <span className="text-[11px] text-muted-foreground font-semibold">
-                Лимит обменов в раунде {gameState.roundNumber || 1}:
+            {/* Trade Limit Status */}
+            <div className={cn("flex items-center justify-between p-2 rounded-none border", isNoir ? "bg-[#1a1410] border-[#d4a647]/30" : isSoviet ? "bg-[#09111c] border-[#38bdf8]/30" : "bg-[#020617] border-slate-500/30")}>
+              <span className="text-[11px] text-[#94a3b8] font-semibold">
+                {isNoir ? `Лимит сделок в главе ${gameState.roundNumber || 1}:` : isSoviet ? `Квота сеансов связи в витке ${gameState.roundNumber || 1}:` : `Лимит предложений в раунде ${gameState.roundNumber || 1}:`}
               </span>
-              <Badge variant={isTradeLimitReached ? "destructive" : "secondary"} className="text-[10px] font-bold">
-                {remainingTrades}/2 доступно
-              </Badge>
+              <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded-none border", isNoir ? "font-noir-body bg-[#1a1410] text-[#d4a647] border-[#d4a647]/40" : isSoviet ? "font-space bg-[#050b14] text-[#38bdf8] border-[#38bdf8]/40" : "bg-[#020617] text-slate-300 border-slate-500/40")}>
+                {remainingTrades}/2 ДОСТУПНО
+              </span>
             </div>
-
-            {isTradeLimitReached && (
-              <div className="p-2 rounded-xl bg-red-500/10 border border-red-500/25 text-red-300 text-[11px] font-medium text-center">
-                ⚠️ Вы исчерпали лимит (максимум 2 обмена за раунд). Сделки снова станут доступны в следующем раунде.
-              </div>
-            )}
 
             {/* Propose Button */}
             <div className="flex justify-end gap-2 mt-1">
-              <Button variant="outline" size="sm" onClick={closeModal}>
-                Отмена
-              </Button>
-              <Button
-                variant="gold"
-                size="sm"
-                className="font-bold px-6 shadow-md"
+              <button className={cn("px-3 py-1.5 text-xs rounded-none font-bold", isNoir ? "noir-btn-smoke font-noir-title" : isSoviet ? "soviet-btn-steel font-soviet" : "classic-btn-secondary font-sans")} onClick={closeModal}>
+                ОТМЕНА
+              </button>
+              <button
+                className={cn("px-5 py-1.5 text-xs rounded-none font-bold", isNoir ? "noir-btn-amber font-noir-title" : isSoviet ? "soviet-btn-cyan font-soviet" : "classic-btn-primary font-sans")}
                 onClick={handleSendTrade}
                 disabled={!selectedPartnerId || isTradeLimitReached}
               >
-                {isTradeLimitReached ? 'Лимит исчерпан (2/2)' : 'Отправить предложение 🤝'}
-              </Button>
+                {isTradeLimitReached ? 'ЛИМИТ ИСЧЕРПАН' : (isNoir ? 'ОТПРАВИТЬ СВЯЗНОГО 🕵️' : isSoviet ? 'ОТПРАВИТЬ РАДИОГРАММУ 🛰️' : 'ОТПРАВИТЬ ПРЕДЛОЖЕНИЕ 🤝')}
+              </button>
             </div>
           </div>
         )}

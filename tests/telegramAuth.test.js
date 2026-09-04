@@ -97,7 +97,7 @@ async function testTelegramAuth() {
 
   // Test 4: Leaderboard Query
   console.log('\nTest 4: Leaderboard Top Query and Ranking');
-  const leaderboard = database.getLeaderboard(100);
+  const leaderboard = database.getLeaderboard(Math.max(100, database.users.size));
   assert(leaderboard.length >= 2, 'Leaderboard must contain recorded users');
   const topAlice = leaderboard.find(u => u.telegramId === uid1);
   assert(topAlice !== undefined, 'Alice must be in leaderboard');
@@ -142,7 +142,39 @@ async function testTelegramAuth() {
   assert.strictEqual(yandexRes.success, true);
   assert.strictEqual(yandexRes.user.provider, 'yandex');
   assert.strictEqual(yandexRes.user.firstName, 'Герой Яндекса');
-  console.log('✅ Yandex ID auth verified successfully');
+  console.log('\nTest 7: All Non-Bot Games Count For Rating (Including Web/Guest Players)');
+  const uniqueId1 = `p_guest_web_1_${Date.now()}`;
+  const uniqueId2 = `p_guest_web_2_${Date.now()}`;
+  const guestRankings = [
+    { id: uniqueId1, name: 'Игрок Веб 1', rank: 1, isWinner: true, totalCapital: 2500, isBot: false },
+    { id: uniqueId2, name: 'Игрок Веб 2', rank: 2, isWinner: false, totalCapital: 1000, isBot: false }
+  ];
+  database.recordGameResults(guestRankings, uniqueId1, 'ROOM_WEB_PVP', false);
+
+  const guestUser1 = database.getUser(uniqueId1);
+  const guestUser2 = database.getUser(uniqueId2);
+  assert(guestUser1, 'Guest player 1 should be recorded');
+  assert(guestUser2, 'Guest player 2 should be recorded');
+  assert(guestUser1.rating > 0, 'Guest winner should gain rating');
+  assert.strictEqual(guestUser1.wins, 1, 'Guest winner should have 1 win');
+  assert.strictEqual(guestUser2.losses, 1, 'Guest loser should have 1 loss');
+
+  // Verify game with bots DOES NOT give rating to anyone
+  const ratingBeforeBotGame = guestUser1.rating;
+  const botMatchRankings = [
+    { id: uniqueId1, name: 'Игрок Веб 1', rank: 1, isWinner: true, totalCapital: 3000, isBot: false },
+    { id: 'bot_hard_1', name: 'Бот Смарт', rank: 2, isWinner: false, totalCapital: 500, isBot: true }
+  ];
+  database.recordGameResults(botMatchRankings, uniqueId1, 'ROOM_BOT_MATCH', true);
+  const guestUser1AfterBot = database.getUser(uniqueId1);
+  assert.strictEqual(guestUser1AfterBot.rating, ratingBeforeBotGame, 'Game with bots must NOT change ELO rating');
+  assert.strictEqual(guestUser1AfterBot.botGamesPlayed, 1, 'botGamesPlayed should be incremented');
+
+  // Verify Leaderboard STRICTLY excludes guest players
+  const publicLeaderboard = database.getLeaderboard(100);
+  assert(!publicLeaderboard.some(u => u.telegramId === uniqueId1), 'Guest player 1 must NOT be in leaderboard');
+  assert(!publicLeaderboard.some(u => u.telegramId === uniqueId2), 'Guest player 2 must NOT be in leaderboard');
+  console.log('✅ Verified: All games count for stats, and leaderboard strictly contains only authorized players');
 
   client.disconnect();
   await testEnv.close();

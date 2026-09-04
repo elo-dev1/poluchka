@@ -8,22 +8,22 @@ import { cn } from '@/lib/utils';
 
 interface BoardContainerProps {
   onTileClick: (tile: TileData) => void;
+  selectedTile?: TileData | null;
+  onCloseSelectedTile?: () => void;
 }
 
-export const BoardContainer: React.FC<BoardContainerProps> = ({ onTileClick }) => {
-  const { gameState, is3D, tiltX, rotZ, animSpeed, setIsTokenMoving } = useGame();
+export const BoardContainer: React.FC<BoardContainerProps> = ({ onTileClick, selectedTile }) => {
+  const { gameState, animSpeed, setIsTokenMoving, theme } = useGame();
 
   const [animatedPositions, setAnimatedPositions] = useState<Record<string, number>>({});
   const [movingPlayers, setMovingPlayers] = useState<Record<string, boolean>>({});
   const activeIntervalsRef = useRef<Record<string, any>>({});
+  const activeTimeoutsRef = useRef<Record<string, any>>({});
   const isMovingRef = useRef<boolean>(false);
+  const animatingTargetRef = useRef<Record<string, number>>({});
 
   const speedToMsMap: Record<number, number> = {
-    1: 340, // Медленно (влево)
-    2: 250, // Плавная
-    3: 170, // Обычная
-    4: 110, // Быстрая
-    5: 65,  // Молниеносная / Турбо (вправо)
+    1: 340, 2: 250, 3: 170, 4: 110, 5: 65,
   };
   const hopDuration = animSpeed <= 5
     ? (speedToMsMap[animSpeed] || 170)
@@ -31,6 +31,10 @@ export const BoardContainer: React.FC<BoardContainerProps> = ({ onTileClick }) =
 
   useEffect(() => {
     if (!gameState || !gameState.players) return;
+    const totalTilesCount = gameState.board?.length || 24;
+    const goToJailTile = gameState.board?.find((t) => t.type === 'go_to_jail');
+    const jailTile = gameState.board?.find((t) => t.type === 'jail');
+    const jailPos = jailTile ? jailTile.id : (totalTilesCount === 40 ? 10 : 6);
 
     gameState.players.forEach((player) => {
       const pId = player.id;
@@ -42,42 +46,118 @@ export const BoardContainer: React.FC<BoardContainerProps> = ({ onTileClick }) =
         return;
       }
 
-      if (currentPos === targetPos) return;
+      if (currentPos === targetPos) {
+        return;
+      }
 
-      // Clear any running interval for this player
+      // If animation to this target is already actively running, don't interrupt it
+      if (animatingTargetRef.current[pId] === targetPos) {
+        return;
+      }
+
+      // Clear any prior active intervals or timeouts for this player
       if (activeIntervalsRef.current[pId]) {
         clearInterval(activeIntervalsRef.current[pId]);
         delete activeIntervalsRef.current[pId];
       }
+      if (activeTimeoutsRef.current[pId]) {
+        clearTimeout(activeTimeoutsRef.current[pId]);
+        delete activeTimeoutsRef.current[pId];
+      }
 
-      const totalTiles = gameState.board?.length || 24;
-      const forwardDistance = (targetPos - currentPos + totalTiles) % totalTiles;
+      // Detect if player rolled and landed on "Go to jail" ("Отправляйтесь в тюрьму" / "Эвакуация")
+      const isGoToJailRoll = Boolean(
+        (gameState.lastRoll?.isGoToJail && gameState.lastRoll?.playerId === pId) ||
+        (player.inJail && targetPos === jailPos && goToJailTile && (() => {
+          const distToGoToJail = (goToJailTile.id - currentPos + totalTilesCount) % totalTilesCount;
+          return distToGoToJail > 0 && distToGoToJail <= 12;
+        })())
+      );
 
-      // Smooth step-by-step movement if regular dice walk (1 to 12 steps)
+      if (isGoToJailRoll && goToJailTile) {
+        const intermediatePos = goToJailTile.id;
+        const walkDistance = (intermediatePos - currentPos + totalTilesCount) % totalTilesCount;
+
+        if (walkDistance > 0 && walkDistance <= 12) {
+          animatingTargetRef.current[pId] = targetPos;
+          if (!isMovingRef.current) {
+            isMovingRef.current = true;
+            setIsTokenMoving(true);
+          }
+          setMovingPlayers((prev) => ({ ...prev, [pId]: true }));
+
+          let stepCount = 0;
+          let stepPos = currentPos;
+          const interval = setInterval(() => {
+            stepCount++;
+            stepPos = (stepPos + 1) % totalTilesCount;
+            soundEngine.playStep();
+            setAnimatedPositions((prev) => ({ ...prev, [pId]: stepPos }));
+
+            if (stepCount >= walkDistance || stepPos === intermediatePos) {
+              clearInterval(interval);
+              delete activeIntervalsRef.current[pId];
+
+              // Arrived physically on "Go to Jail" tile!
+              setAnimatedPositions((prev) => ({ ...prev, [pId]: intermediatePos }));
+              soundEngine.playJail();
+
+              // Pause on the "Go to jail" field so players clearly see the landing
+              const jailTimeout = setTimeout(() => {
+                delete activeTimeoutsRef.current[pId];
+                delete animatingTargetRef.current[pId];
+
+                // Now transfer to the Jail cell
+                setAnimatedPositions((prev) => ({ ...prev, [pId]: targetPos }));
+                setMovingPlayers((prev) => ({ ...prev, [pId]: false }));
+
+                if (
+                  Object.keys(activeIntervalsRef.current).length === 0 &&
+                  Object.keys(activeTimeoutsRef.current).length === 0
+                ) {
+                  isMovingRef.current = false;
+                  setIsTokenMoving(false);
+                }
+              }, Math.max(750, hopDuration * 3));
+
+              activeTimeoutsRef.current[pId] = jailTimeout;
+            }
+          }, hopDuration);
+
+          activeIntervalsRef.current[pId] = interval;
+          return;
+        }
+      }
+
+      // Standard forward movement
+      const forwardDistance = (targetPos - currentPos + totalTilesCount) % totalTilesCount;
       if (forwardDistance > 0 && forwardDistance <= 12 && !player.inJail) {
+        animatingTargetRef.current[pId] = targetPos;
         if (!isMovingRef.current) {
           isMovingRef.current = true;
           setIsTokenMoving(true);
         }
         setMovingPlayers((prev) => ({ ...prev, [pId]: true }));
+
         let stepCount = 0;
         let stepPos = currentPos;
-
         const interval = setInterval(() => {
           stepCount++;
-          stepPos = (stepPos + 1) % totalTiles;
+          stepPos = (stepPos + 1) % totalTilesCount;
           soundEngine.playStep();
-
           setAnimatedPositions((prev) => ({ ...prev, [pId]: stepPos }));
 
           if (stepCount >= forwardDistance || stepPos === targetPos) {
             clearInterval(interval);
             delete activeIntervalsRef.current[pId];
+            delete animatingTargetRef.current[pId];
             setMovingPlayers((prev) => ({ ...prev, [pId]: false }));
             setAnimatedPositions((prev) => ({ ...prev, [pId]: targetPos }));
 
-            // Check if all player movements completed
-            if (Object.keys(activeIntervalsRef.current).length === 0) {
+            if (
+              Object.keys(activeIntervalsRef.current).length === 0 &&
+              Object.keys(activeTimeoutsRef.current).length === 0
+            ) {
               isMovingRef.current = false;
               setIsTokenMoving(false);
             }
@@ -86,16 +166,16 @@ export const BoardContainer: React.FC<BoardContainerProps> = ({ onTileClick }) =
 
         activeIntervalsRef.current[pId] = interval;
       } else {
-        // Direct teleport (e.g. Go to Jail or reset)
+        delete animatingTargetRef.current[pId];
         setAnimatedPositions((prev) => ({ ...prev, [pId]: targetPos }));
       }
     });
-  }, [gameState?.players, gameState?.board?.length, hopDuration, setIsTokenMoving]);
+  }, [gameState?.players, gameState?.board, gameState?.lastRoll, hopDuration, setIsTokenMoving]);
 
-  // Clean up all intervals on unmount
   useEffect(() => {
     return () => {
       Object.values(activeIntervalsRef.current).forEach((interval) => clearInterval(interval));
+      Object.values(activeTimeoutsRef.current).forEach((timeout) => clearTimeout(timeout));
       isMovingRef.current = false;
       setIsTokenMoving(false);
     };
@@ -105,39 +185,47 @@ export const BoardContainer: React.FC<BoardContainerProps> = ({ onTileClick }) =
 
   const is40 = (gameState.board?.length || 24) === 40;
   const totalTiles = gameState.board?.length || 24;
-
-  const transformStyle = is3D
-    ? {
-        transform: `rotateX(${tiltX}deg) rotateZ(${rotZ}deg)`,
-      }
-    : undefined;
+  const isSoviet = theme === 'soviet';
+  const isNoir = theme === 'noir';
 
   return (
-    <div className="perspective-board w-full h-full flex items-center justify-center p-1 sm:p-2 select-none overflow-hidden">
+    <div className="w-full h-full flex items-center justify-center p-1 sm:p-2 select-none overflow-hidden">
       <div
         className={cn(
-          'board-3d-wrapper aspect-square border border-indigo-500/25 shadow-2xl transition-transform duration-500 relative rounded-2xl sm:rounded-3xl flex flex-col my-auto mx-auto',
-          is40
-            ? 'w-full h-full max-w-[min(100vw-1rem,100vh-4.5rem)] lg:max-w-[min(100vw-1rem,100vh-1rem)] max-h-[min(100vw-1rem,100vh-4.5rem)] lg:max-h-[min(100vw-1rem,100vh-1rem)] p-1 sm:p-1.5'
-            : 'w-full h-full max-w-[min(100vw-1.5rem,100vh-5rem,540px)] max-h-[min(100vw-1.5rem,100vh-5rem,540px)] p-1.5 sm:p-2'
+          'transition-all duration-300 relative flex flex-col w-full h-full max-w-full max-h-full',
+          isNoir ? 'noir-board-frame font-noir-body' : isSoviet ? 'soviet-board-frame font-soviet' : 'classic-board-frame font-sans'
         )}
-        style={{
-          ...transformStyle,
-          backgroundColor: '#0a0d1d',
-          boxShadow: is3D
-            ? '0 35px 60px -15px rgba(0, 0, 0, 0.8), 0 0 50px rgba(99, 102, 241, 0.2)'
-            : '0 20px 50px -10px rgba(0, 0, 0, 0.7), 0 0 30px rgba(99, 102, 241, 0.12)',
-        }}
       >
-        {/* Dynamic Perimeter Grid filling 100% width and 100% height */}
+        {/* Corner accents */}
+        {isNoir ? (
+          ['-top-1.5 -left-1.5', '-top-1.5 -right-1.5', '-bottom-1.5 -left-1.5', '-bottom-1.5 -right-1.5'].map((pos, i) => (
+            <div key={i} className={`absolute ${pos} w-4 h-4 z-20 flex items-center justify-center pointer-events-none`}>
+              <div className="w-3 h-3 rounded-full bg-[#d4a647] border border-[#1a1410] shadow-inner" />
+            </div>
+          ))
+        ) : isSoviet ? (
+          ['-top-1.5 -left-1.5', '-top-1.5 -right-1.5', '-bottom-1.5 -left-1.5', '-bottom-1.5 -right-1.5'].map((pos, i) => (
+            <div key={i} className={`absolute ${pos} w-4 h-4 z-20 flex items-center justify-center pointer-events-none`}>
+              <div className="w-3 h-3 rounded-full bg-[#9B8B6B] border border-[#C4A96B] shadow-inner" />
+            </div>
+          ))
+        ) : (
+          ['-top-1 -left-1', '-top-1 -right-1', '-bottom-1 -left-1', '-bottom-1 -right-1'].map((pos, i) => (
+            <div key={i} className={`absolute ${pos} w-3 h-3 z-20 flex items-center justify-center pointer-events-none`}>
+              <div className="w-2 h-2 rounded-full bg-[#d4af37] border border-[#b8860b] shadow-sm" />
+            </div>
+          ))
+        )}
+
+        {/* Board grid */}
         <div
           className={
             is40
-              ? 'grid grid-cols-[1.5fr_repeat(9,1fr)_1.5fr] grid-rows-[1.5fr_repeat(9,1fr)_1.5fr] gap-0.5 sm:gap-1 w-full h-full flex-1'
-              : 'grid grid-cols-[1.3fr_repeat(5,1fr)_1.3fr] grid-rows-[1.3fr_repeat(5,1fr)_1.3fr] gap-1 md:gap-1.5 w-full h-full flex-1'
+              ? 'grid grid-cols-[1.5fr_repeat(9,1fr)_1.5fr] grid-rows-[1.5fr_repeat(9,1fr)_1.5fr] gap-px w-full h-full'
+              : 'grid grid-cols-[1.35fr_repeat(5,1fr)_1.35fr] grid-rows-[1.35fr_repeat(5,1fr)_1.35fr] gap-px w-full h-full'
           }
+          style={{ backgroundColor: isNoir ? '#1a1410' : isSoviet ? '#B8A88A' : '#CBD5E1' }}
         >
-          {/* Tiles */}
           {gameState.board.map((tile) => (
             <BoardTile
               key={tile.id}
@@ -148,10 +236,10 @@ export const BoardContainer: React.FC<BoardContainerProps> = ({ onTileClick }) =
               animatedPositions={animatedPositions}
               movingPlayers={movingPlayers}
               onClick={onTileClick}
+              isSelected={selectedTile?.id === tile.id}
             />
           ))}
-
-          {/* Center Dashboard */}
+          {/* Center dashboard spans the inner grid */}
           <BoardCenterDashboard />
         </div>
       </div>

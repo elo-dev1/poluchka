@@ -30,7 +30,7 @@ class RoomManager {
       mode: options.mode || 'standard',
       boardSize: options.boardSize || (options.mode === 'blitz' ? 24 : 40),
       startingCash: options.startingCash || 1500,
-      maxPlayers: options.maxPlayers || (options.gameMode === 'team' || options.mode === 'team' ? 4 : 6),
+      maxPlayers: options.maxPlayers || ((options.mode === 'ranked' || options.gameMode === 'ranked') ? 2 : ((options.gameMode === 'team' || options.mode === 'team') ? 4 : 6)),
       gameMode: options.gameMode || (options.mode === 'reverse' ? 'reverse' : options.mode === 'team' ? 'team' : 'classic'),
       maxRounds: options.maxRounds
     });

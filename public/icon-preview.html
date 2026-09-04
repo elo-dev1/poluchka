@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Все 28 полей «Получки» в стиле 2.5D автомобилей • Единый ракурс</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    body {
+      background: #040e0a radial-gradient(circle at 50% 0%, #0d3829 0%, #040e0a 85%);
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 30px 20px 80px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 { font-size: 26px; margin-bottom: 6px; color: #f8fafc; text-align: center; }
+    p.subtitle { color: #94a3b8; font-size: 14px; margin-bottom: 24px; text-align: center; max-width: 840px; line-height: 1.5; }
+
+    .notice-bar {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid #10b981;
+      border-radius: 12px;
+      padding: 12px 24px;
+      color: #34d399;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 4px 20px rgba(16,185,129,0.15);
+    }
+
+    /* Master Spritesheet Gallery */
+    .sprites-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(440px, 1fr));
+      gap: 20px;
+      max-width: 1100px;
+      width: 100%;
+      margin-bottom: 34px;
+    }
+    .sheet-card {
+      background: rgba(13, 39, 30, 0.85);
+      border: 1px solid #1b4b3b;
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .sheet-card h4 { font-size: 14px; color: #34d399; margin-bottom: 4px; }
+    .sheet-card p { font-size: 11px; color: #94a3b8; margin-bottom: 10px; }
+    .sheet-img-wrap {
+      width: 100%;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid #22543d;
+      background: #faeedb;
+    }
+    .sheet-img-wrap img {
+      width: 100%;
+      height: auto;
+      display: block;
+      image-rendering: pixelated;
+    }
+
+    /* Group Sections */
+    .groups-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      max-width: 1100px;
+      width: 100%;
+    }
+    .group-section {
+      background: rgba(13, 39, 30, 0.7);
+      border: 1px solid #1b4b3b;
+      border-radius: 16px;
+      padding: 18px 20px;
+      backdrop-filter: blur(8px);
+    }
+    .group-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .group-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      box-shadow: 0 0 10px currentColor;
+    }
+    .group-title { font-size: 16px; font-weight: 700; color: #f8fafc; }
+    .group-desc { font-size: 12px; color: #94a3b8; margin-left: auto; }
+
+    .tiles-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+      gap: 14px;
+    }
+
+    .tile-card {
+      background: #061710;
+      border: 1px solid #1e4536;
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      transition: transform 0.18s ease, border-color 0.18s ease;
+    }
+    .tile-card:hover {
+      transform: translateY(-2px);
+      border-color: #34d399;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.5);
+    }
+
+    /* Vehicle Crop Frame */
+    .car-crop-box {
+      width: 82px;
+      height: 60px;
+      background: #faeedb;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      overflow: hidden;
+      flex-shrink: 0;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.3);
+      position: relative;
+    }
+    .crop-layer {
+      width: 100%;
+      height: 100%;
+      image-rendering: pixelated;
+      background-size: 400% 400%;
+      transition: transform 0.2s ease;
+    }
+    .car-crop-box:hover .crop-layer {
+      transform: scale(1.1);
+    }
+
+    /* Primary Fleet Coordinates (car_fleet_all_tiles.png: 4 cols x 4 rows) */
+    .fleet-a { background-image: url('/assets/car_fleet_all_tiles.png'); }
+    .pos-jalopy      { background-position: 2% 2%; }
+    .pos-teal-pickup { background-position: 35% 2%; }
+    .pos-yellow-hatch{ background-position: 68% 2%; }
+    .pos-red-beetle  { background-position: 98% 2%; }
+
+    .pos-taxi-cab    { background-position: 2% 35%; }
+    .pos-police      { background-position: 35% 35%; }
+    .pos-safari-suv  { background-position: 68% 35%; }
+    .pos-muscle-car  { background-position: 98% 35%; }
+
+    .pos-black-sedan { background-position: 2% 68%; }
+    .pos-gold-roadster{ background-position: 35% 68%; }
+    .pos-hypercar    { background-position: 68% 68%; }
+    .pos-blue-beetle { background-position: 98% 68%; }
+
+    .pos-foodtruck   { background-position: 98% 98%; }
+
+    /* Commercial & Service Fleet Coordinates (car_fleet_commercial.png: 4 cols x 3 rows) */
+    .fleet-b { background-image: url('/assets/car_fleet_commercial.png'); background-size: 400% 300%; }
+    .pos-white-van   { background-position: 2% 2%; }
+    .pos-city-bus    { background-position: 35% 2%; }
+    .pos-semi-truck  { background-position: 68% 2%; }
+    .pos-tow-truck   { background-position: 98% 2%; }
+
+    .pos-fire-truck  { background-position: 2% 50%; }
+    .pos-ambulance   { background-position: 35% 50%; }
+    .pos-drift-coupe { background-position: 68% 50%; }
+    .pos-mud-bogger  { background-position: 98% 50%; }
+
+    .pos-red-speedster{ background-position: 2% 98%; }
+    .pos-doubledecker{ background-position: 35% 98%; }
+    .pos-silver-sedan{ background-position: 68% 98%; }
+    .pos-purple-roadster{ background-position: 98% 98%; }
+
+    .tile-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      overflow: hidden;
+      flex: 1;
+    }
+    .tile-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #f1f5f9;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+    .tile-role { font-size: 11px; color: #94a3b8; }
+    .tile-price {
+      font-size: 12px;
+      font-weight: 800;
+      color: #10b981;
+      margin-top: 3px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Все 28 полей «Получки» в виде 2.5D автомобилей</h1>
+  <p class="subtitle">
+    Полная замена всех коммерческих клеток доски на уникальные автомобили в едином 2.5D изометрическом пиксель-арт стиле. <b>Каждый из 28 автомобилей повернут строго на 3/4 вправо</b> (капот справа, багажник слева)!
+  </p>
+
+  <div class="notice-bar">
+    <span>➡️</span> 100% согласованность направления: абсолютно все 28 машин смотрят капотом и фарами в правый угол!
+  </div>
+
+  <!-- Dual Master Spritesheet Showcase -->
+  <div class="sprites-container">
+    <div class="sheet-card">
+      <h4>Спрайт-лист №1: Легковой автопарк & Гиперкары</h4>
+      <p>Корчи, пикапы, хэтчбеки, такси, полиция, маслкары, суперкары и фудтрак</p>
+      <div class="sheet-img-wrap">
+        <img src="/assets/car_fleet_all_tiles.png" alt="Спрайт-лист 1: Легковой автопарк" />
+      </div>
+    </div>
+
+    <div class="sheet-card">
+      <h4>Спрайт-лист №2: Спецтехника, Автобусы & Дрифт</h4>
+      <p>Фургоны, тягачи, эвакуаторы, скорая, пожарная, автобусы и дрифт-спорткары</p>
+      <div class="sheet-img-wrap">
+        <img src="/assets/car_fleet_commercial.png" alt="Спрайт-лист 2: Спецтехника и транспорт" />
+      </div>
+    </div>
+  </div>
+
+  <div class="groups-wrapper">
+
+    <!-- 1. Коричневая группа: Раритеты & Корчи ($60 - $80) -->
+    <div class="group-section">
+      <div class="group-header">
+        <div class="group-dot" style="background: #8D6E63; color: #8D6E63;"></div>
+        <div class="group-title">Гаражный старт • Корчи</div>
+        <div class="group-desc">Тайлы 1, 3 • $60 – $80</div>
+      </div>
+      <div class="tiles-grid">
+        <div class="tile-card">
+          <div class="car-crop-box">
+            <div class="crop-layer fleet-a pos-jalopy"></div>
+          </div>
+          <div class="tile-info">
+            <div class="tile-name">«Ржавый Корч»</div>
+            <div class="tile-role">Седан со ржавчиной и серой дверью</div>
+            <div class="tile-price">$60</div>
+          </div>
+        </div>
+
+        <div class="tile-card">
+          <div class="car-crop-box">
+            <div class="crop-layer fleet-a pos-red-beetle"></div>
+          </div>
+          <div class="tile-info">
+            <div class="tile-name">«Старый Жук»</div>
+            <div class="tile-role">Винтажный вишневый ретро-хэтч</div>
+            <div class="tile-price">$80</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Голубая группа: Рабочий класс ($100 - $120) -->
+    <div class="group-section">
+      <div class="group-header">
+        <div class="group-dot" style="background: #29B6F6; color: #29B6F6;"></div>
+        <div class="group-title">Рабочий класс • Утилитарные авто</div>
+        <div class="group-desc">Тайлы 6, 8, 9 • $100 – $120</div>
+      </div>
+      <div class="tiles-grid">
+        <div class="tile-card">
+          <div class="car-crop-box">
+            <div class="crop-layer fleet-a pos-teal-pickup"></div>
+          </div>
+          <div class="tile-info">
+            <div class="tile-name">«Фермерский Пикап»</div>
+            <div class="tile-role">Бирюзовый борт с ящиком груза</div>
+            <div class="tile-price">$100</div>
+          </div>
+        </div>
+
+        <div class="tile-card">
+          <div class="car-crop-box">
+            <div class="crop-layer fleet-b pos-white-van"></div>
+          </div>
+          <div class="tile-info">
+            <div class="tile-name">«Фургон Доставки»</div>
+            <div class="tile-role">Белый городской фургон «Каблучок»</div>
+            <div class="tile-price">$100</div>
+          </div>
+        </div>
+
+        <div class="tile-card">
+          <div class="car-crop-box">
+            <div class="crop-layer fleet-a pos-blue-beetle"></div>
+          </div>
+          <div class="tile-info">
+            <div class="tile-name">«Голубой Компакт»</div>
+            <div class="tile-role">Городской ретро-седан эконом</div>
+            <div class="tile-price">$120</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Розовая группа: Молодежные авто ($140 - $160) -->
+    <div class="group-section">
+      <div class="group-header">
+        <div class="group-dot" style="background: #EC407A; color: #EC407A;"></div>
+        <div class="group-title">Городской эконом & Студенческие авто</div>
+        <div class="group-desc">Тайлы 11, 13, 14 • $140 – $160</div>
+      </div>
+      <div class="tiles-grid">
+        <div class="tile-card">
+          <div class="car-crop-box">
+            <div class="crop-layer fleet-a pos-yellow-hatch"></div>
+          </div>
+          <div class="tile-info">
+            <div class="tile-name">«Желтый Хэтчбек»</div>
+            <div class="tile-role">Солнечный компакт на каждый день</div>
+            <div class="tile-price">$140</div>
+          </div>
+        </div>
+
+        <div class="tile-card">
+          <div class="car-crop-box">
+            <div class="crop-layer fleet-b pos-red-speedster"></div>
+          </div>
+          <div class="tile-info">
+            <div class="tile-name">«Красный Спидстер»</div>
+            <div class="tile-role">Ретро-кабриолет с открытым верхом</div>
+            <div class="tile-price">$140</div>
+          </div>
+        </div>
+
+        <div class="tile-card">
+          <div class="car-crop-box">
+            <div class="crop-layer fleet-b pos-drift-coupe"></div>
+          </div>
+          <div class="tile-info">
+            <div class="tile-name">«Синий Дрифт-Купе»</div>
+            <div class="tile-role">JDM спорткупе с антикрылом</div>
+            <div class="tile-price">$160</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Оранжевая группа: Служебные авто & Спецтранспорт ($180 - $200) -->
+    <div class="group-section">
+      <div class="group-header">
+        <div class="group-dot" style="background: #FFA726; color: #FFA726;"></div>
+        <div class="group-title">Служебные авто • Городские службы</div>
+        <div class="group-desc">Тайлы 16, 18, 19 • $180 – $200</div>
+      </div>
+      <div class="tiles-grid">
+        <div class="tile-card">
+          <div class="car-crop-box">
+            <div class="crop-layer fleet-a pos-taxi-cab"></div>
+          </div>
+          <div class="tile-info">
+            <div class="tile-name">«Городское Такси»</div>
+            <div class="tile-role">Желтый кэб с шашечками на борту</div>
+            <div class="tile-price">$180</div>
+          </div>
+        </div>
+
+        <div class="tile-card">
+          <div class="car-crop-box">
+            <div class="crop-layer fleet-a pos-police"></div>
+          </div>
+          <div class="tile-info">
+            <div class="tile-name">«Полицейский Крузер»</div>
+            <div class="tile-role">Черно-белый седан с красно-синей люстрой</div>
+            <div class="tile-price">$180</div>
+          </div>
+        </div>
+
+        <div class="tile-card">
+          <div class="car-crop-box">
+            <div class="crop-layer fleet-b pos-ambulance"></div>
+          </div>
+          <div class="tile-info">
+            <div class="tile-name">«Реанимация»</div>
+            <div class="tile-role">Карета скорой с красным крестом</div>
+            <div class="tile-price">$200</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Красная группа: Внедорожники & 4x4 ($220 - $240) -->
+    <div class="group-section">
+      <div class="group-header">
+        <div class="group-dot" style="background: #EF5350; color: #EF5350;"></div>
+        <div class="group-title">Внедорожники & Экспедиции 4×4</div>
+        <div class="group-desc">Тайлы 21, 23, 24 • $220 – $240</div>
+      </div>
+      <div class="tiles-grid">
+        <div class="tile-card">
+          <div class="car-crop-box">
+            <div class="crop-layer fleet-a pos-safari-suv"></div>
+          </div>
+          <div class="tile-info">
+            <div class="tile-name">«Сафари Джип 4×4»</div>
+            <div class="tile-role">Песочный внедорожник с канистрами</div>
+            <div class="tile-price">$220</div>
+          </div>
+        </div>
+
+        <div class="tile-card">
+          <div class="car-crop-box">
+            <div class="crop-layer fleet-b pos-mud-bogger"></div>
+          </div>
+          <div class="tile-info">
+            <div class="tile-name">«Трофи-Вездеход»</div>
+            <div class="tile-role">Лифтованный джип на грязевых колесах</div>
+            <div class="tile-price">$220</div>
+          </div>
+        </div>
+
+        <div class="tile-card">
+          <div class="car-crop-box">
+            <div class="crop-layer fleet-a pos-muscle-car"></div>
+          </div>
+          <div class="tile-info">
+            <div class="tile-name">«Оранжевый Маслкар»</div>
+            <div class="tile-role">V8 мощь с черными полосами на капоте</div>
+            <div class="tile-price">$240</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. Желтая группа: Спорт & Премиум ($260 - $280) -->
+    <div class="group-section">
+      <div class="group-header">
+        <div class="group-dot" style="background: #FDD835; color: #FDD835;"></div>
+        <div class="group-title">Спорт & Бизнес-комфорт</div>
+        <div class="group-desc">Тайлы 26, 27, 29 • $260 – $280</div>
+      </div>
+      <div class="tiles-grid">
+        <div class="tile-card">
+          <div class="car-crop-box">
+            <div class="crop-layer fleet-b pos-purple-roadster"></div>
+          </div>
+          <div class="tile-info">
+            <div class="tile-name">«Фиолетовый Родстер»</div>
+            <div class="tile-role">Аэродинамичный открытый кабриолет</div>
+            <div class="tile-price">$260</div>
+          </div>
+        </div>
+
+        <div class="tile-card">
+          <div class="car-crop-box">
+            <div class="crop-layer fleet-b pos-silver-sedan"></div>
+          </div>
+          <div class="tile-info">
+            <div class="tile-name">«Серебристый Люкс»</div>
+            <div class="tile-role">Немецкий бизнес-седан премиум</div>
+            <div class="tile-price">$260</div>
+          </div>
+        </div>
+
+        <div class="tile-card">
+          <div class="car-crop-box">
+            <div class="crop-layer fleet-a pos-black-sedan"></div>
+          </div>
+          <div class="tile-info">
+            <div class="tile-name">«Черный Бумер»</div>
+            <div class="tile-role">Обсидиановый седан с хромом</div>
+            <div class="tile-price">$280</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. Зеленая группа: Высший класс & Тягачи ($300 - $320) -->
+    <div class="group-section">
+      <div class="group-header">
+        <div class="group-dot" style="background: #66BB6A; color: #66BB6A;"></div>
+        <div class="group-title">Высший класс & Мощные тягачи</div>
+        <div class="group-desc">Тайлы 31, 32, 34 • $300 – $320</div>
+      </div>
+      <div class="tiles-grid">
+        <div class="tile-card">
+          <div class="car-crop-box">
+            <div class="crop-layer fleet-a pos-gold-roadster"></div>
+          </div>
+          <div class="tile-info">
+            <div class="tile-name">«Золотой Кабриолет»</div>
+            <div class="tile-role">Элитный кабриолет с кожаным салоном</div>
+            <div class="tile-price">$300</div>
+          </div>
+        </div>
+
+        <div class="tile-card">
+          <div class="car-crop-box">
+            <div class="crop-layer fleet-a pos-foodtruck"></div>
+          </div>
+          <div class="tile-info">
+            <div class="tile-name">«Шеф-Фудтрак»</div>
+            <div class="tile-role">Кастомный желто-синий фуд-автобус</div>
+            <div class="tile-price">$300</div>
+          </div>
+        </div>
+
+        <div class="tile-card">
+          <div class="car-crop-box">
+            <div class="crop-layer fleet-b pos-semi-truck"></div>
+          </div>
+          <div class="tile-info">
+            <div class="tile-name">«Дальнобойный Тягач»</div>
+            <div class="tile-role">Американский красный грузовик с трубами</div>
+            <div class="tile-price">$320</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 8. Темно-синяя группа: Элитные гиперкары ($350 - $400) -->
+    <div class="group-section">
+      <div class="group-header">
+        <div class="group-dot" style="background: #5C6BC0; color: #5C6BC0;"></div>
+        <div class="group-title">Элитные гиперкары • Вершина олигархии</div>
+        <div class="group-desc">Тайлы 37, 39 • $350 – $400</div>
+      </div>
+      <div class="tiles-grid">
+        <div class="tile-card">
+          <div class="car-crop-box">
+            <div class="crop-layer fleet-a pos-gold-roadster"></div>
+          </div>
+          <div class="tile-info">
+            <div class="tile-name">«Гранд-Турер Люкс»</div>
+            <div class="tile-role">Золотой суперкар миллиардера</div>
+            <div class="tile-price">$350</div>
+          </div>
+        </div>
+
+        <div class="tile-card">
+          <div class="car-crop-box">
+            <div class="crop-layer fleet-a pos-hypercar"></div>
+          </div>
+          <div class="tile-info">
+            <div class="tile-name">«Кибер-Гиперкар»</div>
+            <div class="tile-role">Неоновый болид с карбоновым антикрылом</div>
+            <div class="tile-price">$400</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 9. Транспортная сеть: Автобусы & Таксопарки (4 вокзала — по $200) -->
+    <div class="group-section">
+      <div class="group-header">
+        <div class="group-dot" style="background: #78909C; color: #78909C;"></div>
+        <div class="group-title">Транспортная сеть • Автобусы & Экспрессы</div>
+        <div class="group-desc">Тайлы 5, 15, 25, 35 • по $200</div>
+      </div>
+      <div class="tiles-grid">
+        <div class="tile-card">
+          <div class="car-crop-box">
+            <div class="crop-layer fleet-b pos-city-bus"></div>
+          </div>
+          <div class="tile-info">
+            <div class="tile-name">«Городской Автобус»</div>
+            <div class="tile-role">Синий экспресс с панорамным стеклом</div>
+            <div class="tile-price">$200</div>
+          </div>
+        </div>
+
+        <div class="tile-card">
+          <div class="car-crop-box">
+            <div class="crop-layer fleet-b pos-doubledecker"></div>
+          </div>
+          <div class="tile-info">
+            <div class="tile-name">«Двухэтажный Бус»</div>
+            <div class="tile-role">Красный даблдекер экспресс</div>
+            <div class="tile-price">$200</div>
+          </div>
+        </div>
+
+        <div class="tile-card">
+          <div class="car-crop-box">
+            <div class="crop-layer fleet-b pos-tow-truck"></div>
+          </div>
+          <div class="tile-info">
+            <div class="tile-name">«Тяжелый Эвакуатор»</div>
+            <div class="tile-role">Спецкран с лебедкой и мигалками</div>
+            <div class="tile-price">$200</div>
+          </div>
+        </div>
+
+        <div class="tile-card">
+          <div class="car-crop-box">
+            <div class="crop-layer fleet-a pos-taxi-cab"></div>
+          </div>
+          <div class="tile-info">
+            <div class="tile-name">«Флот Таксопарка»</div>
+            <div class="tile-role">Парк желтых автомобилей с шашечками</div>
+            <div class="tile-price">$200</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 10. Коммуналка / Сервисы: Спецтехника (2 клетки — по $150) -->
+    <div class="group-section">
+      <div class="group-header">
+        <div class="group-dot" style="background: #8D6E63; color: #8D6E63;"></div>
+        <div class="group-title">Городские сервисы • Спецтехника</div>
+        <div class="group-desc">Тайлы 12, 28 • по $150</div>
+      </div>
+      <div class="tiles-grid">
+        <div class="tile-card">
+          <div class="car-crop-box">
+            <div class="crop-layer fleet-b pos-tow-truck"></div>
+          </div>
+          <div class="tile-info">
+            <div class="tile-name">«Служба Эвакуации»</div>
+            <div class="tile-role">Помощь на дороге и буксировка 24/7</div>
+            <div class="tile-price">$150</div>
+          </div>
+        </div>
+
+        <div class="tile-card">
+          <div class="car-crop-box">
+            <div class="crop-layer fleet-b pos-fire-truck"></div>
+          </div>
+          <div class="tile-info">
+            <div class="tile-name">«Пожарный Трак»</div>
+            <div class="tile-role">Тяжелый пожарный расчет с лестницей</div>
+            <div class="tile-price">$150</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -62,17 +62,18 @@
 }
 
 [data-theme='classic'] {
-  --background: 160 84% 4%;
-  --foreground: 140 20% 98%;
-  --card: 160 70% 8%;
-  --card-foreground: 140 20% 98%;
-  --primary: 158 64% 52%;
-  --primary-foreground: 160 84% 4%;
-  --secondary: 160 40% 15%;
-  --border: 160 40% 18%;
-  --ring: 158 64% 52%;
-  --board-bg: #041a12;
-  --tile-bg: rgba(6, 32, 22, 0.95);
+  --background: 229 84% 5%;
+  --foreground: 210 40% 98%;
+  --card: 222 47% 11%;
+  --card-foreground: 210 40% 98%;
+  --primary: 215 16% 47%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 215 32% 17%;
+  --border: 215 32% 17%;
+  --ring: 215 16% 47%;
+  --board-bg: #0f172a;
+  --board-border: #1e293b;
+  --tile-bg: rgba(15, 23, 42, 0.95);
 }
 
 [data-theme='sunset'] {
@@ -462,4 +463,1496 @@ button:disabled * {
 .pet-anim-sleep {
   animation-duration: 1.4s;
 }
+
+/* =========================================================================
+   GILDED GAZETTE & GRAND CARTEL DESIGN SYSTEM (1910s Wall Street Syndicate)
+   ========================================================================= */
+
+/* Typography Helpers */
+.font-edo {
+  font-family: 'Shippori Mincho', 'Noto Serif JP', 'Kaisei Decol', 'EB Garamond', serif;
+}
+
+.font-mincho {
+  font-family: 'Shippori Mincho', 'Noto Serif JP', serif;
+}
+
+.font-yuji {
+  font-family: 'Yuji Boku', 'Kaisei Decol', serif;
+}
+
+.font-kaisei {
+  font-family: 'Kaisei Decol', 'Shippori Mincho', serif;
+}
+
+.font-display {
+  font-family: 'Shippori Mincho', 'Playfair Display', Georgia, serif;
+}
+
+.font-cinzel {
+  font-family: 'Shippori Mincho', 'Cinzel', 'Cinzel Decorative', Georgia, serif;
+}
+
+.font-cormorant {
+  font-family: 'Shippori Mincho', 'Cormorant Garamond', 'Old Standard TT', Georgia, serif;
+}
+
+.font-oldstandard {
+  font-family: 'Shippori Mincho', 'Old Standard TT', Georgia, serif;
+}
+
+.font-vintagemono {
+  font-family: 'Space Mono', 'JetBrains Mono', monospace;
+}
+
+/* Concept 2 typography helpers */
+.font-konstrukt {
+  font-family: 'Dela Gothic One', 'Unbounded', Impact, sans-serif;
+}
+
+.font-blueprint {
+  font-family: 'Space Mono', 'JetBrains Mono', 'Courier New', monospace;
+}
+
+/* =========================================================================
+   CONCEPT 3: CABINET OF CURIOSITIES & ALCHEMICAL CARTOGRAPHY (XVII ВЕК)
+   Морской Атлас Торговых Гильдий, Астролябия, Пергаментные Хартии и Дублоны
+   ========================================================================= */
+
+/* Deep Sea Captain's Chart Table with Astronomical Rhumb Lines & Wind Rose */
+.alchemical-table,
+.cartel-table-felt {
+  background-color: #061019;
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(14, 42, 71, 0.5) 0%, transparent 70%),
+    linear-gradient(to right, rgba(212, 175, 55, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(212, 175, 55, 0.05) 1px, transparent 1px),
+    repeating-radial-gradient(circle at 50% 50%, transparent 0, transparent 40px, rgba(212, 175, 55, 0.03) 40px, rgba(212, 175, 55, 0.03) 41px);
+  background-size: 100% 100%, 30px 30px, 30px 30px, 100% 100%;
+  position: relative;
+}
+
+/* Master Astrolabe Chart Board Frame with Embossed Nautical Brass Border */
+.alchemical-board-frame,
+.cartel-board-frame {
+  background-color: #0a1522;
+  border: 2px solid #d4af37;
+  outline: 1px solid rgba(212, 175, 55, 0.4);
+  outline-offset: 3px;
+  box-shadow: 
+    0 0 0 1px #03080d,
+    0 25px 60px -10px rgba(0, 0, 0, 0.95),
+    0 0 35px rgba(212, 175, 55, 0.12),
+    inset 0 0 40px rgba(6, 16, 25, 0.8);
+  position: relative;
+}
+
+/* Antique Engraved Brass Border with Corner Rosettes */
+.alchemical-gold-border,
+.cartel-brass-border {
+  border: 1px solid #d4af37;
+  outline: 1px solid rgba(212, 175, 55, 0.3);
+  outline-offset: 1px;
+}
+
+/* 17th-Century Illuminated Vellum Parchment (Хартия Гильдии) */
+.alchemical-parchment,
+.cartel-paper {
+  background-color: #f3ebd9;
+  color: #24160a;
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(243, 229, 171, 0.4) 0%, transparent 70%),
+    linear-gradient(to right, rgba(140, 109, 31, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(140, 109, 31, 0.04) 1px, transparent 1px);
+  background-size: 100% 100%, 12px 12px, 12px 12px;
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.5),
+    inset 0 0 30px rgba(184, 146, 34, 0.15);
+  border: 1px solid #c59b27;
+}
+
+/* Captain's Dark Leather & Gold Leaf Ledger */
+.alchemical-dark-ledger,
+.cartel-dark-ledger {
+  background-color: #0c1824;
+  color: #f3ebd9;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(14, 42, 71, 0.4) 0%, transparent 80%),
+    linear-gradient(to right, rgba(212, 175, 55, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(212, 175, 55, 0.04) 1px, transparent 1px);
+  background-size: 100% 100%, 16px 16px, 16px 16px;
+  box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.8), 0 10px 30px rgba(0, 0, 0, 0.6);
+}
+
+/* Astrolabe Rhumb Line Borders */
+.alchemical-rhumb-border,
+.cartel-guilloche-border {
+  border: 2px solid transparent;
+  border-image: repeating-linear-gradient(45deg, #d4af37 0, #d4af37 4px, #0a1522 4px, #0a1522 8px) 2;
+}
+
+/* Ornamental Dot Leader */
+.alchemical-dots-leader,
+.cartel-dots-leader {
+  background-image: radial-gradient(circle, #8c6d1f 1px, transparent 1px);
+  background-position: bottom;
+  background-size: 6px 2px;
+  background-repeat: repeat-x;
+}
+
+/* Royal Admiralty Sealing Wax Seal (Красный сургуч) */
+.alchemical-seal-red,
+.cartel-stamp-red {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #991b1b;
+  color: #fecaca;
+  font-family: 'Cinzel', 'Cinzel Decorative', Georgia, serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 3px 8px;
+  transform: rotate(-3deg);
+  background: radial-gradient(circle, #991b1b 0%, #7f1d1d 100%);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5), inset 0 1px 2px rgba(254, 202, 202, 0.4);
+  border-radius: 2px;
+  user-select: none;
+}
+
+/* Astrolabe Black Iron Seal */
+.alchemical-seal-black,
+.cartel-stamp-black {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #24160a;
+  color: #24160a;
+  font-family: 'Cinzel', 'Cinzel Decorative', Georgia, serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 3px 8px;
+  background: rgba(36, 22, 10, 0.1);
+  box-shadow: inset 0 0 6px rgba(36, 22, 10, 0.2);
+  user-select: none;
+}
+
+/* Royal Crown Charter Gold Seal */
+.alchemical-seal-gold,
+.cartel-stamp-gold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #d4af37;
+  color: #1a1204;
+  font-family: 'Cinzel', 'Cinzel Decorative', Georgia, serif;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 3px 10px;
+  background: linear-gradient(135deg, #f3e5ab 0%, #d4af37 50%, #b89222 100%);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4), inset 0 1px 1px #fff;
+  border-radius: 2px;
+  user-select: none;
+}
+
+/* Royal Minted Gold Medallion Action Button */
+.alchemical-btn-gold,
+.cartel-btn-brass {
+  background: linear-gradient(180deg, #f8e7b9 0%, #d4af37 40%, #b89222 100%);
+  border: 1px solid #8c6d1f;
+  color: #1a1204;
+  font-family: 'Cinzel', 'Cinzel Decorative', Georgia, serif;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+  box-shadow: 
+    0 3px 0 #6e5414,
+    0 5px 12px rgba(0, 0, 0, 0.5),
+    inset 0 1px 2px rgba(255, 255, 255, 0.6);
+  transition: all 0.12s ease-out;
+}
+
+.alchemical-btn-gold:hover:not(:disabled),
+.cartel-btn-brass:hover:not(:disabled) {
+  filter: brightness(1.08);
+  box-shadow: 
+    0 3px 0 #6e5414,
+    0 6px 16px rgba(212, 175, 55, 0.4),
+    inset 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+.alchemical-btn-gold:active:not(:disabled),
+.cartel-btn-brass:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 
+    0 1px 0 #6e5414,
+    0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Vellum Parchment Scroll Button */
+.alchemical-btn-parchment,
+.cartel-btn-parchment {
+  background: linear-gradient(180deg, #fbf7ee 0%, #eae0cb 100%);
+  border: 1.5px solid #8c6d1f;
+  color: #24160a;
+  font-family: 'Cinzel', 'Cinzel Decorative', Georgia, serif;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  box-shadow: 
+    0 3px 0 #5e4812,
+    0 4px 10px rgba(0, 0, 0, 0.35),
+    inset 0 1px 2px rgba(255, 255, 255, 0.7);
+  transition: all 0.12s ease-out;
+}
+
+.alchemical-btn-parchment:hover:not(:disabled),
+.cartel-btn-parchment:hover:not(:disabled) {
+  background: #fdfbf5;
+  filter: brightness(1.04);
+}
+
+.alchemical-btn-parchment:active:not(:disabled),
+.cartel-btn-parchment:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #5e4812;
+}
+
+/* Sealing Wax Crimson Button */
+.alchemical-btn-crimson,
+.cartel-btn-carmine {
+  background: linear-gradient(180deg, #b91c1c 0%, #991b1b 50%, #7f1d1d 100%);
+  border: 1px solid #581010;
+  color: #ffffff;
+  font-family: 'Cinzel', 'Cinzel Decorative', Georgia, serif;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  box-shadow: 
+    0 3px 0 #450a0a,
+    0 5px 12px rgba(0, 0, 0, 0.5),
+    inset 0 1px 2px rgba(254, 202, 202, 0.3);
+  transition: all 0.12s ease-out;
+}
+
+.alchemical-btn-crimson:hover:not(:disabled),
+.cartel-btn-carmine:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.alchemical-btn-crimson:active:not(:disabled),
+.cartel-btn-carmine:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #450a0a;
+}
+
+/* Gold Guild Doubloons / Royal Certificate */
+.alchemical-doubloon,
+.cartel-banknote {
+  background: #0d1b2a;
+  border: 1px solid #d4af37;
+  color: #f3e5ab;
+  font-family: 'Cinzel', 'EB Garamond', serif;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  position: relative;
+}
+
+.alchemical-doubloon::before,
+.cartel-banknote::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border: 0.5px solid rgba(212, 175, 55, 0.35);
+  pointer-events: none;
+}
+
+/* =========================================================================
+   CONCEPT 2: CONSTRUCTIVIST BLUEPRINT / ГОСПЛАН 1928
+   Советский Конструктивизм — Чертёжный Стол Главного Архитектора
+   ========================================================================= */
+
+/* Engineering Blueprint Table: синька с миллиметровой сеткой */
+.blueprint-table {
+  background-color: #0c1a2e;
+  background-image:
+    linear-gradient(rgba(76, 161, 217, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(76, 161, 217, 0.06) 1px, transparent 1px),
+    linear-gradient(rgba(76, 161, 217, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(76, 161, 217, 0.025) 1px, transparent 1px);
+  background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+  background-position: -1px -1px, -1px -1px, -1px -1px, -1px -1px;
+}
+
+/* Blueprint Board Frame: technical drawing frame with margin marks */
+.blueprint-board-frame {
+  background-color: #0e1d31;
+  border: 2px solid #4ca1d9;
+  outline: 4px solid #0c1a2e;
+  outline-offset: -6px;
+  box-shadow:
+    0 0 0 1px #4ca1d9,
+    inset 0 0 0 2px rgba(76, 161, 217, 0.15),
+    0 30px 80px rgba(0, 0, 0, 0.9);
+}
+
+/* Blueprint Cyan Technical Border */
+.blueprint-cyan-border {
+  border: 1px solid #4ca1d9;
+  outline: 1px solid rgba(76, 161, 217, 0.25);
+  outline-offset: 2px;
+}
+
+/* Калька — Tracing Paper Light Surface */
+.blueprint-paper {
+  background-color: #e9e3d3;
+  color: #1a2e45;
+  background-image:
+    linear-gradient(rgba(26, 46, 69, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(26, 46, 69, 0.04) 1px, transparent 1px);
+  background-size: 12px 12px;
+  border: 1px solid rgba(26, 46, 69, 0.3);
+  box-shadow: inset 0 0 20px rgba(26, 46, 69, 0.08);
+}
+
+/* Синька — Dark Blueprint Dossier Surface */
+.blueprint-dark-dossier {
+  background-color: #0e1d31;
+  color: #eaeff2;
+  border: 1px solid rgba(76, 161, 217, 0.4);
+  background-image:
+    linear-gradient(rgba(76, 161, 217, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(76, 161, 217, 0.03) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+/* Diagonal Hazard Border (инженерная диагональная разметка) */
+.blueprint-hazard-border {
+  border: 2px solid transparent;
+  border-image: repeating-linear-gradient(
+    45deg,
+    #4ca1d9 0, #4ca1d9 5px,
+    #0c1a2e 5px, #0c1a2e 10px
+  ) 2;
+}
+
+/* Technical Dot Leader (пунктир заполнения таблицы) */
+.blueprint-dots-leader {
+  background-image: radial-gradient(circle, #4ca1d9 1px, transparent 1px);
+  background-position: bottom;
+  background-size: 6px 2px;
+  background-repeat: repeat-x;
+}
+
+/* ГОСТ Red Stamp — Suprematist Alert */
+.blueprint-stamp-red {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #d62828;
+  color: #d62828;
+  font-family: 'Space Mono', 'Courier New', monospace;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  padding: 2px 8px;
+  transform: rotate(-4deg);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px rgba(214, 40, 40, 0.2);
+  user-select: none;
+}
+
+/* УТВЕРЖДЕНО Cyan Technical Stamp */
+.blueprint-stamp-cyan {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #4ca1d9;
+  color: #4ca1d9;
+  font-family: 'Space Mono', 'Courier New', monospace;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 2px 8px;
+  background: rgba(76, 161, 217, 0.08);
+  user-select: none;
+}
+
+/* Black Technical Stamp */
+.blueprint-stamp-black {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #eaeff2;
+  color: #eaeff2;
+  font-family: 'Space Mono', 'Courier New', monospace;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 2px 8px;
+  background: transparent;
+  user-select: none;
+}
+
+/* Primary Action Button — Инверсный прямоугольник (синька -> белый при hover) */
+.blueprint-btn-cyan {
+  background: #4ca1d9;
+  border: 1px solid #4ca1d9;
+  color: #0c1a2e;
+  font-family: 'Space Mono', 'Courier New', monospace;
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-radius: 0;
+  box-shadow: 3px 3px 0 #1e3a5a;
+  transition: all 0.08s step-end;
+  position: relative;
+}
+
+.blueprint-btn-cyan:hover:not(:disabled) {
+  background: #eaeff2;
+  color: #0c1a2e;
+  border-color: #eaeff2;
+  box-shadow: 3px 3px 0 #4ca1d9;
+}
+
+.blueprint-btn-cyan:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 #1e3a5a;
+}
+
+.blueprint-btn-cyan:disabled {
+  opacity: 0.35;
+  filter: grayscale(0.8);
+}
+
+/* Secondary Button — калька с чернильной рамкой */
+.blueprint-btn-calque {
+  background: transparent;
+  border: 1px solid #4ca1d9;
+  color: #4ca1d9;
+  font-family: 'Space Mono', 'Courier New', monospace;
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-radius: 0;
+  box-shadow: 2px 2px 0 rgba(76, 161, 217, 0.3);
+  transition: all 0.08s step-end;
+}
+
+.blueprint-btn-calque:hover:not(:disabled) {
+  background: rgba(76, 161, 217, 0.12);
+  box-shadow: 3px 3px 0 rgba(76, 161, 217, 0.4);
+}
+
+.blueprint-btn-calque:active:not(:disabled) {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 rgba(76, 161, 217, 0.3);
+}
+
+/* Danger Red Button — Сурик (Suprematist Red) */
+.blueprint-btn-red {
+  background: #d62828;
+  border: 1px solid #d62828;
+  color: #eaeff2;
+  font-family: 'Space Mono', 'Courier New', monospace;
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-radius: 0;
+  box-shadow: 3px 3px 0 #7d1515;
+  transition: all 0.08s step-end;
+}
+
+.blueprint-btn-red:hover:not(:disabled) {
+  background: #eaeff2;
+  color: #d62828;
+  border-color: #d62828;
+}
+
+.blueprint-btn-red:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 #7d1515;
+}
+
+/* Engineering Voucher / Blueprint Ticket */
+.blueprint-voucher {
+  background: #0e1d31;
+  border: 1px solid #4ca1d9;
+  color: #eaeff2;
+  font-family: 'Space Mono', 'Courier New', monospace;
+  box-shadow: 2px 2px 0 rgba(76, 161, 217, 0.3);
+  position: relative;
+}
+
+.blueprint-voucher::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border: 0.5px solid rgba(76, 161, 217, 0.2);
+  pointer-events: none;
+}
+
+/* =========================================================================
+   CONCEPT 4: EDO WOODBLOCK & MERCHANT HOUSE (УКИЁ-Э / ЭПОХА ЭДО 1705)
+   Гравюры Укиё-э, Тракт Токайдо, Рисовая Бумага Васи, Счётная Палата и Медные Моны
+   ========================================================================= */
+
+/* Dark Hinoki Cypress & Indigo Seigaiha Waves Table */
+.edo-table {
+  background-color: #0d131a;
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(27, 58, 92, 0.5) 0%, transparent 80%),
+    linear-gradient(to right, rgba(196, 149, 42, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(196, 149, 42, 0.05) 1px, transparent 1px),
+    repeating-radial-gradient(circle at 50% 50%, transparent 0, transparent 40px, rgba(27, 58, 92, 0.08) 40px, rgba(27, 58, 92, 0.08) 41px);
+  background-size: 100% 100%, 28px 28px, 28px 28px, 100% 100%;
+  position: relative;
+}
+
+/* Master Woodblock Printing Board Frame with Black Lacquer & Vermilion Inlay */
+.edo-board-frame {
+  background-color: #101620;
+  border: 2px solid #c4952a;
+  outline: 2px solid #9e2a2b;
+  outline-offset: 3px;
+  box-shadow: 
+    0 0 0 1px #080c10,
+    0 25px 70px -10px rgba(0, 0, 0, 0.95),
+    0 0 35px rgba(196, 149, 42, 0.18),
+    inset 0 0 40px rgba(8, 12, 18, 0.85);
+  position: relative;
+}
+
+/* Gold Leaf Foil Border (Kinpaku 金箔) */
+.edo-gold-border {
+  border: 1px solid #c4952a;
+  outline: 1px solid rgba(196, 149, 42, 0.35);
+  outline-offset: 1px;
+}
+
+/* Vermilion Lacquer Border (Shu-nuri 朱塗) */
+.edo-vermilion-border {
+  border: 1px solid #9e2a2b;
+  outline: 1px solid rgba(158, 42, 43, 0.35);
+  outline-offset: 1px;
+}
+
+/* Authentic Japanese Washi Rice Paper Surface (和紙) */
+.edo-paper {
+  background-color: #f4ecd8;
+  color: #1a1412;
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(245, 237, 214, 0.6) 0%, transparent 80%),
+    linear-gradient(to right, rgba(140, 95, 30, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(140, 95, 30, 0.045) 1px, transparent 1px);
+  background-size: 100% 100%, 14px 14px, 14px 14px;
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.5),
+    inset 0 0 28px rgba(180, 130, 40, 0.14);
+  border: 1px solid #b88622;
+}
+
+/* Urushi Black Lacquer & Aizome Indigo Ledger (漆塗り・藍染大福帳) */
+.edo-dark-ledger {
+  background-color: #0e1520;
+  color: #f4ecd8;
+  border: 1px solid rgba(196, 149, 42, 0.45);
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(27, 58, 92, 0.4) 0%, transparent 80%),
+    linear-gradient(to right, rgba(196, 149, 42, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(196, 149, 42, 0.04) 1px, transparent 1px);
+  background-size: 100% 100%, 18px 18px, 18px 18px;
+  box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.85), 0 10px 30px rgba(0, 0, 0, 0.6);
+}
+
+/* Hanko Vermilion Cinnabar Stamp (朱肉・判子) */
+.edo-seal-red {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #9e2a2b;
+  color: #fee2e2;
+  font-family: 'Shippori Mincho', 'Noto Serif JP', serif;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 2px 8px;
+  transform: rotate(-2deg);
+  background: radial-gradient(circle, #9e2a2b 0%, #7f1d1d 100%);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5), inset 0 1px 2px rgba(254, 226, 226, 0.4);
+  border-radius: 1px;
+  user-select: none;
+}
+
+/* Shogunate Gold Leaf Guild Stamp (幕府・株仲間 金印) */
+.edo-seal-gold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #c4952a;
+  color: #1a1204;
+  font-family: 'Shippori Mincho', 'Noto Serif JP', serif;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 2px 9px;
+  background: linear-gradient(135deg, #f5e4b8 0%, #c4952a 50%, #9e7518 100%);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4), inset 0 1px 1px #fff;
+  border-radius: 1px;
+  user-select: none;
+}
+
+/* Sumi Ink Seal (墨印) */
+.edo-seal-black {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #1a1412;
+  color: #1a1412;
+  font-family: 'Shippori Mincho', 'Noto Serif JP', serif;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 2px 8px;
+  background: rgba(26, 20, 18, 0.12);
+  box-shadow: inset 0 0 6px rgba(26, 20, 18, 0.2);
+  user-select: none;
+}
+
+/* Vermilion Lacquer Action Button (朱塗ボタン) */
+.edo-btn-vermilion {
+  background: linear-gradient(180deg, #c53030 0%, #9e2a2b 45%, #7f1d1d 100%);
+  border: 1px solid #581010;
+  color: #ffffff;
+  font-family: 'Shippori Mincho', 'Noto Serif JP', serif;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  box-shadow: 
+    0 3px 0 #450a0a,
+    0 5px 12px rgba(0, 0, 0, 0.5),
+    inset 0 1px 2px rgba(254, 202, 202, 0.35);
+  transition: all 0.12s ease-out;
+}
+
+.edo-btn-vermilion:hover:not(:disabled) {
+  filter: brightness(1.1);
+  box-shadow: 
+    0 3px 0 #450a0a,
+    0 6px 16px rgba(158, 42, 43, 0.5),
+    inset 0 1px 2px rgba(254, 202, 202, 0.6);
+}
+
+.edo-btn-vermilion:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #450a0a, 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Gold Foil Lacquer Action Button (金箔塗ボタン) */
+.edo-btn-gold {
+  background: linear-gradient(180deg, #f5e4b8 0%, #c4952a 45%, #9e7518 100%);
+  border: 1px solid #78580f;
+  color: #1a1204;
+  font-family: 'Shippori Mincho', 'Noto Serif JP', serif;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+  box-shadow: 
+    0 3px 0 #5c4207,
+    0 5px 12px rgba(0, 0, 0, 0.5),
+    inset 0 1px 2px rgba(255, 255, 255, 0.6);
+  transition: all 0.12s ease-out;
+}
+
+.edo-btn-gold:hover:not(:disabled) {
+  filter: brightness(1.08);
+  box-shadow: 
+    0 3px 0 #5c4207,
+    0 6px 16px rgba(196, 149, 42, 0.45),
+    inset 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+.edo-btn-gold:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #5c4207, 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Aizome Indigo Blue Button (藍染ボタン) */
+.edo-btn-indigo {
+  background: linear-gradient(180deg, #285482 0%, #1b3a5c 50%, #12263d 100%);
+  border: 1px solid #0d1a29;
+  color: #f4ecd8;
+  font-family: 'Shippori Mincho', 'Noto Serif JP', serif;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  box-shadow: 
+    0 3px 0 #09131f,
+    0 5px 12px rgba(0, 0, 0, 0.4),
+    inset 0 1px 2px rgba(255, 255, 255, 0.3);
+  transition: all 0.12s ease-out;
+}
+
+.edo-btn-indigo:hover:not(:disabled) {
+  filter: brightness(1.08);
+  box-shadow: 0 3px 0 #09131f, 0 6px 15px rgba(27, 58, 92, 0.45);
+}
+
+.edo-btn-indigo:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #09131f;
+}
+
+/* Washi Rice Paper Button (和紙ボタン) */
+.edo-btn-washi {
+  background: linear-gradient(180deg, #fbf6eb 0%, #e8dcbe 100%);
+  border: 1.5px solid #8a6516;
+  color: #1a1412;
+  font-family: 'Shippori Mincho', 'Noto Serif JP', serif;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  box-shadow: 
+    0 3px 0 #5c4207,
+    0 4px 10px rgba(0, 0, 0, 0.35),
+    inset 0 1px 2px rgba(255, 255, 255, 0.7);
+  transition: all 0.12s ease-out;
+}
+
+.edo-btn-washi:hover:not(:disabled) {
+  background: #fefdf9;
+  filter: brightness(1.04);
+}
+
+.edo-btn-washi:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #5c4207;
+}
+
+/* Mon Copper Coin / Edo Certificate (文銭・勘定切手) */
+.edo-mon-badge {
+  background: #121c28;
+  border: 1px solid #c4952a;
+  color: #f4ecd8;
+  font-family: 'Shippori Mincho', 'Noto Serif JP', serif;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  position: relative;
+}
+
+.edo-mon-badge::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border: 0.5px solid rgba(196, 149, 42, 0.35);
+  pointer-events: none;
+}
+
+/* ===================================================================
+   CONCEPT 10 v2 — PHYSICAL BOARD GAME REDESIGN
+   Soviet Space Race 1961 — Real Game Table Aesthetic
+   =================================================================== */
+
+/* Board surface — aged Soviet engineering paper */
+.soviet-space-table {
+  background-color: #040711;
+  background-image:
+    radial-gradient(circle at 50% 50%, #071320 0%, #030c1a 60%, #020810 100%),
+    repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(56,189,248,0.04) 39px, rgba(56,189,248,0.04) 40px),
+    repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(56,189,248,0.04) 39px, rgba(56,189,248,0.04) 40px);
+}
+
+/* The board itself — printed cream paper */
+.soviet-board-frame {
+  background-color: #EDE0C4;
+  background-image: 
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeBlend mode='multiply' in2='SourceGraphic'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23noise)' opacity='0.06'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(0deg, transparent, transparent 29px, rgba(0,60,120,0.06) 29px, rgba(0,60,120,0.06) 30px),
+    repeating-linear-gradient(90deg, transparent, transparent 29px, rgba(0,60,120,0.06) 29px, rgba(0,60,120,0.06) 30px);
+  border: 3px solid #8B7355;
+  box-shadow: 
+    0 0 0 2px #C4A96B,
+    0 0 0 4px #8B7355,
+    0 0 0 8px #5C4A2A,
+    inset 0 0 40px rgba(0,0,0,0.15),
+    0 30px 80px rgba(0,0,0,0.9);
+}
+
+/* Individual board tile — cream paper feel */
+.soviet-tile {
+  background-color: #EDE0C4;
+  border: 1px solid #8B7355;
+  font-family: 'Russo One', sans-serif;
+}
+
+.soviet-tile:hover {
+  background-color: #F5ECDA;
+  z-index: 30;
+}
+
+/* Tile color bands (property groups) face toward board center */
+.soviet-tile-band-top { border-top-width: 8px; border-top-style: solid; }
+.soviet-tile-band-bottom { border-bottom-width: 8px; border-bottom-style: solid; }
+.soviet-tile-band-left { border-left-width: 8px; border-left-style: solid; }
+.soviet-tile-band-right { border-right-width: 8px; border-right-style: solid; }
+
+/* Soviet-style ink stamps */
+.soviet-stamp {
+  border: 2px solid currentColor;
+  padding: 2px 6px;
+  transform: rotate(-2deg);
+  opacity: 0.85;
+  font-family: 'Space Mono', monospace;
+  letter-spacing: 0.05em;
+}
+
+.soviet-stamp-red {
+  color: #CC1111;
+  border-color: #CC1111;
+}
+
+.soviet-stamp-blue {
+  color: #004890;
+  border-color: #004890;
+}
+
+/* Instrument cluster corners */
+.soviet-instrument-panel {
+  background-color: #1A2230;
+  background-image: 
+    linear-gradient(135deg, #232F42 0%, #141D2B 50%, #0E1520 100%);
+  border: 2px solid #3A4A5E;
+  box-shadow: 
+    inset 0 2px 4px rgba(255,255,255,0.05),
+    inset 0 -2px 4px rgba(0,0,0,0.4),
+    0 4px 16px rgba(0,0,0,0.8);
+}
+
+.soviet-instrument-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 8px;
+  color: #38bdf8;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.soviet-instrument-value {
+  font-family: 'Space Mono', monospace;
+  color: #00e676;
+  text-shadow: 0 0 8px rgba(0, 230, 118, 0.6);
+}
+
+/* Bottom action console */
+.soviet-action-console {
+  background-color: #111820;
+  background-image: linear-gradient(180deg, #1A2535 0%, #0D141F 100%);
+  border-top: 3px solid #2A3848;
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.8);
+}
+
+/* Physical toggle switch buttons */
+.soviet-switch-btn {
+  font-family: 'Russo One', sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: linear-gradient(180deg, #2A3848 0%, #1A2535 50%, #131D2A 100%);
+  border: 1px solid #3A4A5E;
+  border-bottom: 3px solid #0A1018;
+  box-shadow: 
+    inset 0 1px 1px rgba(255,255,255,0.08),
+    0 2px 4px rgba(0,0,0,0.5);
+  color: #C0CCE0;
+  transition: all 0.08s ease;
+}
+
+.soviet-switch-btn:hover {
+  background: linear-gradient(180deg, #3A5068 0%, #2A3848 50%, #1A2535 100%);
+  border-color: #38bdf8;
+  color: #E0F0FF;
+}
+
+.soviet-switch-btn:active {
+  border-bottom-width: 1px;
+  transform: translateY(2px);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
+}
+
+.soviet-switch-btn-red {
+  background: linear-gradient(180deg, #6B1A1A 0%, #4A1010 50%, #380C0C 100%);
+  border: 1px solid #8B2020;
+  border-bottom: 3px solid #220808;
+  color: #FFA0A0;
+}
+
+.soviet-switch-btn-red:hover {
+  background: linear-gradient(180deg, #8B2020 0%, #6B1A1A 50%, #4A1010 100%);
+  border-color: #EF4444;
+  color: #FFCCCC;
+}
+
+.soviet-switch-btn-green {
+  background: linear-gradient(180deg, #1A4830 0%, #103020 50%, #0A2018 100%);
+  border: 1px solid #1A6030;
+  border-bottom: 3px solid #061410;
+  color: #60D080;
+}
+
+.soviet-switch-btn-green:hover {
+  background: linear-gradient(180deg, #205C3A 0%, #1A4828 50%, #103020 100%);
+  border-color: #00e676;
+  color: #A0F0B0;
+}
+
+/* CRT telemetry log panel */
+.soviet-crt {
+  background-color: #030D06;
+  background-image: 
+    repeating-linear-gradient(0deg, rgba(0,230,118,0.03) 0px, rgba(0,230,118,0.03) 1px, transparent 1px, transparent 3px);
+  border: 1px solid #0A4020;
+  box-shadow: inset 0 0 30px rgba(0, 50, 20, 0.5);
+  font-family: 'Space Mono', monospace;
+  color: #00e676;
+}
+
+/* Tile text styles — Soviet print look */
+.tile-name {
+  font-family: 'Unbounded', 'Russo One', sans-serif;
+  font-size: 8px;
+  line-height: 1.15;
+  color: #1A0E00;
+  text-align: center;
+}
+
+.tile-price {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  color: #CC1111;
+}
+
+/* Mortgaged tile */
+.tile-mortgaged {
+  opacity: 0.5;
+  background-color: #D4C4A0 !important;
+}
+
+.tile-mortgaged::after {
+  content: 'РЕЗЕРВ';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Space Mono', monospace;
+  font-size: 8px;
+  color: #CC1111;
+  border: 1.5px solid #CC1111;
+  transform: rotate(-15deg);
+  margin: 4px;
+}
+
+/* House/hotel markers — physical board game feel */
+.tile-house {
+  width: 6px;
+  height: 6px;
+  background-color: #00AA44;
+  border: 1px solid #007730;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.4);
+}
+
+.tile-hotel {
+  width: 8px;
+  height: 8px;
+  background-color: #CC0000;
+  border: 1px solid #880000;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.4);
+}
+
+/* Corner tile — large stamp aesthetic */
+.soviet-corner-tile {
+  background-color: #EDE0C4;
+  border: 1px solid #8B7355;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Player name tag on board */
+.player-tag {
+  font-family: 'Space Mono', monospace;
+  font-size: 7px;
+  background-color: #1A2230;
+  color: #38bdf8;
+  border: 1px solid #38bdf8;
+  padding: 0 3px;
+  line-height: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 44px;
+}
+
+/* === Legacy compat — keep these so nothing breaks === */
+.soviet-btn-cyan {
+  background: linear-gradient(180deg, #0A4060 0%, #062A40 100%);
+  border: 1px solid #0284c7;
+  border-bottom: 3px solid #021A2A;
+  color: #BAE6FD;
+  font-family: 'Russo One', sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: all 0.08s;
+}
+.soviet-btn-cyan:hover { border-color: #38bdf8; color: #E0F4FF; }
+.soviet-btn-cyan:active { transform: translateY(1px); border-bottom-width: 1px; }
+
+.soviet-btn-red {
+  background: linear-gradient(180deg, #6B1A1A 0%, #4A0E0E 100%);
+  border: 1px solid #b91c1c;
+  border-bottom: 3px solid #220808;
+  color: #FCA5A5;
+  font-family: 'Russo One', sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: all 0.08s;
+}
+.soviet-btn-red:hover { border-color: #ef4444; color: #FFCCCC; }
+.soviet-btn-red:active { transform: translateY(1px); border-bottom-width: 1px; }
+
+.soviet-btn-steel {
+  background: linear-gradient(180deg, #2A3848 0%, #1A2535 100%);
+  border: 1px solid #4A5A6E;
+  border-bottom: 3px solid #0A1018;
+  color: #A0B0C0;
+  font-family: 'Russo One', sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: all 0.08s;
+}
+.soviet-btn-steel:hover { border-color: #6A7A8E; color: #C0D0E0; }
+.soviet-btn-steel:active { transform: translateY(1px); border-bottom-width: 1px; }
+
+.soviet-btn-amber {
+  background: linear-gradient(180deg, #5C3A08 0%, #3A2205 100%);
+  border: 1px solid #B45309;
+  border-bottom: 3px solid #1A1002;
+  color: #FCD34D;
+  font-family: 'Russo One', sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: all 0.08s;
+}
+.soviet-btn-amber:hover { border-color: #f59e0b; color: #FDE68A; }
+.soviet-btn-amber:active { transform: translateY(1px); border-bottom-width: 1px; }
+
+.soviet-steel-panel {
+  background: linear-gradient(135deg, #1A2535 0%, #0E1520 100%);
+}
+
+.soviet-badge-red {
+  font-family: 'Space Mono', monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #FCA5A5;
+  background: #2A0808;
+  border: 1.5px solid #CC1111;
+}
+
+.soviet-ruble-badge {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  font-weight: bold;
+  color: #CC1111;
+}
+
+/* ===================================================================
+   CLASSIC MONOPOLY THEME (DEFAULT)
+   Royalty-free classic board game aesthetic:
+   Emerald green felt table, ivory parchment board, crisp clean typography
+   =================================================================== */
+
+.classic-game-table {
+  background-color: #020617;
+  background-image:
+    radial-gradient(circle at 50% 50%, #0f172a 0%, #020617 65%, #000000 100%),
+    repeating-linear-gradient(0deg, transparent, transparent 47px, rgba(148, 163, 184, 0.03) 47px, rgba(148, 163, 184, 0.03) 48px),
+    repeating-linear-gradient(90deg, transparent, transparent 47px, rgba(148, 163, 184, 0.03) 47px, rgba(148, 163, 184, 0.03) 48px);
+}
+
+.classic-board-frame {
+  background-color: #f1f5f9;
+  background-image:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,0.7) 0%, rgba(241, 245, 249, 0.95) 100%);
+  border: 3px solid #1e293b;
+  box-shadow:
+    0 0 0 2px #94a3b8,
+    0 0 0 5px #1e293b,
+    inset 0 0 30px rgba(0,0,0,0.06),
+    0 25px 60px rgba(0, 0, 0, 0.85);
+}
+
+.classic-tile {
+  background-color: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+}
+
+.classic-tile:hover {
+  background-color: #FFFFFF;
+  z-index: 30;
+}
+
+.classic-panel {
+  background: linear-gradient(135deg, #0f172a 0%, #020617 100%);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+}
+
+.classic-btn-primary {
+  background: linear-gradient(180deg, #475569 0%, #334155 100%);
+  border: 1px solid #64748b;
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(71, 85, 105, 0.25);
+  transition: all 0.1s ease;
+}
+.classic-btn-primary:hover {
+  background: linear-gradient(180deg, #64748b 0%, #475569 100%);
+  box-shadow: 0 4px 12px rgba(71, 85, 105, 0.35);
+}
+.classic-btn-primary:active {
+  transform: translateY(1px);
+}
+
+.classic-btn-gold {
+  background: linear-gradient(180deg, #d4af37 0%, #b59223 100%);
+  border: 1px solid #f3d463;
+  color: #2b1f03;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
+  transition: all 0.1s ease;
+}
+.classic-btn-gold:hover {
+  background: linear-gradient(180deg, #f3d463 0%, #d4af37 100%);
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
+}
+.classic-btn-gold:active {
+  transform: translateY(1px);
+}
+
+.classic-btn-danger {
+  background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+  border: 1px solid #f87171;
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+.classic-btn-danger:hover {
+  background: linear-gradient(180deg, #f87171 0%, #ef4444 100%);
+}
+
+.classic-btn-secondary {
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+  color: #e2e8f0;
+}
+.classic-btn-secondary:hover {
+  border-color: #64748b;
+  background: #1e293b;
+}
+
+/* Midnight / Sunset / Light table variants */
+.midnight-game-table {
+  background-color: #070a13;
+  background-image: radial-gradient(circle at 50% 50%, #0f172a 0%, #070a13 100%);
+}
+
+.sunset-game-table {
+  background-color: #150c05;
+  background-image: radial-gradient(circle at 50% 50%, #291508 0%, #150c05 100%);
+}
+
+.light-game-table {
+  background-color: #f1f5f9;
+  background-image: radial-gradient(circle at 50% 50%, #f8fafc 0%, #e2e8f0 100%);
+}
+
+/* ===================================================================
+   FILM NOIR 1947 THEME
+   Detective noir aesthetic: deep blacks, amber/sepia accents,
+   typewriter typography, venetian blind shadows, film grain
+   =================================================================== */
+
+[data-theme='noir'] {
+  --background: 30 30% 4%;
+  --foreground: 40 30% 90%;
+  --card: 30 20% 7%;
+  --card-foreground: 40 30% 90%;
+  --popover: 30 20% 7%;
+  --popover-foreground: 40 30% 90%;
+  --primary: 40 60% 55%;
+  --primary-foreground: 30 30% 4%;
+  --secondary: 30 15% 14%;
+  --secondary-foreground: 40 30% 90%;
+  --muted: 30 10% 14%;
+  --muted-foreground: 35 15% 55%;
+  --accent: 30 15% 14%;
+  --accent-foreground: 40 30% 90%;
+  --destructive: 0 65% 40%;
+  --destructive-foreground: 40 30% 90%;
+  --border: 35 20% 18%;
+  --input: 35 20% 18%;
+  --ring: 40 60% 55%;
+  --board-bg: #0a0806;
+  --tile-bg: rgba(18, 14, 10, 0.95);
+}
+
+/* Noir font utilities */
+.font-noir-title { font-family: 'Playfair Display', 'Cinzel', serif; }
+.font-noir-body  { font-family: 'Special Elite', 'Courier New', monospace; }
+.font-noir-mono  { font-family: 'Special Elite', monospace; }
+
+/* Noir Game Table — Dark mahogany desk surface */
+.noir-game-table {
+  background-color: #0a0806;
+  background-image:
+    radial-gradient(ellipse at 50% 45%, rgba(42, 30, 16, 0.5) 0%, rgba(10, 8, 6, 1) 70%),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 28px,
+      rgba(212, 166, 71, 0.03) 28px,
+      rgba(212, 166, 71, 0.03) 29px
+    );
+}
+
+/* Noir Board Frame — Aged leather portfolio */
+.noir-board-frame {
+  background-color: #1a1410;
+  background-image:
+    linear-gradient(135deg, rgba(42, 30, 16, 0.6) 0%, rgba(18, 14, 10, 0.95) 100%);
+  border: 2px solid #3d2e1a;
+  box-shadow:
+    0 0 0 1px #d4a647,
+    0 0 0 4px #1a1410,
+    inset 0 0 40px rgba(0,0,0,0.5),
+    0 30px 70px rgba(0, 0, 0, 0.9);
+}
+
+/* Noir Tile — Yellowed case file card */
+.noir-tile {
+  background-color: #f5e6c8;
+  background-image: linear-gradient(180deg, #f5e6c8 0%, #e8d5aa 100%);
+  border: 1px solid #b8a07a;
+  color: #1a1410;
+  position: relative;
+}
+
+.noir-tile:hover {
+  background-color: #fdf2dc;
+  background-image: none;
+  z-index: 30;
+  box-shadow: 0 0 15px rgba(212, 166, 71, 0.3);
+}
+
+/* Noir Panel — Dark leather/wood inspector panel */
+.noir-panel {
+  background: linear-gradient(135deg, #1a1410 0%, #0e0b08 100%);
+  border: 1px solid rgba(212, 166, 71, 0.3);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.7);
+}
+
+/* Noir venetian blind overlay — horizontal light strips */
+.noir-blinds::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    180deg,
+    transparent 0px,
+    transparent 12px,
+    rgba(0, 0, 0, 0.15) 12px,
+    rgba(0, 0, 0, 0.15) 14px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Film grain noise overlay */
+.noir-grain::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 2;
+  mix-blend-mode: overlay;
+}
+
+/* Heavy vignette around edges */
+.noir-vignette::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(0,0,0,0.6) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Noir Buttons */
+.noir-btn-amber {
+  background: linear-gradient(180deg, #3d2e1a 0%, #2a1f10 100%);
+  border: 1px solid #d4a647;
+  border-bottom: 3px solid #1a1410;
+  color: #f5e6c8;
+  font-family: 'Special Elite', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: all 0.08s;
+}
+.noir-btn-amber:hover { border-color: #e8c060; color: #fff8e8; background: #4a3820; }
+.noir-btn-amber:active { transform: translateY(1px); border-bottom-width: 1px; }
+
+.noir-btn-blood {
+  background: linear-gradient(180deg, #4a1515 0%, #2d0a0a 100%);
+  border: 1px solid #8b0000;
+  border-bottom: 3px solid #1a0505;
+  color: #e8a0a0;
+  font-family: 'Special Elite', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: all 0.08s;
+}
+.noir-btn-blood:hover { border-color: #b30000; color: #ffcccc; }
+.noir-btn-blood:active { transform: translateY(1px); border-bottom-width: 1px; }
+
+.noir-btn-smoke {
+  background: linear-gradient(180deg, #2a2520 0%, #1a1714 100%);
+  border: 1px solid #5a4a3a;
+  border-bottom: 3px solid #0a0806;
+  color: #b8a890;
+  font-family: 'Special Elite', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: all 0.08s;
+}
+.noir-btn-smoke:hover { border-color: #7a6a5a; color: #d8c8b8; }
+.noir-btn-smoke:active { transform: translateY(1px); border-bottom-width: 1px; }
+
+/* Noir dossier stamp */
+.noir-stamp {
+  font-family: 'Special Elite', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  transform: rotate(-4deg);
+  border: 3px solid currentColor;
+  padding: 2px 10px;
+  opacity: 0.85;
+}
+
+.noir-stamp-red {
+  color: #8b0000;
+  border-color: #8b0000;
+}
+
+.noir-stamp-amber {
+  color: #d4a647;
+  border-color: #d4a647;
+}
+
+/* Noir evidence badge */
+.noir-badge {
+  font-family: 'Special Elite', monospace;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #d4a647;
+  background: #1a1410;
+  border: 1px solid #d4a647;
+}
+
+/* Noir suspect card */
+.noir-suspect-card {
+  background: linear-gradient(180deg, #1a1410 0%, #120e0a 100%);
+  border: 1px solid #3d2e1a;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  position: relative;
+}
+
+.noir-suspect-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #d4a647 0%, #8b6914 50%, #d4a647 100%);
+}
+
+/* Noir typewriter text pulse (cursor blink) */
+@keyframes noir-cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.noir-typewriter-cursor::after {
+  content: '▌';
+  animation: noir-cursor-blink 1s infinite;
+  color: #d4a647;
+  margin-left: 2px;
+}
+
+/* Noir corner tile */
+.noir-corner-tile {
+  background-color: #f0ddb0;
+  background-image:
+    linear-gradient(135deg, rgba(212, 166, 71, 0.1) 0%, transparent 50%),
+    linear-gradient(180deg, #f0ddb0 0%, #dcc890 100%);
+  border: 1px solid #b8a07a;
+  color: #1a1410;
+}
+
+/* Noir desk lamp glow for center dashboard */
+.noir-desk-glow {
+  position: relative;
+}
+
+.noir-desk-glow::before {
+  content: '';
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 40%;
+  background: radial-gradient(ellipse, rgba(212, 166, 71, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Noir color-band stripe on tiles — sepia tinted */
+.noir-tile-band-top { border-top-width: 8px; border-top-style: solid; }
+.noir-tile-band-bottom { border-bottom-width: 8px; border-bottom-style: solid; }
+.noir-tile-band-left { border-left-width: 8px; border-left-style: solid; }
+.noir-tile-band-right { border-right-width: 8px; border-right-style: solid; }
 
