@@ -2,6 +2,9 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
+# Install build dependencies for native compilation if needed
+RUN apk add --no-cache python3 build-base
+
 COPY package*.json ./
 RUN npm ci
 
@@ -15,8 +18,13 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 
+# Install build tools, compile native better-sqlite3, then clean up build tools
+RUN apk add --no-cache python3 build-base libstdc++
+
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev \
+    && apk del python3 build-base \
+    && rm -rf /root/.npm /root/.cache
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/public ./public
