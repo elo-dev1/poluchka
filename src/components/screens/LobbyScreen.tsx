@@ -196,6 +196,53 @@ export const LobbyScreen: React.FC = () => {
               </div>
             )}
 
+            {/* Board Theme Indicator (Read-only, chosen randomly for each match) */}
+            <div 
+              className={cn(
+                "w-full p-2.5 border flex items-center justify-between gap-2 text-left shadow-sm rounded-xl transition-all",
+                gameState.theme === 'panel'
+                  ? "bg-teal-950/40 border-teal-500/40 text-teal-100"
+                  : gameState.theme === 'office'
+                  ? "bg-blue-950/40 border-blue-500/40 text-blue-100"
+                  : "bg-slate-900/60 border-slate-700/60 text-slate-200"
+              )}
+            >
+              <div className="flex items-center gap-2">
+                <div className={cn(
+                  "w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 text-base",
+                  gameState.theme === 'panel'
+                    ? "bg-teal-900/40 border-teal-400/40"
+                    : gameState.theme === 'office'
+                    ? "bg-blue-900/40 border-blue-400/40"
+                    : "bg-slate-950 border-slate-700"
+                )}>
+                  {gameState.theme === 'panel' ? '🏢' : gameState.theme === 'office' ? '💼' : '🚗'}
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold">
+                    Тема полей: {gameState.theme === 'panel' ? '«Панельная романтика»' : gameState.theme === 'office' ? '«Офисный планктон»' : '«Автопарк и Гонки»'}
+                  </span>
+                  <span className="text-[10px] text-slate-400">
+                    {gameState.theme === 'panel'
+                      ? 'Пиксельные хрущёвки, ТРК «Планета», маршрутки №33 и дворовый быт'
+                      : gameState.theme === 'office'
+                      ? 'Корпоративные интриги, IT-отдел, дедлайны, кофемашина и совет директоров'
+                      : 'Скоростные болиды, винтажные ретрокары и штрафстоянка'}
+                  </span>
+                </div>
+              </div>
+              <span className={cn(
+                "text-[10px] font-bold px-2 py-0.5 rounded border shrink-0",
+                gameState.theme === 'panel'
+                  ? "bg-teal-950 border-teal-500/50 text-teal-300"
+                  : gameState.theme === 'office'
+                  ? "bg-blue-950 border-blue-500/50 text-blue-300"
+                  : "bg-slate-950 border-slate-700 text-slate-300"
+              )}>
+                {gameState.theme === 'panel' ? 'ПАНЕЛЬКА 🏢' : gameState.theme === 'office' ? 'ОФИС 💼' : 'АВТОДРОМ 🚗'}
+              </span>
+            </div>
+
             <div className="flex items-center justify-center gap-3 flex-wrap">
               <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-black/40 border border-white/10 shadow-inner">
                 <span className="text-xs text-muted-foreground uppercase font-bold">Код стола:</span>

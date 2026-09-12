@@ -141,6 +141,7 @@ export const WelcomeScreen: React.FC = () => {
       boardSize: bSize,
       startingCash: 1500,
       maxPlayers,
+      theme: 'random',
     });
     setLoadingCreate(false);
   };
@@ -529,6 +530,7 @@ export const WelcomeScreen: React.FC = () => {
                     </div>
                   </div>
 
+
                   {/* Privacy Toggle */}
                   <div className={cn(
                     "flex items-center justify-between p-2.5 rounded-none sm:rounded-xl border",
@@ -912,17 +914,31 @@ export const WelcomeScreen: React.FC = () => {
       </div>
 
       {/* 4. Bottom Live Stats & Legal Footer */}
-      <footer className="w-full mt-8 sm:mt-12 pt-6 pb-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between text-[11px] text-muted-foreground gap-3 shrink-0">
-        <div className="flex items-center gap-3">
+      <footer className="w-full mt-8 sm:mt-12 pt-6 pb-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between text-[11px] text-muted-foreground gap-4 shrink-0">
+        <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border border-white/15 bg-white/5 text-foreground">
+            16+
+          </span>
           <span>Открытых столов: {publicRooms.length}</span>
+          <span className="hidden sm:inline text-white/20">•</span>
+          <span className="text-[10px] text-muted-foreground/80 text-center sm:text-left">
+            Развлекательная онлайн-игра. Игровая валюта не имеет реальной ценности (244-ФЗ РФ).
+          </span>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4 text-[11px]">
           <button
-            onClick={() => openModal("legal")}
+            onClick={() => openModal("legal", { tab: "terms" })}
             className="hover:text-foreground transition-colors underline underline-offset-4 cursor-pointer"
           >
-            Соглашение и 152-ФЗ
+            Пользовательское соглашение
+          </button>
+          <span className="text-white/20">•</span>
+          <button
+            onClick={() => openModal("legal", { tab: "privacy" })}
+            className="hover:text-foreground transition-colors underline underline-offset-4 cursor-pointer"
+          >
+            Конфиденциальность (152-ФЗ)
           </button>
         </div>
       </footer>

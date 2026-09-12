@@ -44,7 +44,7 @@ interface GameContextType {
   closeModal: () => void;
   showToast: (message: string, type?: 'info' | 'success' | 'warning' | 'error', duration?: number) => void;
   removeToast: (id: string) => void;
-  createRoom: (name: string, isPrivate?: boolean, options?: { mode?: 'standard' | 'blitz' | 'ranked'; gameMode?: 'classic' | 'reverse' | 'team'; maxRounds?: number; boardSize?: 40 | 24; startingCash?: number; maxPlayers?: number }) => Promise<{ success: boolean; error?: string }>;
+  createRoom: (name: string, isPrivate?: boolean, options?: { mode?: 'standard' | 'blitz' | 'ranked'; gameMode?: 'classic' | 'reverse' | 'team'; maxRounds?: number; boardSize?: 40 | 24; startingCash?: number; maxPlayers?: number; theme?: 'panel' | 'cars' | 'random' }) => Promise<{ success: boolean; error?: string }>;
   joinRoom: (code: string, name: string) => Promise<{ success: boolean; error?: string }>;
   quickMatch: () => Promise<{ success: boolean; isNewRoom?: boolean; error?: string }>;
   leaveRoom: () => void;
@@ -96,6 +96,7 @@ export interface SocketResponse<T = any> {
   state?: GameState;
   roomId?: string;
   playerId?: string;
+  sessionToken?: string;
   error?: string;
   isNewRoom?: boolean;
   leaderboard?: any[];
@@ -110,6 +111,7 @@ export interface SocketResponse<T = any> {
 const GameContext = createContext<GameContextType | null>(null);
 
 const STORAGE_ROOM_KEY = 'monopoly_saved_room_id';
+const STORAGE_SESSION_TOKEN_KEY = 'monopoly_saved_session_token';
 const STORAGE_PLAYER_KEY = 'monopoly_saved_player_id';
 const STORAGE_NAME_KEY = 'monopoly_saved_player_name';
 const STORAGE_CHARACTER_KEY = 'monopoly_saved_character_id';
@@ -361,6 +363,29 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     newSocket.on('connect', () => {
       fetchPublicRooms();
+      const currentSavedRoom = safeGetStorage(STORAGE_ROOM_KEY);
+      const currentSavedToken = safeGetStorage(STORAGE_SESSION_TOKEN_KEY);
+      const currentPId = playerIdRef.current || safeGetStorage(STORAGE_PLAYER_KEY);
+      if (currentSavedRoom && currentPId) {
+        newSocket.emit('reconnect_player', {
+          roomId: currentSavedRoom,
+          playerId: currentPId,
+          sessionToken: currentSavedToken
+        }, (res: SocketResponse) => {
+          if (res && res.success && res.state) {
+            setGameState(res.state);
+            setRoomId(res.roomId || currentSavedRoom);
+            if (res.sessionToken) safeSetStorage(STORAGE_SESSION_TOKEN_KEY, res.sessionToken);
+            showToastRef.current(`Восстановлена сессия в комнате [${res.roomId || currentSavedRoom}]`, 'success', 2500);
+          } else {
+            safeRemoveStorage(STORAGE_ROOM_KEY);
+            safeRemoveStorage(STORAGE_SESSION_TOKEN_KEY);
+            setGameState(null);
+            setRoomId(null);
+            fetchPublicRooms();
+          }
+        });
+      }
     });
 
     newSocket.on('rooms_list_updated', handleRoomsUpdate);
@@ -401,18 +426,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         showToastRef.current(`🏆 Победитель: ${data.winner.name}! Поздравляем!`, 'success', 5000);
       }
     });
-
-    // Check for saved room session to reconnect
-    const savedRoom = safeGetStorage(STORAGE_ROOM_KEY);
-    if (savedRoom && pId) {
-      newSocket.emit('reconnect_player', { roomId: savedRoom, playerId: pId }, (res: SocketResponse) => {
-        if (res && res.success && res.state) {
-          setGameState(res.state);
-          setRoomId(res.roomId || savedRoom);
-          showToastRef.current(`Восстановлена сессия в комнате [${res.roomId || savedRoom}]`, 'success', 2500);
-        }
-      });
-    }
 
     // Initial fetch of rooms
     fetchPublicRooms();
@@ -481,9 +494,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [currentUser, showToast, openModal]);
 
-  const createRoom = useCallback(async (name: string, isPrivate: boolean = false, options: { mode?: 'standard' | 'blitz' | 'ranked'; gameMode?: 'classic' | 'reverse' | 'team'; maxRounds?: number; boardSize?: 40 | 24; startingCash?: number; maxPlayers?: number } = {}) => {
+  const createRoom = useCallback(async (name: string, isPrivate: boolean = false, options: { mode?: 'standard' | 'blitz' | 'ranked'; gameMode?: 'classic' | 'reverse' | 'team'; maxRounds?: number; boardSize?: 40 | 24; startingCash?: number; maxPlayers?: number; theme?: 'panel' | 'cars' | 'random' } = {}) => {
     if (!socket) return { success: false, error: 'Сокет не подключен' };
-    const cleanName = name.trim() || 'Игрок 1';
+    const cleanName = name.trim().substring(0, 24) || 'Игрок 1';
     setPlayerName(cleanName);
     safeSetStorage(STORAGE_NAME_KEY, cleanName);
 
@@ -498,6 +511,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         boardSize: options.boardSize || (options.mode === 'blitz' ? 24 : 40),
         startingCash: options.startingCash || 1500,
         maxPlayers: options.maxPlayers || (options.mode === 'ranked' ? 2 : (options.gameMode === 'team' ? 4 : 6)),
+        theme: options.theme || 'random',
         telegramId: currentUser ? currentUser.telegramId : null,
         avatarUrl: currentUser ? currentUser.avatarUrl : null,
         username: currentUser ? currentUser.username : null,
@@ -508,6 +522,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setGameState(res.state);
           setChatMessages([]);
           safeSetStorage(STORAGE_ROOM_KEY, res.roomId);
+          if (res.sessionToken) safeSetStorage(STORAGE_SESSION_TOKEN_KEY, res.sessionToken);
           showToast(`Комната [${res.roomId}] создана!`, 'success');
           resolve({ success: true });
         } else {
@@ -521,7 +536,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const joinRoom = useCallback(async (code: string, name: string) => {
     if (!socket) return { success: false, error: 'Сокет не подключен' };
     const cleanCode = (code || '').trim().toUpperCase();
-    const cleanName = name.trim() || 'Игрок';
+    const cleanName = name.trim().substring(0, 24) || 'Игрок';
     setPlayerName(cleanName);
     safeSetStorage(STORAGE_NAME_KEY, cleanName);
 
@@ -540,6 +555,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setGameState(res.state);
           setChatMessages([]);
           safeSetStorage(STORAGE_ROOM_KEY, res.roomId);
+          if (res.sessionToken) safeSetStorage(STORAGE_SESSION_TOKEN_KEY, res.sessionToken);
           showToast(`Вы присоединились к [${res.roomId}]!`, 'success');
           resolve({ success: true });
         } else {
@@ -552,7 +568,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const quickMatch = useCallback(async () => {
     if (!socket) return { success: false, error: 'Сокет не подключен' };
-    const cleanName = (playerName || '').trim() || 'Игрок';
+    const cleanName = (playerName || '').trim().substring(0, 24) || 'Игрок';
     setPlayerName(cleanName);
     safeSetStorage(STORAGE_NAME_KEY, cleanName);
 
@@ -570,6 +586,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setGameState(res.state);
           setChatMessages([]);
           safeSetStorage(STORAGE_ROOM_KEY, res.roomId);
+          if (res.sessionToken) safeSetStorage(STORAGE_SESSION_TOKEN_KEY, res.sessionToken);
           if (res.isNewRoom) {
             showToast(`Создан открытый стол [${res.roomId}]! Ожидаем игроков...`, 'success', 3000);
           } else {
@@ -597,6 +614,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const leaveRoom = useCallback(() => {
     safeRemoveStorage(STORAGE_ROOM_KEY);
+    safeRemoveStorage(STORAGE_SESSION_TOKEN_KEY);
     if (socket) {
       if (roomId && playerId) {
         socket.emit('leave_room', { roomId, playerId });
@@ -612,15 +630,18 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const reconnectSession = useCallback(() => {
     const savedRoom = safeGetStorage(STORAGE_ROOM_KEY);
+    const savedToken = safeGetStorage(STORAGE_SESSION_TOKEN_KEY);
     if (socket && savedRoom && playerId) {
-      socket.emit('reconnect_player', { roomId: savedRoom, playerId }, (res: SocketResponse) => {
+      socket.emit('reconnect_player', { roomId: savedRoom, playerId, sessionToken: savedToken }, (res: SocketResponse) => {
         if (res && res.success) {
           setGameState(res.state);
           setRoomId(res.roomId);
+          if (res.sessionToken) safeSetStorage(STORAGE_SESSION_TOKEN_KEY, res.sessionToken);
           showToast(`Переподключено к [${res.roomId}]`, 'success');
         } else {
           showToast('Сессия устарела', 'warning');
           safeRemoveStorage(STORAGE_ROOM_KEY);
+          safeRemoveStorage(STORAGE_SESSION_TOKEN_KEY);
         }
       });
     }
@@ -628,6 +649,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const discardSession = useCallback(() => {
     safeRemoveStorage(STORAGE_ROOM_KEY);
+    safeRemoveStorage(STORAGE_SESSION_TOKEN_KEY);
     showToast('Сохраненная сессия сброшена', 'info', 1500);
   }, [showToast]);
 
@@ -930,10 +952,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [socket, roomId, playerId, showToast]);
 
   const dismissCard = useCallback(() => {
-    if (socket && roomId) {
-      socket.emit('dismiss_card', { roomId });
+    if (socket && roomId && playerId) {
+      socket.emit('dismiss_card', { roomId, playerId });
     }
-  }, [socket, roomId]);
+  }, [socket, roomId, playerId]);
 
   const sendChatMessage = useCallback((text: string) => {
     if (socket && roomId && playerId && text.trim()) {
@@ -1091,24 +1113,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
               showToast('Никнейм успешно изменён!', 'success');
               resolve(true);
             } else {
-              const updated = { ...currentUser, firstName: clean };
-              setCurrentUser(updated);
-              safeSetStorage(STORAGE_TG_USER_KEY, JSON.stringify(updated));
-              setPlayerName(clean);
-              safeSetStorage(STORAGE_NAME_KEY, clean);
-              showToast('Никнейм изменён!', 'success');
-              resolve(true);
+              showToast(res?.error || 'Ошибка изменения никнейма', 'error');
+              resolve(false);
             }
           });
         });
       } else {
-        const updated = { ...currentUser, firstName: clean };
-        setCurrentUser(updated);
-        safeSetStorage(STORAGE_TG_USER_KEY, JSON.stringify(updated));
-        setPlayerName(clean);
-        safeSetStorage(STORAGE_NAME_KEY, clean);
-        showToast('Никнейм изменён!', 'success');
-        return true;
+        showToast('Нет подключения к серверу', 'error');
+        return false;
       }
     }
 

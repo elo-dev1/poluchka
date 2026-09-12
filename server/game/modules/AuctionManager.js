@@ -88,16 +88,20 @@ class AuctionManager {
     }
 
     const numericBid = Number(bidAmount);
-    if (isNaN(numericBid)) {
+    if (isNaN(numericBid) || !Number.isFinite(numericBid) || numericBid <= 0) {
       throw new Error('Некорректная сумма ставки');
     }
 
     if (!auction.isDirectOffer) {
-      if (numericBid <= auction.currentBid && auction.highestBidderId !== null) {
-        throw new Error(`Ставка должна быть больше текущей ($${auction.currentBid})`);
-      }
-      if (numericBid < auction.currentBid && auction.highestBidderId === null) {
-        throw new Error(`Минимальная стартовая ставка: $${auction.currentBid}`);
+      const minStep = auction.minIncrement || 1;
+      if (auction.highestBidderId === null) {
+        if (numericBid < auction.currentBid) {
+          throw new Error(`Минимальная стартовая ставка: $${auction.currentBid}`);
+        }
+      } else {
+        if (numericBid < auction.currentBid + minStep) {
+          throw new Error(`Ставка должна быть как минимум на $${minStep} больше текущей ($${auction.currentBid + minStep})`);
+        }
       }
     }
 

@@ -107,7 +107,7 @@ export const RulesModal: React.FC = () => {
                   👑 КЛАССИЧЕСКАЯ ПОЛУЧКА (40 КЛЕТОК)
                 </span>
                 <p>
-                  Полномасштабный турнирный формат: периметр 11x11, 28 цифровых активов (22 IT-компании и бренда в 8 отраслях, 4 транспортные сети Uber/Bolt/Lyft/Gett и 2 цифровых сервиса WinRAR/Speedtest).
+                  Полномасштабный турнирный формат: периметр 11x11, 28 активов (22 объекта недвижимости в 8 цветовых группах, 4 транспортные линии и 2 коммунальных сервиса).
                 </p>
               </div>
 
@@ -121,20 +121,20 @@ export const RulesModal: React.FC = () => {
               </div>
 
               <div className={cn("p-3 rounded-none border flex flex-col gap-2", isNoir ? "bg-[#1a1410] border-[#d4a647]/30" : isSoviet ? "bg-[#09111c] border-[#38bdf8]/30" : "bg-[#020617] border-slate-500/30")}>
-                <span className="font-bold text-xs text-white">🏢 МОНОПОЛИИ И РАЗВИТИЕ КОМПАНИЙ</span>
+                <span className="font-bold text-xs text-white">🏢 МОНОПОЛИИ И СТРОИТЕЛЬСТВО</span>
                 <ul className="flex flex-col gap-1 list-disc list-inside text-xs text-muted-foreground">
-                  <li>Сбор всех компаний одной отрасли <strong>удваивает базовую прибыль</strong> незастроенных активов.</li>
-                  <li>В собранной монополии можно возводить до 4 филиалов и 1 головной офис/дата-центр на каждой компании.</li>
-                  <li>Развитие ведется строго равномерно по всей отрасли.</li>
-                  <li>Головной офис приносит максимальную выплату, способную разорить конкурентов.</li>
+                  <li>Сбор всех объектов одной группы <strong>удваивает базовую прибыль</strong> незастроенных активов.</li>
+                  <li>В собранной монополии можно возводить до 4 домов/филиалов и 1 отель/комплекс на каждом объекте.</li>
+                  <li>Развитие ведется строго равномерно по всей группе.</li>
+                  <li>Отель/комплекс приносит максимальную выплату, способную разорить конкурентов.</li>
                 </ul>
               </div>
 
               <div className={cn("p-3 rounded-none border flex flex-col gap-2", isNoir ? "bg-[#1a1410] border-[#d4a647]/30" : isSoviet ? "bg-[#09111c] border-[#38bdf8]/30" : "bg-[#020617] border-slate-500/30")}>
-                <span className="font-bold text-xs text-white">🚗 ТРАНСПОРТНЫЕ СЕТИ И ЦИФРОВЫЕ СЕРВИСЫ</span>
+                <span className="font-bold text-xs text-white">🚗 ТРАНСПОРТНЫЕ ЛИНИИ И КОММУНАЛЬНЫЕ СЕРВИСЫ</span>
                 <ul className="flex flex-col gap-1 list-disc list-inside text-xs text-muted-foreground">
-                  <li><strong>4 Транспортные сети (Uber, Bolt, Lyft, Gett):</strong> Оплата проезда растет геометрически: 1 сервис = $25, 2 = $50, 3 = $100, все 4 = $200.</li>
-                  <li><strong>2 Цифровых сервиса (WinRAR и Speedtest):</strong> Оплата зависит от броска кубиков: 4x от суммы кубиков (при 1 сервисе) или 10x (при владении обоими).</li>
+                  <li><strong>4 Транспортные линии:</strong> Оплата проезда растет с числом станций во владении: 1 линия = $25, 2 = $50, 3 = $100, все 4 = $200.</li>
+                  <li><strong>2 Коммунальных сервиса:</strong> Оплата зависит от броска кубиков: 4x от суммы очков на кубиках (при 1 сервисе) или 10x (при владении обоими).</li>
                 </ul>
               </div>
             </TabsContent>
@@ -153,8 +153,8 @@ export const RulesModal: React.FC = () => {
               <div className={cn("p-3 rounded-none border flex flex-col gap-2", isNoir ? "bg-[#1a1410] border-[#d4a647]/30" : isSoviet ? "bg-[#09111c] border-[#38bdf8]/30" : "bg-[#020617] border-slate-500/30")}>
                 <span className="font-bold text-xs text-white">⚡ ОСОБЕННОСТИ БЛИЦА</span>
                 <ul className="flex flex-col gap-1 list-disc list-inside text-xs text-muted-foreground">
-                  <li><strong>Поле 24 клетки:</strong> Всего 14 компаний в 7 отраслях — каждый бросок приводит на ключевую позицию.</li>
-                  <li><strong>Монополия из 2 компаний:</strong> В каждой отрасли только 2 актива, монополия собирается вдвое быстрее!</li>
+                  <li><strong>Поле 24 клетки:</strong> Всего 14 объектов в 7 группах — каждый бросок приводит на ключевую позицию.</li>
+                  <li><strong>Монополия из 2 объектов:</strong> В каждой группе только 2 актива, монополия собирается вдвое быстрее!</li>
                   <li><strong>Капитал:</strong> $1,000 на старте, получка за круг $150.</li>
                   <li><strong>Острый темп:</strong> Развитие филиалов начинается уже со 2-го круга, ошибки стоят дороже.</li>
                 </ul>
@@ -198,7 +198,7 @@ export const RulesModal: React.FC = () => {
                 <ul className="flex flex-col gap-1 list-disc list-inside text-xs text-muted-foreground">
                   <li><strong>Подсчет капитала:</strong> Деньги + 100% стоимости всех активов + 50% построек.</li>
                   <li><strong>Банкротство = Выбывание:</strong> Если баланс упадет ниже $0 — вы дисквалифицируетесь!</li>
-                  <li><strong>Оплата Банку:</strong> Плата за посещение чужих компаний уходит Банку, а не владельцу.</li>
+                  <li><strong>Оплата Банку:</strong> Плата за посещение чужих объектов уходит Банку, а не владельцу.</li>
                   <li><strong>Принудительный аукцион:</strong> При отсутствии ставок актив достается текущему игроку по номиналу.</li>
                   <li><strong>Лимит раундов:</strong> Игра завершается через 10 (блиц) или 20 (стандарт) кругов стола.</li>
                 </ul>

@@ -88,6 +88,8 @@ export const RightPanel: React.FC<RightPanelProps> = ({
     activeTile ||
     (myProperties.length > 0 ? myProperties[0] : gameState.board[1]);
 
+  const isPanel = gameState?.boardTheme === 'panel' || gameState?.theme === 'panel' || theme === 'panel' || Boolean(displayTile?.iconUrl?.includes('/panel/'));
+  const isOffice = gameState?.boardTheme === 'office' || gameState?.theme === 'office' || theme === 'office' || Boolean(displayTile?.iconUrl?.includes('/office/'));
   const isProperty = displayTile?.type === "property";
   const isTransport = isProperty && displayTile?.group === "transport";
   const isUtility = isProperty && displayTile?.group === "utility";
@@ -108,17 +110,16 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   const housesCount = displayTile?.houses || 0;
   const isMaxHouses = housesCount >= 5;
   const currentUpgradeCost = displayTile
-    ? displayTile.upgradeCost ||
-      Math.round((displayTile.housePrice || 50) * (1 + housesCount * 0.25))
+    ? getUpgradeCost(displayTile, housesCount)
     : 50;
   const currentSellRefund = displayTile
-    ? displayTile.sellRefund !== undefined
-      ? displayTile.sellRefund
+    ? housesCount > 0
+      ? getSellRefund(displayTile, housesCount)
       : Math.floor(
-          Math.round(
+          (
             (displayTile.housePrice || 50) *
-              (1 + Math.max(0, housesCount - 1) * 0.25),
-          ) / 2,
+            (1 + Math.max(0, housesCount - 1) * 0.25)
+          ) / 2
         )
     : 25;
   const canAffordHouse = Boolean(
@@ -128,7 +129,35 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   const getSpecialInfo = (tile: TileData) => {
     switch (tile.type) {
       case "start":
-        return {
+        return isNoir ? {
+          category: "Бюро Детектива",
+          badgeColor: "bg-slate-900/20 text-[#00e676] border-[#00e676]/40",
+          bannerColor: "#059669",
+          icon: "🕵️",
+          description: tile.description || "Ваш офис. Каждый раз при прохождении или остановке вы получаете гонорар $200.",
+          rules: ["Каждая глава начинается с этой точки", "Гонорар $200 зачисляется автоматически при пересечении черты", "Точная остановка дает дополнительный бонус"],
+        } : isSoviet ? {
+          category: "Космодром Байконур",
+          badgeColor: "bg-slate-500/20 text-slate-300 border-slate-500/40",
+          bannerColor: "#0284c7",
+          icon: "🚀",
+          description: tile.description || "Гагаринский старт площадки №1. Экипаж получает пополнение энергобаланса +200 кР.",
+          rules: ["Орбитальный виток начинается с этой точки", "Энергия +200 кР зачисляется автоматически при пересечении меридиана", "Точная посадка дает дополнительный бонус"],
+        } : isPanel ? {
+          category: "День получки",
+          badgeColor: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+          bannerColor: "#059669",
+          icon: "💰",
+          description: tile.description || "Официальный аванс и получка. Каждый раз при прохождении или остановке на клетке вы получаете +$200 в бюджет.",
+          rules: ["Каждый круг по спальному району начинается с этой клетки", "Получите законные $200 получки при пересечении черты", "Точная остановка приносит дополнительный бонус"],
+        } : isOffice ? {
+          category: "День зарплаты",
+          badgeColor: "bg-blue-500/20 text-blue-300 border-blue-500/40",
+          bannerColor: "#2563eb",
+          icon: "💳",
+          description: tile.description || "Зарплата упала на карту! Каждый раз при прохождении или остановке вы получаете +$200 оклада.",
+          rules: ["Каждый рабочий цикл начинается с этой клетки", "Оклад $200 зачисляется автоматически при пересечении черты", "Точная остановка приносит дополнительный бонус"],
+        } : {
           category: "Автодром «Старт»",
           badgeColor:
             "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
@@ -144,7 +173,35 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           ],
         };
       case "chance":
-        return {
+        return isNoir ? {
+          category: "Анонимка",
+          badgeColor: "bg-amber-900/20 text-[#d4a647] border-[#d4a647]/40",
+          bannerColor: "#d97706",
+          icon: "✉️",
+          description: tile.description || "Письмо без обратного адреса. Тяните анонимку из стопки и следуйте указаниям.",
+          rules: ["Может принести зацепку, деньги или проблемы", "Может направить по ложному следу", "Может содержать компромат на мэра"],
+        } : isSoviet ? {
+          category: "Радиограмма «Шанс»",
+          badgeColor: "bg-cyan-500/20 text-cyan-300 border-cyan-500/40",
+          bannerColor: "#0891b2",
+          icon: "📡",
+          description: tile.description || "Канал оперативной связи. При выходе в сектор экипаж принимает радиограмму.",
+          rules: ["Может принести премию АН СССР или коррекцию курса", "Может направить к другому орбитальному комплексу", "Может содержать код выхода из карантина"],
+        } : isPanel ? {
+          category: "Объявления на столбе",
+          badgeColor: "bg-cyan-500/20 text-cyan-300 border-cyan-500/40",
+          bannerColor: "#0891b2",
+          icon: "📋",
+          description: tile.description || "Случайные объявления и события спального района. Тяните карточку «Шанс» и испытайте судьбу.",
+          rules: ["Может принести неожиданную шабашку, находку или штраф", "Может отправить на другую улицу района", "Может содержать записку для участкового"],
+        } : isOffice ? {
+          category: "Служебный шанс",
+          badgeColor: "bg-amber-500/20 text-amber-300 border-amber-500/40",
+          bannerColor: "#d97706",
+          icon: "💼",
+          description: tile.description || "Оффер от конкурентов, внезапная проверка или карьерный взлёт.",
+          rules: ["Тяните карту из стопки корпоративных шансов", "Действие карты применяется немедленно", "Может кардинально изменить баланс сил в офисе"],
+        } : {
           category: "Дорожный инцидент",
           badgeColor: "bg-purple-500/20 text-purple-300 border-purple-500/40",
           bannerColor: "#7C3AED",
@@ -159,7 +216,35 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           ],
         };
       case "chest":
-        return {
+        return isNoir ? {
+          category: "Дело №...",
+          badgeColor: "bg-red-900/20 text-[#8b0000] border-[#8b0000]/40",
+          bannerColor: "#991b1b",
+          icon: "📁",
+          description: tile.description || "Архив нераскрытых дел синдиката.",
+          rules: ["Гонорары от клиентов, взятки, премии или штрафы", "Расходы на осведомителей", "Дело расследуется немедленно"],
+        } : isSoviet ? {
+          category: "Госкомиссия ОКБ-1",
+          badgeColor: "bg-red-500/20 text-red-300 border-red-500/40",
+          bannerColor: "#dc2626",
+          icon: "★",
+          description: tile.description || "Директива Государственной комиссии.",
+          rules: ["Государственные гранты и снабжение", "Расходы на регламент бортовых систем", "Директива исполняется незамедлительно"],
+        } : isPanel ? {
+          category: "Госуслуги / ЖЭК",
+          badgeColor: "bg-amber-500/20 text-amber-300 border-amber-300/40",
+          bannerColor: "#d97706",
+          icon: "🏛️",
+          description: tile.description || "Общественная касса и уведомления от Госуслуг и ЖЭКа. Возьмите карту и получите выплату или квитанцию.",
+          rules: ["Социальные выплаты, перерасчет квартплаты или премии", "Расходы на ремонт подъезда, поверку счетчиков и домофон", "Карта разыгрывается немедленно"],
+        } : isOffice ? {
+          category: "Корпоративная Казна",
+          badgeColor: "bg-purple-500/20 text-purple-300 border-purple-500/40",
+          bannerColor: "#9333ea",
+          icon: "🎁",
+          description: tile.description || "Премиальный фонд, 13-я зарплата и дивиденды холдинга.",
+          rules: ["Тяните карту из корпоративной казны", "Действие применяется моментально", "Фонд премирования и квартальных бонусов"],
+        } : {
           category: "Гаражный фонд",
           badgeColor: "bg-blue-500/20 text-blue-300 border-blue-500/40",
           bannerColor: "#2563EB",
@@ -174,7 +259,35 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           ],
         };
       case "jail":
-        return {
+        return isNoir ? {
+          category: "Каталажка",
+          badgeColor: "bg-slate-800/20 text-[#b8a890] border-[#b8a890]/40",
+          bannerColor: "#334155",
+          icon: "⛓️",
+          description: "Если вы прибыли ходом — вы просто навестили информатора в камере.",
+          rules: ["Обычный ход: статус «Навещает»", "При задержании: залог $50, связи или фарт", "После 3 попыток бросить фарт — залог $50 обязателен"],
+        } : isSoviet ? {
+          category: "Пояс Ван Аллена (Карантин)",
+          badgeColor: "bg-slate-500/20 text-slate-300 border-slate-500/40",
+          bannerColor: "#475569",
+          icon: "⚠️",
+          description: "Сектор радиационной опасности и карантина.",
+          rules: ["Штатный пролет: никаких задержек", "При изоляции: продувка 50 кР или дубль", "После 3 витков продувка принудительна"],
+        } : isPanel ? {
+          category: "КПЗ РОВД",
+          badgeColor: "bg-slate-500/20 text-slate-300 border-slate-500/40",
+          bannerColor: "#475569",
+          icon: "👮",
+          description: "Районное отделение милиции / полиции. Если вы просто остановились здесь ходом — это обычный визит к участковому.",
+          rules: ["Обычный ход: статус «Просто заглянул» (свободно продолжаете игру)", "При задержании: штраф $50, справка или дубль на кубиках", "После 3 попыток штраф $50 обязателен"],
+        } : isOffice ? {
+          category: "Душный кубикл",
+          badgeColor: "bg-red-500/20 text-red-300 border-red-500/40",
+          bannerColor: "#dc2626",
+          icon: "🧱",
+          description: "Штрафной стол прямо за бетонной колонной без окон. Только посещение или отработка дисциплинарного взыскания.",
+          rules: ["Обычный ход: статус «Навещает» (продолжаете игру без задержек)", "При вызове: штраф $50, служебная записка или дубль на кубиках", "После 3 попыток штраф $50 обязателен"],
+        } : {
           category: "Пост ДПС / Штрафстоянка",
           badgeColor: "bg-slate-500/20 text-slate-300 border-slate-500/40",
           bannerColor: "#475569",
@@ -188,7 +301,35 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           ],
         };
       case "parking":
-        return {
+        return isNoir ? {
+          category: "Тёмный переулок",
+          badgeColor: "bg-teal-900/20 text-teal-500 border-teal-500/40",
+          bannerColor: "#0f766e",
+          icon: "👤",
+          description: tile.description || "Безопасное место, чтобы залечь на дно.",
+          rules: ["Никаких платежей мафии или полиции", "Полная безопасность до следующего хода", "Можно спокойно выкурить сигарету"],
+        } : isSoviet ? {
+          category: "Геостационарный дрейф",
+          badgeColor: "bg-teal-500/20 text-teal-300 border-teal-500/40",
+          bannerColor: "#0d9488",
+          icon: "🛰️",
+          description: tile.description || "Орбитальный причал и зона свободного дрейфа.",
+          rules: ["Никаких пошлин и сборов", "Полная сохранность энергобаланса", "Следующий импульс в штатном порядке"],
+        } : isPanel ? {
+          category: "Лавочка у подъезда",
+          badgeColor: "bg-teal-500/20 text-teal-300 border-teal-500/40",
+          bannerColor: "#0d9488",
+          icon: "🐱",
+          description: tile.description || "Уютная лавочка у подъезда с дворовыми котами. Безопасное место для отдыха, где никто не требует квартплату.",
+          rules: ["Никаких платежей и сборов ЖКХ", "Полный покой и безопасность до следующего хода", "Можно спокойно посидеть и покормить кота"],
+        } : isOffice ? {
+          category: "Выгорание в лаундже",
+          badgeColor: "bg-indigo-500/20 text-indigo-300 border-indigo-500/40",
+          bannerColor: "#4f46e5",
+          icon: "🛋️",
+          description: tile.description || "Мягкий пуфик под комнатным фикусом. Безопасный отдых от бесконечных созвонов в Зуме.",
+          rules: ["Никаких сборов и арендных выплат", "Полный покой и безопасность до следующего хода", "Можно спокойно полежать с закрытыми глазами"],
+        } : {
           category: "Пит-стоп / Автокемпинг",
           badgeColor: "bg-teal-500/20 text-teal-300 border-teal-500/40",
           bannerColor: "#0D9488",
@@ -203,7 +344,35 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           ],
         };
       case "gotojail":
-        return {
+        return isNoir ? {
+          category: "Облава",
+          badgeColor: "bg-red-900/20 text-[#ff4444] border-[#8b0000]/40",
+          bannerColor: "#b91c1c",
+          icon: "🚨",
+          description: "За вами хвост! Немедленно отправляйтесь в каталажку.",
+          rules: ["Немедленное перемещение в каталажку", "Гонорар $200 не начисляется", "Текущее расследование прерывается"],
+        } : isSoviet ? {
+          category: "Аварийный сход с орбиты",
+          badgeColor: "bg-red-500/20 text-red-300 border-red-500/40",
+          bannerColor: "#dc2626",
+          icon: "🚨",
+          description: "Приказ ЦУП: экстренный маневр в сектор карантина.",
+          rules: ["Корабль телепортируется в зону карантина", "Бонус за Байконур не начисляется", "Текущий сеанс прекращается"],
+        } : isPanel ? {
+          category: "Наряд ППС",
+          badgeColor: "bg-red-500/20 text-red-300 border-red-500/40",
+          bannerColor: "#dc2626",
+          icon: "🚨",
+          description: tile.description || "Вас заметил наряд ППС! Немедленно проследуйте в КПЗ РОВД.",
+          rules: ["Немедленная доставка в КПЗ РОВД", "Получка $200 за круг не выплачивается", "Текущий ход немедленно завершается"],
+        } : isOffice ? {
+          category: "На ковёр к СЕО",
+          badgeColor: "bg-red-500/20 text-red-300 border-red-500/40",
+          bannerColor: "#b91c1c",
+          icon: "🚪",
+          description: tile.description || "«Срочно зайдите к генеральному!» Отправляйтесь прямо в штрафной кубикл за колонной.",
+          rules: ["Немедленная доставка в штрафной кубикл", "Зарплата $200 за круг не выплачивается", "Текущий ход немедленно завершается"],
+        } : {
           category: "Эвакуация на штрафстоянку",
           badgeColor: "bg-red-500/20 text-red-300 border-red-500/40",
           bannerColor: "#DC2626",
@@ -218,7 +387,35 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           ],
         };
       case "tax":
-        return {
+        return isNoir ? {
+          category: "Крыша",
+          badgeColor: "bg-amber-900/20 text-[#d4a647] border-[#d4a647]/40",
+          bannerColor: "#b45309",
+          icon: "💰",
+          description: tile.description || `Пришло время платить за спокойствие. Отдайте синдикату $${tile.amount || 200}.`,
+          rules: [`Сумма выплаты: $${tile.amount || 200}`, "Деньги уходят в общак", "При нехватке средств идите к ростовщику"],
+        } : isSoviet ? {
+          category: "Энергетический сбор",
+          badgeColor: "bg-amber-500/20 text-amber-300 border-amber-500/40",
+          bannerColor: "#f59e0b",
+          icon: "⚡",
+          description: tile.description || `Сбор на развитие орбитальной инфраструктуры: ${tile.amount || 200} кР.`,
+          rules: [`Сумма сбора: ${tile.amount || 200} кР`, "Энергия списывается в центральный фонд", "При нехватке энергии законсервируйте объекты"],
+        } : isPanel ? {
+          category: "Квитанция ЖКХ / Капремонт",
+          badgeColor: "bg-rose-500/20 text-rose-300 border-rose-500/40",
+          bannerColor: "#E11D48",
+          icon: "🧾",
+          description: tile.description || `Обязательный платеж по квитанции ЖКХ и капремонту: $${tile.amount || 200}.`,
+          rules: [`Сумма сбора: $${tile.amount || 200}`, "Деньги перечисляются в коммунальный фонд", "При нехватке наличных заложите недвижимость в банк"],
+        } : isOffice ? {
+          category: "Офисный сбор / Штраф",
+          badgeColor: "bg-rose-500/20 text-rose-300 border-rose-500/40",
+          bannerColor: "#e11d48",
+          icon: "🧾",
+          description: tile.description || `Обязательный сбор или штраф бухгалтерии: $${tile.amount || 100}.`,
+          rules: [`Сумма сбора: $${tile.amount || 100}`, "Средства перечисляются в бюджет компании", "При нехватке наличных заложите доли отделов в казну"],
+        } : {
           category: "Транспортный налог / Утильсбор",
           badgeColor: "bg-rose-500/20 text-rose-300 border-rose-500/40",
           bannerColor: "#E11D48",
@@ -276,7 +473,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           <div className="flex items-center gap-1.5">
             <Building2 className={cn("w-3.5 h-3.5", isNoir ? "text-[#d4a647]" : isSoviet ? "text-[#38bdf8]" : "text-slate-400")} />
             <span className={cn("text-xs sm:text-sm font-bold tracking-wide", isNoir ? "font-noir-title text-[#f5e6c8]" : isSoviet ? "font-soviet text-[#e2e8f0]" : "font-sans text-white")}>
-              {isNoir ? "ДОСЬЕ НА ТЕРРИТОРИЮ" : isSoviet ? "ПАСПОРТ ОБЪЕКТА ОКБ-1" : (isProperty ? "ТЕХПАСПОРТ АВТОМОБИЛЯ" : "СПЕЦИАЛЬНОЕ ПОЛЕ")}
+              {isNoir ? "ДОСЬЕ НА ТЕРРИТОРИЮ" : isSoviet ? "ПАСПОРТ ОБЪЕКТА ОКБ-1" : isPanel ? (isProperty ? "КАРТОЧКА НЕДВИЖИМОСТИ" : "СПЕЦИАЛЬНЫЙ СЕКТОР") : isOffice ? (isProperty ? "КАРТОЧКА ОТДЕЛА" : "СПЕЦИАЛЬНЫЙ СЕКТОР") : (isProperty ? "ТЕХПАСПОРТ АВТОМОБИЛЯ" : "СПЕЦИАЛЬНОЕ ПОЛЕ")}
             </span>
           </div>
           <div className="flex items-center gap-1">
@@ -318,15 +515,20 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           >
             <span className="text-[8px] sm:text-[9px] uppercase tracking-widest font-bold opacity-90">
               {isProperty
-                ? displayTile.groupName || (isNoir ? "СЕКТОР" : isSoviet ? "СЕКТОР ОРБИТЫ" : "ГРУППА")
+                ? displayTile.groupName || (isNoir ? "СЕКТОР" : isSoviet ? "СЕКТОР ОРБИТЫ" : isPanel ? "РАЙОН" : isOffice ? "ДЕПАРТАМЕНТ" : "ГРУППА")
                 : specialInfo?.category || (isNoir ? "ДЕТАЛИ ДЕЛА" : isSoviet ? "ОБЪЕКТ ЦУП" : "СПЕЦИАЛЬНОЕ ПОЛЕ")}
             </span>
-            <div className="w-14 h-10 my-1 flex items-center justify-center">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 my-1 flex items-center justify-center">
               <TileIconImage tile={displayTile} className="w-full h-full object-contain filter contrast-125 brightness-95" />
             </div>
             <span className={cn("text-xs sm:text-sm font-bold tracking-wide drop-shadow-sm leading-tight", isNoir ? "font-noir-title" : isSoviet ? "font-soviet" : "font-sans")}>
               {displayTile.name}
             </span>
+            {isProperty && (
+              <span className="text-[9px] opacity-80 mt-0.5">
+                {displayTile.groupName || (isNoir ? "ТЕРРИТОРИЯ" : isSoviet ? "СЕКТОР" : isPanel ? "НЕДВИЖИМОСТЬ" : isOffice ? "ОТДЕЛ / ДОЛЖНОСТЬ" : "АВТОМОБИЛЬ")}
+              </span>
+            )}
           </div>
 
           {/* Owner Status Bar */}
@@ -380,7 +582,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                   <div className="flex items-center gap-1.5">
                     <span className="text-slate-400 text-sm">✦</span>
                     <span className="font-bold text-slate-300 text-xs">
-                      {isNoir ? "СВОБОДНАЯ НЕДВИЖИМОСТЬ" : isSoviet ? "СВОБОДНЫЙ ОБЪЕКТ" : "СВОБОДНЫЙ АВТОМОБИЛЬ"}
+                      {isNoir ? "СВОБОДНАЯ НЕДВИЖИМОСТЬ" : isSoviet ? "СВОБОДНЫЙ ОБЪЕКТ" : isPanel ? "СВОБОДНЫЙ ОБЪЕКТ" : isOffice ? "ВАКАНТНЫЙ ОТДЕЛ" : "СВОБОДНЫЙ АВТОМОБИЛЬ"}
                     </span>
                   </div>
                   <span className="font-bold text-xs text-amber-300">
@@ -438,36 +640,36 @@ export const RightPanel: React.FC<RightPanelProps> = ({
             <>
               <div className={cn("flex flex-col gap-1 text-xs p-2 rounded-none border", isNoir ? "bg-[#1a1410] border-[#d4a647]/30 font-noir-body" : isSoviet ? "bg-[#09111c] border-[#38bdf8]/30 font-space" : "bg-[#0f172a] border-slate-500/30 font-sans")}>
                 <div className={cn("flex items-center justify-between text-[9px] font-bold uppercase pb-1 border-b px-1 tracking-wider", isNoir ? "text-[#b8a890] border-[#d4a647]/20" : isSoviet ? "text-[#94a3b8] border-[#38bdf8]/20" : "text-slate-400 border-slate-500/20")}>
-                  <span>{isNoir ? "ТАРИФ" : isSoviet ? "ТАРИФ КОСМОДРОМА" : "ТАРИФ АВТОПАРКА"}</span>
+                  <span>{isNoir ? "ТАРИФ" : isSoviet ? "ТАРИФ КОСМОДРОМА" : isPanel ? "ТАРИФ МАРШРУТА" : isOffice ? "ТАРИФ ЛОГИСТИКИ" : "ТАРИФ АВТОПАРКА"}</span>
                   <span className="font-bold">{isNoir ? "$" : isSoviet ? "кР" : "$"}</span>
                 </div>
                 <div className="flex items-center justify-between py-0.5 px-1">
-                  <span>{isSoviet ? "1 космодром:" : "1 авто:"}</span>
+                  <span>{isSoviet ? "1 космодром:" : isPanel ? "1 маршрут:" : isOffice ? "1 линия:" : "1 авто:"}</span>
                   <span className={cn("font-bold text-sm", isNoir ? "text-[#d4a647]" : isSoviet ? "text-[#00e676]" : "text-slate-300")}>{isNoir ? "$25" : isSoviet ? "25 кР" : "$25"}</span>
                 </div>
                 <div className="flex items-center justify-between py-0.5 px-1">
-                  <span>{isSoviet ? "2 космодрома:" : "2 авто:"}</span>
+                  <span>{isSoviet ? "2 космодрома:" : isPanel ? "2 маршрута:" : isOffice ? "2 линии:" : "2 авто:"}</span>
                   <span className={cn("font-bold text-sm", isNoir ? "text-[#d4a647]" : isSoviet ? "text-[#00e676]" : "text-slate-300")}>{isNoir ? "$50" : isSoviet ? "50 кР" : "$50"}</span>
                 </div>
                 <div className="flex items-center justify-between py-0.5 px-1">
-                  <span>{isSoviet ? "3 космодрома:" : "3 авто:"}</span>
+                  <span>{isSoviet ? "3 космодрома:" : isPanel ? "3 маршрута:" : isOffice ? "3 линии:" : "3 авто:"}</span>
                   <span className={cn("font-bold text-sm", isNoir ? "text-[#d4a647]" : isSoviet ? "text-[#00e676]" : "text-slate-300")}>{isNoir ? "$100" : isSoviet ? "100 кР" : "$100"}</span>
                 </div>
                 <div className={cn("flex items-center justify-between py-0.5 px-1 font-bold", isNoir ? "text-[#d4a647]" : isSoviet ? "text-[#38bdf8]" : "text-amber-400")}>
-                  <span>{isSoviet ? "4 космодрома (Сеть СССР):" : "4 авто (Весь автопарк):"}</span>
+                  <span>{isSoviet ? "4 космодрома (Сеть СССР):" : isPanel ? "4 маршрута (Вся городская сеть):" : isOffice ? "4 линии (Вся корпорация):" : "4 авто (Весь автопарк):"}</span>
                   <span className="font-bold text-base">{isNoir ? "$200" : isSoviet ? "200 кР" : "$200"}</span>
                 </div>
 
                 {/* Price Highlights */}
                 <div className={cn("pt-1 mt-1 border-t flex flex-col gap-1", isNoir ? "border-[#d4a647]/30 font-noir-body" : isSoviet ? "border-[#38bdf8]/30 font-space" : "border-slate-500/30 font-sans")}>
                   <div className={cn("flex items-center justify-between px-2 py-1 rounded-none border text-xs font-bold", isNoir ? "bg-[#1a1410] border-[#d4a647]/30 text-[#f5e6c8]" : isSoviet ? "bg-[#0f1f33] border-[#38bdf8]/30 text-[#e2e8f0]" : "bg-[#1e293b] border-slate-500/40 text-slate-100")}>
-                    <span>{isNoir ? "СТОИМОСТЬ" : isSoviet ? "БАЛАНСОВАЯ СТОИМОСТЬ" : "СТОИМОСТЬ АВТОМОБИЛЯ"}</span>
+                    <span>{isNoir ? "СТОИМОСТЬ" : isSoviet ? "БАЛАНСОВАЯ СТОИМОСТЬ" : isPanel ? "СТОИМОСТЬ МАРШРУТА" : isOffice ? "СТОИМОСТЬ ЛИНИИ" : "СТОИМОСТЬ АВТОМОБИЛЯ"}</span>
                     <span className="font-bold text-sm">
                       {isNoir ? `$${displayTile.price || 200}` : isSoviet ? `${displayTile.price || 200} кР` : `$${displayTile.price || 200}`}
                     </span>
                   </div>
                   <div className="flex items-center justify-between px-1 text-[#94a3b8] text-xs">
-                    <span>{isNoir ? "ЗАЛОГ У РОСТОВЩИКА" : isSoviet ? "АВАРИЙНЫЙ РЕЗЕРВ" : "ЗАЛОГОВАЯ СТОИМОСТЬ"}</span>
+                    <span>{isNoir ? "ЗАЛОГ У РОСТОВЩИКА" : isSoviet ? "АВАРИЙНЫЙ РЕЗЕРВ" : isPanel ? "ЗАЛОГ В БАНКЕ" : isOffice ? "ЗАЛОГ В КАЗНЕ" : "ЗАЛОГОВАЯ СТОИМОСТЬ"}</span>
                     <span className={cn("font-bold text-sm", isNoir ? "text-[#d4a647]" : isSoviet ? "text-[#00e676]" : "text-slate-400")}>
                       {isNoir ? `$${displayTile.mortgageValue || 100}` : isSoviet ? `${displayTile.mortgageValue || 100} кР` : `$${displayTile.mortgageValue || 100}`}
                     </span>
@@ -498,6 +700,8 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                         <span>
                           {isNoir ? `ВЫКУПИТЬ У РОСТОВЩИКА (-$${unmortgageVal.cost})` : isSoviet
                             ? `РАСКОНСЕРВАЦИЯ (${unmortgageVal.cost} кР)`
+                            : isOffice
+                            ? `ВЫКУПИТЬ ИЗ КАЗНЫ (-$${unmortgageVal.cost})`
                             : `ВЫКУПИТЬ ИЗ ЗАЛОГА (-$${unmortgageVal.cost})`}
                         </span>
                       </button>
@@ -517,6 +721,8 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                         <span>
                           {isNoir ? `ЗАЛОЖИТЬ У РОСТОВЩИКА (+$${mortgageVal.value})` : isSoviet
                             ? `КОНСЕРВАЦИЯ (+${mortgageVal.value} кР)`
+                            : isOffice
+                            ? `ЗАЛОЖИТЬ В КАЗНУ (+$${mortgageVal.value})`
                             : `ЗАЛОЖИТЬ В БАНК (+$${mortgageVal.value})`}
                         </span>
                       </button>
@@ -541,7 +747,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                     </span>
                   ) : (
                     <span className="font-bold">
-                      {isNoir ? "СВОБОДНО" : isSoviet ? "СВОБОДНЫЙ КОСМОДРОМ" : "СВОБОДНЫЙ АВТОМОБИЛЬ"}
+                      {isNoir ? "СВОБОДНО" : isSoviet ? "СВОБОДНЫЙ КОСМОДРОМ" : isPanel ? "СВОБОДНЫЙ МАРШРУТ" : isOffice ? "СВОБОДНАЯ ЛИНИЯ" : "СВОБОДНЫЙ АВТОМОБИЛЬ"}
                     </span>
                   )}
                 </div>
@@ -556,27 +762,27 @@ export const RightPanel: React.FC<RightPanelProps> = ({
             <>
               <div className={cn("flex flex-col gap-1 text-[11px] p-2 rounded-none border leading-relaxed", isNoir ? "bg-[#1a1410] border-[#d4a647]/30 font-noir-body" : isSoviet ? "bg-[#09111c] border-[#38bdf8]/30 font-space" : "bg-[#0f172a] border-slate-500/30 font-sans")}>
                 <div className={cn("text-[9px] font-bold uppercase pb-1 border-b mb-1 tracking-wider text-center", isNoir ? "text-[#b8a890] border-[#d4a647]/20" : isSoviet ? "text-[#94a3b8] border-[#38bdf8]/20" : "text-slate-400 border-slate-500/20")}>
-                  {isNoir ? "ТАРИФ" : isSoviet ? "ТАРИФ ЭНЕРГОСЕТИ СССР" : "ТАРИФ АВТОСЕРВИСА И ЗАПРАВКИ"}
+                  {isNoir ? "ТАРИФ" : isSoviet ? "ТАРИФ ЭНЕРГОСЕТИ СССР" : isPanel ? "ТАРИФ КОММУНАЛЬНЫХ СЛУЖБ" : isOffice ? "ТАРИФ СЛУЖБ ПОДДЕРЖКИ" : "ТАРИФ АВТОСЕРВИСА И ЗАПРАВКИ"}
                 </div>
                 <div className="flex items-start gap-1.5">
                   <span className={cn("font-bold", isNoir ? "text-[#d4a647]" : isSoviet ? "text-[#38bdf8]" : "text-slate-400")}>✦</span>
-                  <span>{isSoviet ? "Если есть 1 узел: множитель х4 к броску кубиков." : "Если есть 1 сервис (АЗС или СТО): множитель х4 к кубикам."}</span>
+                  <span>{isSoviet ? "Если есть 1 узел: множитель х4 к броску кубиков." : isPanel ? "Если есть 1 служба (Водоканал или Электросети): множитель х4 к кубикам." : isOffice ? "Если есть 1 служба (Helpdesk или Завхоз): множитель х4 к кубикам." : "Если есть 1 сервис (АЗС или СТО): множитель х4 к кубикам."}</span>
                 </div>
                 <div className="flex items-start gap-1.5">
                   <span className={cn("font-bold", isNoir ? "text-[#d4a647]" : isSoviet ? "text-[#38bdf8]" : "text-slate-400")}>✦</span>
-                  <span>{isSoviet ? "Если есть 2 узла: множитель х10 к броску кубиков." : "Если есть оба сервиса (АЗС и СТО): множитель х10 к кубикам."}</span>
+                  <span>{isSoviet ? "Если есть 2 узла: множитель х10 к броску кубиков." : isPanel ? "Если есть обе службы (Водоканал и Электросети): множитель х10 к кубикам." : isOffice ? "Если есть обе службы (Helpdesk и Завхоз): множитель х10 к кубикам." : "Если есть оба сервиса (АЗС и СТО): множитель х10 к кубикам."}</span>
                 </div>
 
                 {/* Price Highlights */}
                 <div className={cn("pt-1 mt-1 border-t flex flex-col gap-1", isNoir ? "border-[#d4a647]/30 font-noir-body" : isSoviet ? "border-[#38bdf8]/30 font-space" : "border-slate-500/30 font-sans")}>
                   <div className={cn("flex items-center justify-between px-2 py-1 rounded-none border text-xs font-bold", isNoir ? "bg-[#1a1410] border-[#d4a647]/30 text-[#f5e6c8]" : isSoviet ? "bg-[#0f1f33] border-[#38bdf8]/30 text-[#e2e8f0]" : "bg-[#1e293b] border-slate-500/40 text-slate-100")}>
-                    <span>{isNoir ? "СТОИМОСТЬ" : isSoviet ? "БАЛАНСОВАЯ СТОИМОСТЬ" : "СТОИМОСТЬ ПОКУПКИ"}</span>
+                    <span>{isNoir ? "СТОИМОСТЬ" : isSoviet ? "БАЛАНСОВАЯ СТОИМОСТЬ" : isPanel ? "СТОИМОСТЬ СЛУЖБЫ" : isOffice ? "СТОИМОСТЬ СЛУЖБЫ" : "СТОИМОСТЬ ПОКУПКИ"}</span>
                     <span className="font-bold text-sm">
                       {isNoir ? `$${displayTile.price || 150}` : isSoviet ? `${displayTile.price || 150} кР` : `$${displayTile.price || 150}`}
                     </span>
                   </div>
                   <div className="flex items-center justify-between px-1 text-[#94a3b8] text-xs">
-                    <span>{isNoir ? "ЗАЛОГ У РОСТОВЩИКА" : isSoviet ? "АВАРИЙНЫЙ РЕЗЕРВ" : "ЗАЛОГОВАЯ СТОИМОСТЬ"}</span>
+                    <span>{isNoir ? "ЗАЛОГ У РОСТОВЩИКА" : isSoviet ? "АВАРИЙНЫЙ РЕЗЕРВ" : isPanel ? "ЗАЛОГ В БАНКЕ" : isOffice ? "ЗАЛОГ В КАЗНЕ" : "ЗАЛОГОВАЯ СТОИМОСТЬ"}</span>
                     <span className={cn("font-bold text-sm", isNoir ? "text-[#d4a647]" : isSoviet ? "text-[#00e676]" : "text-slate-400")}>
                       {isNoir ? `$${displayTile.mortgageValue || 75}` : isSoviet ? `${displayTile.mortgageValue || 75} кР` : `$${displayTile.mortgageValue || 75}`}
                     </span>
@@ -607,6 +813,8 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                         <span>
                           {isNoir ? `ВЫКУПИТЬ У РОСТОВЩИКА (-$${unmortgageVal.cost})` : isSoviet
                             ? `РАСКОНСЕРВАЦИЯ (${unmortgageVal.cost} кР)`
+                            : isOffice
+                            ? `ВЫКУПИТЬ ИЗ КАЗНЫ (-$${unmortgageVal.cost})`
                             : `ВЫКУПИТЬ ИЗ ЗАЛОГА (-$${unmortgageVal.cost})`}
                         </span>
                       </button>
@@ -626,6 +834,8 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                         <span>
                           {isNoir ? `ЗАЛОЖИТЬ У РОСТОВЩИКА (+$${mortgageVal.value})` : isSoviet
                             ? `КОНСЕРВАЦИЯ (+${mortgageVal.value} кР)`
+                            : isOffice
+                            ? `ЗАЛОЖИТЬ В КАЗНУ (+$${mortgageVal.value})`
                             : `ЗАЛОЖИТЬ В БАНК (+$${mortgageVal.value})`}
                         </span>
                       </button>
@@ -650,7 +860,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                     </span>
                   ) : (
                     <span className="font-bold">
-                      {isSoviet ? "СВОБОДНЫЙ ЭНЕРГОСЕКТОР" : "СВОБОДНЫЙ СЕРВИС"}
+                      {isSoviet ? "СВОБОДНЫЙ ЭНЕРГОСЕКТОР" : isPanel ? "СВОБОДНАЯ СЛУЖБА" : isOffice ? "СВОБОДНАЯ СЛУЖБА" : "СВОБОДНЫЙ СЕРВИС"}
                     </span>
                   )}
                 </div>
@@ -666,44 +876,44 @@ export const RightPanel: React.FC<RightPanelProps> = ({
               {/* Rents & Cost Table */}
               <div className={cn("flex flex-col gap-0.5 text-xs p-2 rounded-none border", isSoviet ? "bg-[#09111c] border-[#38bdf8]/30 font-space" : "bg-[#0f172a] border-slate-500/30 font-sans")}>
                 <div className={cn("flex items-center justify-between text-[9px] font-bold uppercase pb-1 border-b px-1 tracking-wider", isSoviet ? "text-[#94a3b8] border-[#38bdf8]/20" : "text-slate-400 border-slate-500/20")}>
-                  <span>{isSoviet ? "ТЕЛЕМЕТРИЯ СБОРА (ТАРИФ)" : "ТАРИФ ЗАЕЗДА (АРЕНДА)"}</span>
+                  <span>{isSoviet ? "ТЕЛЕМЕТРИЯ СБОРА (ТАРИФ)" : isPanel ? "ТАРИФ АРЕНДЫ (УЛУЧШЕНИЯ)" : isOffice ? "ТАРИФ ДЕПАРТАМЕНТА (ШТАТ)" : "ТАРИФ ЗАЕЗДА (АРЕНДА)"}</span>
                   <span className="font-bold">{isSoviet ? "кР" : "$"}</span>
                 </div>
 
                 {displayTile.rents && displayTile.rents.length >= 6 ? (
                   <>
                     <div className={cn("flex items-center justify-between py-0.5 px-1 rounded-none", housesCount === 0 && isOwner && (isSoviet ? "bg-[#0f1f33] font-bold text-[#38bdf8]" : "bg-slate-900/60 font-bold text-slate-300"))}>
-                      <span>{isSoviet ? "Базовая орбита:" : "Базовый заезд:"}</span>
+                      <span>{isSoviet ? "Базовая орбита:" : isPanel ? "Базовая аренда:" : isOffice ? "Базовая ставка:" : "Базовый заезд:"}</span>
                       <span className="font-bold text-sm">{isSoviet ? `${displayTile.rents[0]} кР` : `$${displayTile.rents[0]}`}</span>
                     </div>
                     <div className={cn("flex items-center justify-between py-0.5 px-1 rounded-none", housesCount === 1 && (isSoviet ? "bg-[#0f1f33] font-bold text-[#38bdf8]" : "bg-slate-900/60 font-bold text-slate-300"))}>
-                      <span>{isSoviet ? "1 модуль связи 🛰️" : "Стейдж 1 (1 дом) 🏠"}</span>
+                      <span>{isSoviet ? "1 модуль связи 🛰️" : isPanel ? "1 дом 🏠" : isOffice ? "1 отдел 📁" : "Стейдж 1 (1 дом) 🏠"}</span>
                       <span className="font-bold text-sm">{isSoviet ? `${displayTile.rents[1]} кР` : `$${displayTile.rents[1]}`}</span>
                     </div>
                     <div className={cn("flex items-center justify-between py-0.5 px-1 rounded-none", housesCount === 2 && (isSoviet ? "bg-[#0f1f33] font-bold text-[#38bdf8]" : "bg-slate-900/60 font-bold text-slate-300"))}>
-                      <span>{isSoviet ? "2 модуля 🛰️🛰️" : "Стейдж 2 (2 дома) 🏠🏠"}</span>
+                      <span>{isSoviet ? "2 модуля 🛰️🛰️" : isPanel ? "2 дома 🏠🏠" : isOffice ? "2 отдела 📁📁" : "Стейдж 2 (2 дома) 🏠🏠"}</span>
                       <span className="font-bold text-sm">{isSoviet ? `${displayTile.rents[2]} кР` : `$${displayTile.rents[2]}`}</span>
                     </div>
                     <div className={cn("flex items-center justify-between py-0.5 px-1 rounded-none", housesCount === 3 && (isSoviet ? "bg-[#0f1f33] font-bold text-[#38bdf8]" : "bg-slate-900/60 font-bold text-slate-300"))}>
-                      <span>{isSoviet ? "3 модуля 🛰️🛰️🛰️" : "Стейдж 3 (3 дома) 🏠🏠🏠"}</span>
+                      <span>{isSoviet ? "3 модуля 🛰️🛰️🛰️" : isPanel ? "3 дома 🏠🏠🏠" : isOffice ? "3 отдела 📁📁📁" : "Стейдж 3 (3 дома) 🏠🏠🏠"}</span>
                       <span className="font-bold text-sm">{isSoviet ? `${displayTile.rents[3]} кР` : `$${displayTile.rents[3]}`}</span>
                     </div>
                     <div className={cn("flex items-center justify-between py-0.5 px-1 rounded-none", housesCount === 4 && (isSoviet ? "bg-[#0f1f33] font-bold text-[#38bdf8]" : "bg-slate-900/60 font-bold text-slate-300"))}>
-                      <span>{isSoviet ? "4 модуля 🛰️🛰️🛰️🛰️" : "Стейдж 4 (4 дома) 🏠🏠🏠🏠"}</span>
+                      <span>{isSoviet ? "4 модуля 🛰️🛰️🛰️🛰️" : isPanel ? "4 дома 🏠🏠🏠🏠" : isOffice ? "4 отдела 📁📁📁📁" : "Стейдж 4 (4 дома) 🏠🏠🏠🏠"}</span>
                       <span className="font-bold text-sm">{isSoviet ? `${displayTile.rents[4]} кР` : `$${displayTile.rents[4]}`}</span>
                     </div>
                     <div className={cn("flex items-center justify-between py-0.5 px-1 rounded-none", housesCount === 5 && (isSoviet ? "bg-[#260a0e] font-bold text-[#fca5a5]" : "bg-red-950/70 font-bold text-red-300"))}>
-                      <span>{isSoviet ? "КОМПЛЕКС «МИР» ★" : "АВТОСАЛОН (ОТЕЛЬ) 🏨"}</span>
+                      <span>{isSoviet ? "КОМПЛЕКС «МИР» ★" : isPanel ? "ОТЕЛЬ 🏨" : isOffice ? "ХОЛДИНГ 🏢" : "АВТОСАЛОН (ОТЕЛЬ) 🏨"}</span>
                       <span className="font-bold text-base text-red-400">{isSoviet ? `${displayTile.rents[5]} кР` : `$${displayTile.rents[5]}`}</span>
                     </div>
                     <div className={cn("flex items-center justify-between py-0.5 px-1 rounded-none font-bold border-t", isSoviet ? "text-[#38bdf8] border-[#38bdf8]/20" : "text-amber-400 border-slate-500/20")}>
-                      <span>{isSoviet ? "МОНОПОЛИЯ СЕКТОРА (2x)" : "С МОНОПОЛИЕЙ (2x)"}</span>
+                      <span>{isSoviet ? "МОНОПОЛИЯ СЕКТОРА (2x)" : isPanel ? "МОНОПОЛИЯ РАЙОНА (2x)" : isOffice ? "МОНОПОЛИЯ ДЕПАРТАМЕНТА (2x)" : "С МОНОПОЛИЕЙ (2x)"}</span>
                       <span className="font-bold text-sm">{isSoviet ? `${displayTile.rents[0] * 2} кР` : `$${displayTile.rents[0] * 2}`}</span>
                     </div>
                   </>
                 ) : (
                   <div className="flex items-center justify-between py-1 px-1">
-                    <span>{isSoviet ? "Базовый сбор" : "Базовый заезд"}</span>
+                    <span>{isSoviet ? "Базовый сбор" : isPanel ? "Базовая аренда" : isOffice ? "Базовая ставка" : "Базовый заезд"}</span>
                     <span className="font-bold text-sm">{isSoviet ? `${displayTile.rent || 25} кР` : `$${displayTile.rent || 25}`}</span>
                   </div>
                 )}
@@ -711,14 +921,14 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                 {/* Price Highlights */}
                 <div className={cn("pt-1 mt-1 border-t flex flex-col gap-1", isSoviet ? "border-[#38bdf8]/30 font-space" : "border-slate-500/30 font-sans")}>
                   <div className={cn("flex items-center justify-between px-2 py-1 rounded-none border text-xs font-bold", isSoviet ? "bg-[#0f1f33] border-[#38bdf8]/30 text-[#e2e8f0]" : "bg-[#1e293b] border-slate-500/40 text-slate-100")}>
-                    <span>{isSoviet ? "БАЛАНС СЕКТОРА" : "СТОИМОСТЬ АВТОМОБИЛЯ"}</span>
+                    <span>{isSoviet ? "БАЛАНС СЕКТОРА" : isPanel ? "СТОИМОСТЬ ОБЪЕКТА" : isOffice ? "СТОИМОСТЬ ОТДЕЛА" : "СТОИМОСТЬ АВТОМОБИЛЯ"}</span>
                     <span className="font-bold text-sm">
                       {isSoviet ? `${displayTile.price || 0} кР` : `$${displayTile.price || 0}`}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between px-1 text-[#94a3b8] text-xs">
-                    <span>{isSoviet ? "АВАРИЙНЫЙ РЕЗЕРВ" : "ЗАЛОГОВАЯ СТОИМОСТЬ"}</span>
+                    <span>{isSoviet ? "АВАРИЙНЫЙ РЕЗЕРВ" : isPanel ? "ЗАЛОГ В БАНКЕ" : isOffice ? "ЗАЛОГ В КАЗНЕ" : "ЗАЛОГОВАЯ СТОИМОСТЬ"}</span>
                     <span className={cn("font-bold text-sm", isSoviet ? "text-[#00e676]" : "text-slate-400")}>
                       {isSoviet ? `${displayTile.mortgageValue || Math.round((displayTile.price || 60) / 2)} кР` : `$${displayTile.mortgageValue || Math.round((displayTile.price || 60) / 2)}`}
                     </span>
@@ -741,12 +951,20 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                           ? (isHotelUpgrade ? `+ШТАБ ($${buildVal.cost})` : `+ЯВКА ($${buildVal.cost})`)
                           : isSoviet
                           ? (isHotelUpgrade ? `+МИР (${buildVal.cost} кР)` : `+МОДУЛЬ (${buildVal.cost} кР)`)
+                          : isPanel
+                          ? (isHotelUpgrade ? `+ОТЕЛЬ ($${buildVal.cost})` : `+ДОМ ($${buildVal.cost})`)
+                          : isOffice
+                          ? (isHotelUpgrade ? `+ХОЛДИНГ ($${buildVal.cost})` : `+ОТДЕЛ ($${buildVal.cost})`)
                           : (isHotelUpgrade ? `+ОТЕЛЬ ($${buildVal.cost})` : `+ТЮНИНГ ($${buildVal.cost})`);
 
                         const sellLabel = isNoir
                           ? (isHotelSell ? `-ШТАБ (+$${sellVal.refund})` : `-ЯВКА (+$${sellVal.refund})`)
                           : isSoviet
                           ? (isHotelSell ? `СНОС МИР (+${sellVal.refund} кР)` : `ДЕМОНТАЖ (+${sellVal.refund} кР)`)
+                          : isPanel
+                          ? (isHotelSell ? `-ОТЕЛЬ (+$${sellVal.refund})` : `-ДОМ (+$${sellVal.refund})`)
+                          : isOffice
+                          ? (isHotelSell ? `-ХОЛДИНГ (+$${sellVal.refund})` : `-ОТДЕЛ (+$${sellVal.refund})`)
                           : (isHotelSell ? `-ОТЕЛЬ (+$${sellVal.refund})` : `-ТЮНИНГ (+$${sellVal.refund})`);
 
                         return (
@@ -815,6 +1033,8 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                         <span>
                           {isNoir ? `ВЫКУПИТЬ У РОСТОВЩИКА (-$${unmortgageVal.cost})` : isSoviet
                             ? `РАСКОНСЕРВАЦИЯ (${unmortgageVal.cost} кР)`
+                            : isOffice
+                            ? `ВЫКУПИТЬ ИЗ КАЗНЫ (-$${unmortgageVal.cost})`
                             : `ВЫКУПИТЬ ИЗ ЗАЛОГА (-$${unmortgageVal.cost})`}
                         </span>
                       </button>
@@ -834,6 +1054,8 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                         <span>
                           {isNoir ? `ЗАЛОЖИТЬ У РОСТОВЩИКА (+$${mortgageVal.value})` : isSoviet
                             ? `КОНСЕРВАЦИЯ (+${mortgageVal.value} кР)`
+                            : isOffice
+                            ? `ЗАЛОЖИТЬ В КАЗНУ (+$${mortgageVal.value})`
                             : `ЗАЛОЖИТЬ В БАНК (+$${mortgageVal.value})`}
                         </span>
                       </button>
@@ -858,7 +1080,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                     </span>
                   ) : (
                     <span className="font-bold">
-                      {isNoir ? "СВОБОДНО" : isSoviet ? "СВОБОДНЫЙ ОРБИТАЛЬНЫЙ СЕКТОР" : "СВОБОДНАЯ УЛИЦА"}
+                      {isNoir ? "СВОБОДНО" : isSoviet ? "СВОБОДНЫЙ ОРБИТАЛЬНЫЙ СЕКТОР" : isPanel ? "СВОБОДНЫЙ ОБЪЕКТ" : isOffice ? "ВАКАНТНЫЙ ОТДЕЛ" : "СВОБОДНАЯ УЛИЦА"}
                     </span>
                   )}
                 </div>

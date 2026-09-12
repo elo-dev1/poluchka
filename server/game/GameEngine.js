@@ -1,12 +1,40 @@
-const { BOARD_TILES, BOARD_TILES_40, BOARD_TILES_24, DEFAULT_TEAMS, GAME_SETTINGS } = require('../config/boardConfig');
+const { BOARD_TILES, BOARD_TILES_40, BOARD_TILES_24, BOARD_TILES_PANEL_40, BOARD_TILES_PANEL_24, BOARD_TILES_OFFICE_40, BOARD_TILES_OFFICE_24, DEFAULT_TEAMS, GAME_SETTINGS } = require('../config/boardConfig');
 const { PET_CHARACTERS } = require('../config/petCharacters');
-const { CHANCE_CARDS, CHEST_CARDS } = require('../config/cardsConfig');
+const {
+  CHANCE_CARDS,
+  CHEST_CARDS,
+  CHANCE_CARDS_OFFICE,
+  CHEST_CARDS_OFFICE,
+  CHANCE_CARDS_PANEL,
+  CHEST_CARDS_PANEL
+} = require('../config/cardsConfig');
 const MonopolyManager = require('./modules/MonopolyManager');
 const MortgageManager = require('./modules/MortgageManager');
 const AuctionManager = require('./modules/AuctionManager');
 const TradeManager = require('./modules/TradeManager');
 const JailManager = require('./modules/JailManager');
 const database = require('../db/Database');
+
+/**
+ * Select random board theme:
+ * All themes ('office', 'panel', 'cars') have equal drop probability (1/3 each).
+ */
+function pickRandomBoardTheme() {
+  const themes = ['office', 'panel', 'cars'];
+  return themes[Math.floor(Math.random() * themes.length)];
+}
+
+/**
+ * Fisher-Yates array shuffle for uniform, unbiased deck randomization
+ */
+function shuffleDeck(array) {
+  const deck = [...array];
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+  return deck;
+}
 
 class GameEngine {
   constructor(roomId, hostId, options = {}) {
@@ -19,6 +47,19 @@ class GameEngine {
     this.boardSize = options.boardSize || (this.mode === 'blitz' ? 24 : 40);
     this.startingCash = options.startingCash || GAME_SETTINGS.STARTING_CASH || 1500;
     this.gameMode = options.gameMode || (options.mode === 'reverse' ? 'reverse' : options.mode === 'team' ? 'team' : 'classic'); // 'classic' | 'reverse' | 'team'
+    
+    // Board theme: randomized for each match by default (equal chance: 1/3 each)
+    this.initialThemeOption = options.theme || 'random';
+    if (this.initialThemeOption === 'cars' || this.initialThemeOption === 'classic') {
+      this.theme = 'cars';
+    } else if (this.initialThemeOption === 'panel') {
+      this.theme = 'panel';
+    } else if (this.initialThemeOption === 'office') {
+      this.theme = 'office';
+    } else {
+      this.theme = pickRandomBoardTheme();
+    }
+
     this.teamStartingCash = options.teamStartingCash || Math.round(this.startingCash * (GAME_SETTINGS.TEAM_STARTING_CASH_MULTIPLIER || 1.5));
     this.maxRounds = options.maxRounds !== undefined ? Number(options.maxRounds) : (this.gameMode === 'reverse' ? (this.boardSize === 24 || this.mode === 'blitz' ? 10 : 20) : 0);
 
@@ -37,8 +78,12 @@ class GameEngine {
     this.turnNumber = 1;
     this.roundNumber = 1;
     this.tradeOffersThisRound = {}; // { [playerId]: count }
+    this.pairTradeOffersThisRound = {}; // { [pairKey]: count }
     
-    const sourceTiles = this.boardSize === 24 ? BOARD_TILES_24 : BOARD_TILES_40;
+    const sourceTiles = this.boardSize === 24
+      ? (this.theme === 'panel' ? BOARD_TILES_PANEL_24 : this.theme === 'office' ? BOARD_TILES_OFFICE_24 : BOARD_TILES_24)
+      : (this.theme === 'panel' ? BOARD_TILES_PANEL_40 : this.theme === 'office' ? BOARD_TILES_OFFICE_40 : BOARD_TILES_40);
+
     this.board = sourceTiles.map(tile => ({
       ...tile,
       ownerId: null,
@@ -54,12 +99,16 @@ class GameEngine {
     this.lastDrawnCard = null;
     this.builtTilesThisTurn = [];
     this.logs = [];
+    const themeName = this.theme === 'panel' ? '«Панельная романтика» 🏢' : this.theme === 'office' ? '«Офисный планктон» 💼' : '«Автопарк и Гонки» 🚗';
+    this.addLog(`🎲 Тема полей на эту партию: ${themeName}`, 'info', '🗺️');
     this.winner = null;
     this.everHadBot = false;
 
-    // Card Decks with non-repeating shuffle
-    this.chanceDeck = [...CHANCE_CARDS].sort(() => Math.random() - 0.5);
-    this.chestDeck = [...CHEST_CARDS].sort(() => Math.random() - 0.5);
+    // Card Decks with Fisher-Yates unbiased shuffle
+    const initialChanceSource = this.getDeckSource('chance');
+    const initialChestSource = this.getDeckSource('chest');
+    this.chanceDeck = shuffleDeck(initialChanceSource);
+    this.chestDeck = shuffleDeck(initialChestSource);
 
     // Timestamps and game stats
     this.createdAt = Date.now();
@@ -236,7 +285,7 @@ class GameEngine {
 
     const player = {
       id,
-      name: (name || '').trim() || `Игрок ${this.players.length + 1}`,
+      name: (name || '').trim().substring(0, 24) || `Игрок ${this.players.length + 1}`,
       color,
       characterId,
       money: initialMoney,
@@ -251,6 +300,8 @@ class GameEngine {
       username: options.username || null,
       avatarUrl: options.avatarUrl || null,
       clientIp: options.clientIp || null,
+      socketId: options.socketId || null,
+      sessionToken: options.sessionToken || null,
       disconnectBudgetSeconds: 60, // 1 min initial disconnect pool
       activePlaySeconds: 0, // Accumulator for 5 min replenishment
       missedTurns: 0, // AFK strike counter (2 strikes = defeat)
@@ -415,7 +466,7 @@ class GameEngine {
     // Create fresh human player in the same slot
     const newPlayer = {
       id: humanId,
-      name: (humanName || '').trim() || `Игрок ${index + 1}`,
+      name: (humanName || '').trim().substring(0, 24) || `Игрок ${index + 1}`,
       color: oldBot.color,
       characterId: options.characterId || oldBot.characterId || 'cat',
       money: GAME_SETTINGS.STARTING_CASH,
@@ -430,6 +481,9 @@ class GameEngine {
       telegramId: options.telegramId || null,
       username: options.username || null,
       avatarUrl: options.avatarUrl || null,
+      clientIp: options.clientIp || null,
+      socketId: options.socketId || null,
+      sessionToken: options.sessionToken || null,
       disconnectBudgetSeconds: 60,
       activePlaySeconds: 0,
       missedTurns: 0,
@@ -504,9 +558,7 @@ class GameEngine {
           this.winner = remainingActive[0] || null;
           this.status = 'GAME_OVER';
           this.endedAt = Date.now();
-          this.clearTurnTimer();
-          this.stopDisconnectWaitingTimer();
-          this.stopActivePlayTracker();
+          this.cleanupAllTimers();
           this.recordFinalGameResults();
           this.addLog(`🏆 ${this.winner ? this.winner.name : 'Оставшийся игрок'} побеждает автоматически! Все соперники покинули игру.`, 'success', '👑');
           this.notifyStateChange();
@@ -637,10 +689,21 @@ class GameEngine {
     this.disconnectWaitingState = null;
   }
 
+  cleanupAllTimers() {
+    this.clearTurnTimer();
+    this.stopDisconnectWaitingTimer();
+    this.stopActivePlayTracker();
+    this.stopAuctionTimer();
+  }
+
+  destroy() {
+    this.cleanupAllTimers();
+    this.onStateChangeCallback = null;
+  }
+
   endGameOnDisconnectTimeout(disconnectedPlayer) {
     this.endedReason = 'DISCONNECT_TIMEOUT';
-    this.stopDisconnectWaitingTimer();
-    this.clearTurnTimer();
+    this.cleanupAllTimers();
 
     this.status = 'GAME_OVER';
     this.endedAt = Date.now();
@@ -753,9 +816,7 @@ class GameEngine {
         this.winner = activePlayers[0] || null;
         this.status = 'GAME_OVER';
         this.endedAt = Date.now();
-        this.clearTurnTimer();
-        this.stopDisconnectWaitingTimer();
-        this.stopActivePlayTracker();
+        this.cleanupAllTimers();
         this.recordFinalGameResults();
         this.addLog(`🏆 Победитель партии: ${this.winner ? this.winner.name : 'Ничья'}!`, 'success', '👑');
         this.notifyStateChange();
@@ -792,6 +853,39 @@ class GameEngine {
     }
 
     this.notifyStateChange();
+  }
+
+  setBoardTheme(theme) {
+    if (this.status !== 'LOBBY') {
+      return { success: false, error: 'Сменить тему полей можно только в лобби' };
+    }
+    const validThemes = ['panel', 'cars', 'office', 'random'];
+    if (!validThemes.includes(theme)) {
+      return { success: false, error: 'Неверная тема полей' };
+    }
+    this.initialThemeOption = theme;
+    if (theme === 'panel') {
+      this.theme = 'panel';
+    } else if (theme === 'cars') {
+      this.theme = 'cars';
+    } else if (theme === 'office') {
+      this.theme = 'office';
+    } else {
+      this.theme = pickRandomBoardTheme();
+    }
+    const sourceTiles = this.boardSize === 24
+      ? (this.theme === 'panel' ? BOARD_TILES_PANEL_24 : this.theme === 'office' ? BOARD_TILES_OFFICE_24 : BOARD_TILES_24)
+      : (this.theme === 'panel' ? BOARD_TILES_PANEL_40 : this.theme === 'office' ? BOARD_TILES_OFFICE_40 : BOARD_TILES_40);
+    this.board = sourceTiles.map(tile => ({
+      ...tile,
+      ownerId: null,
+      houses: 0,
+      isMortgaged: false
+    }));
+    const themeName = this.theme === 'panel' ? '«Панельная романтика» 🏢' : this.theme === 'office' ? '«Офисный планктон» 💼' : '«Автопарк и Гонки» 🚗';
+    this.addLog(`🎨 Тема полей изменена на: ${themeName}`, 'info', '🗺️');
+    this.notifyStateChange();
+    return { success: true, theme: this.theme, initialThemeOption: this.initialThemeOption };
   }
 
   startGame(requestingPlayerId) {
@@ -848,7 +942,8 @@ class GameEngine {
     this.roundNumber = 1;
     this.lastDice = null;
     const firstPlayer = this.getCurrentPlayer();
-    this.addLog(`🎲 Игра началась! Первым ходит ${firstPlayer.name}`, 'success', '🏁');
+    const themeLabel = this.theme === 'panel' ? '«Панельная романтика» 🏢' : this.theme === 'office' ? '«Офисный планктон» 💼' : '«Автопарк» 🚗';
+    this.addLog(`🎲 Игра началась! Тема полей: ${themeLabel}. Первым ходит ${firstPlayer.name}`, 'success', '🏁');
     this.resetTurnTimer();
     this.startActivePlayTracker();
     return this.getPublicState();
@@ -1284,8 +1379,8 @@ class GameEngine {
   stopAuctionTimer() {
     if (this.auctionInterval) {
       clearInterval(this.auctionInterval);
-      this.auctionInterval = null;
     }
+    this.auctionInterval = null;
   }
 
   startAuctionForTile(tile, initiatorId = null) {
@@ -1568,6 +1663,13 @@ class GameEngine {
 
   // --- Player Trading ---
   proposeTrade(fromPlayerId, toPlayerId, offer, request) {
+    if (this.status === 'LOBBY' || this.status === 'GAME_OVER') {
+      throw new Error('Торговля доступна только во время активной игры');
+    }
+    if (this.status === 'AUCTION') {
+      throw new Error('Нельзя предлагать сделки во время аукциона');
+    }
+
     const fromPlayer = this.players.find(p => p.id === fromPlayerId);
     const toPlayer = this.players.find(p => p.id === toPlayerId);
 
@@ -1587,11 +1689,23 @@ class GameEngine {
       throw new Error('Лимит исчерпан: нельзя предлагать больше 2 обменов за один раунд');
     }
 
+    const pairKey = fromPlayerId < toPlayerId ? `${fromPlayerId}_${toPlayerId}` : `${toPlayerId}_${fromPlayerId}`;
+    if (!this.pairTradeOffersThisRound) {
+      this.pairTradeOffersThisRound = {};
+    }
+    const currentPairOffers = this.pairTradeOffersThisRound[pairKey] || 0;
+    if (currentPairOffers >= 3) {
+      throw new Error('Лимит исчерпан: нельзя предлагать больше 3 обменов между одной парой игроков за раунд');
+    }
+
+    const isBotGame = Boolean(fromPlayer.isBot || toPlayer.isBot || this.players.some(p => p.isBot));
     const trade = TradeManager.createTradeProposal(fromPlayer, toPlayer, offer, request, this.board, {
-      isSameTeam: this.isSameTeam.bind(this)
+      isSameTeam: this.isSameTeam.bind(this),
+      isBotGame
     });
     this.activeTrade = trade;
     this.tradeOffersThisRound[fromPlayerId] = currentOffers + 1;
+    this.pairTradeOffersThisRound[pairKey] = currentPairOffers + 1;
 
     this.addLog(`🤝 ${fromPlayer.name} предложил сделку игроку ${toPlayer.name}`, 'trade', '📜');
     return trade;
@@ -1607,7 +1721,11 @@ class GameEngine {
     }
 
     if (action === 'ACCEPT') {
-      const res = TradeManager.executeTrade(this.activeTrade, this.players, this.board);
+      const isBotGame = Boolean(this.players.some(p => p.isBot));
+      const res = TradeManager.executeTrade(this.activeTrade, this.players, this.board, {
+        isSameTeam: this.isSameTeam.bind(this),
+        isBotGame
+      });
       this.syncPlayerTreasuries();
       this.stats.totalTradesCompleted++;
       this.addLog(`🤝 Сделка между ${this.activeTrade.fromPlayerName} и ${this.activeTrade.toPlayerName} успешно заключена!`, 'success', '🎉');
@@ -1707,12 +1825,22 @@ class GameEngine {
   }
 
   // --- Card Drawing ---
+  getDeckSource(deckType) {
+    if (this.theme === 'office') {
+      return deckType === 'chance' ? CHANCE_CARDS_OFFICE : CHEST_CARDS_OFFICE;
+    }
+    if (this.theme === 'panel') {
+      return deckType === 'chance' ? CHANCE_CARDS_PANEL : CHEST_CARDS_PANEL;
+    }
+    return deckType === 'chance' ? CHANCE_CARDS : CHEST_CARDS;
+  }
+
   drawCard(player, deckType) {
     this.stats.totalCardDraws++;
     let deck = deckType === 'chance' ? this.chanceDeck : this.chestDeck;
     if (deck.length === 0) {
-      const source = deckType === 'chance' ? CHANCE_CARDS : CHEST_CARDS;
-      deck = [...source].sort(() => Math.random() - 0.5);
+      const source = this.getDeckSource(deckType);
+      deck = shuffleDeck(source);
       if (deckType === 'chance') this.chanceDeck = deck;
       else this.chestDeck = deck;
     }
@@ -1780,10 +1908,11 @@ class GameEngine {
           targetPos = targetPos % this.board.length;
         }
         player.position = targetPos;
-        if (card.collectStartBonus && (targetPos === 0 || targetPos < oldPos)) {
+        const isForwardPass = targetPos > 0 && targetPos < oldPos && (!card.steps || card.steps > 0);
+        if (card.collectStartBonus && isForwardPass) {
           treasury.money += GAME_SETTINGS.START_PASS_BONUS;
           this.syncPlayerTreasuries();
-          this.addLog(`${player.name} получил бонус за СТАРТ +$${GAME_SETTINGS.START_PASS_BONUS}`, 'money', '🚀');
+          this.addLog(`${player.name} прошёл через СТАРТ и получил +$${GAME_SETTINGS.START_PASS_BONUS}`, 'money', '🚀');
         }
         this.handleTileLanding(player, this.board[targetPos]);
         return;
@@ -1948,6 +2077,15 @@ class GameEngine {
       throw new Error('Игрок уже выбыл из партии');
     }
 
+    // In team mode, prevent unilateral bankruptcy griefing when team has money and teammate is connected
+    if (this.gameMode === 'team' && player.teamId) {
+      const treasury = this.getTreasury(player);
+      const activeTeammates = this.players.filter(p => p.teamId === player.teamId && p.id !== player.id && !p.isBankrupt && p.isConnected);
+      if (treasury && treasury.money >= 0 && activeTeammates.length > 0) {
+        throw new Error('В командном режиме нельзя объявить банкротство при положительном балансе, пока напарник в игре. Используйте «Покинуть игру».');
+      }
+    }
+
     // Cancel active trade involving this player or teammates
     if (this.activeTrade && (
       this.activeTrade.initiatorId === player.id ||
@@ -1975,7 +2113,10 @@ class GameEngine {
     return this.getPublicState();
   }
 
-  dismissDrawnCard() {
+  dismissDrawnCard(requestingPlayerId = null) {
+    if (requestingPlayerId && this.lastDrawnCard && this.lastDrawnCard.playerId && this.lastDrawnCard.playerId !== requestingPlayerId && this.hostId !== requestingPlayerId) {
+      throw new Error('Вы не можете закрыть чужую карту');
+    }
     this.lastDrawnCard = null;
     return this.getPublicState();
   }
@@ -1990,9 +2131,7 @@ class GameEngine {
       if (activeTeams.length <= 1) {
         this.status = 'GAME_OVER';
         this.endedAt = Date.now();
-        this.clearTurnTimer();
-        this.stopDisconnectWaitingTimer();
-        this.stopActivePlayTracker();
+        this.cleanupAllTimers();
         const winningTeam = activeTeams[0] || this.teams[0];
         const winningPlayer = this.players.find(p => p.teamId === winningTeam.id && !p.isBankrupt) || this.players.find(p => p.teamId === winningTeam.id);
         this.winner = {
@@ -2014,9 +2153,7 @@ class GameEngine {
     if (active.length <= 1) {
       this.status = 'GAME_OVER';
       this.endedAt = Date.now();
-      this.clearTurnTimer();
-      this.stopDisconnectWaitingTimer();
-      this.stopActivePlayTracker();
+      this.cleanupAllTimers();
       this.winner = active[0] || null;
       this.recordFinalGameResults();
       if (this.winner) {
@@ -2086,6 +2223,7 @@ class GameEngine {
       this.turnNumber = (this.turnNumber || 1) + 1;
       this.roundNumber = (this.roundNumber || 1) + 1;
       this.tradeOffersThisRound = {}; // Reset 2 trades/round limit on new round
+      this.pairTradeOffersThisRound = {};
 
       if (this.checkRoundLimit()) {
         return;
@@ -2105,9 +2243,7 @@ class GameEngine {
       this.roundNumber = this.maxRounds;
       this.status = 'GAME_OVER';
       this.endedAt = Date.now();
-      this.clearTurnTimer();
-      this.stopDisconnectWaitingTimer();
-      this.stopActivePlayTracker();
+      this.cleanupAllTimers();
 
       const ranked = this.calculateRankings();
       const activeRanked = ranked.filter(p => !p.isBankrupt);
@@ -2145,9 +2281,7 @@ class GameEngine {
     this.endedReason = 'HOST_ABORT';
     this.status = 'GAME_OVER';
     this.endedAt = Date.now();
-    this.clearTurnTimer();
-    this.stopDisconnectWaitingTimer();
-    this.stopActivePlayTracker();
+    this.cleanupAllTimers();
 
     const ranked = this.calculateRankings();
     const activeRanked = ranked.filter(p => !p.isBankrupt);
@@ -2176,16 +2310,21 @@ class GameEngine {
     this.turnNumber = 1;
     this.roundNumber = 1;
     this.tradeOffersThisRound = {};
+    this.pairTradeOffersThisRound = {};
     this.pendingAction = null;
     this.activeAuction = null;
     this.activeTrade = null;
     this.rolledDoubleInCurrentTurn = false;
     this.lastDice = null;
-    this.clearTurnTimer();
-    this.stopDisconnectWaitingTimer();
-    this.stopActivePlayTracker();
+    this.cleanupAllTimers();
 
-    const sourceTiles = this.boardSize === 24 ? BOARD_TILES_24 : BOARD_TILES_40;
+    if (!this.initialThemeOption || this.initialThemeOption === 'random') {
+      this.theme = pickRandomBoardTheme();
+    }
+
+    const sourceTiles = this.boardSize === 24
+      ? (this.theme === 'panel' ? BOARD_TILES_PANEL_24 : this.theme === 'office' ? BOARD_TILES_OFFICE_24 : BOARD_TILES_24)
+      : (this.theme === 'panel' ? BOARD_TILES_PANEL_40 : this.theme === 'office' ? BOARD_TILES_OFFICE_40 : BOARD_TILES_40);
     this.board = sourceTiles.map(tile => ({
       ...tile,
       ownerId: null,
@@ -2193,6 +2332,9 @@ class GameEngine {
       houses: 0,
       isMortgaged: false
     }));
+
+    const restartThemeName = this.theme === 'panel' ? '«Панельная романтика» 🏢' : this.theme === 'office' ? '«Офисный планктон» 💼' : '«Автопарк и Гонки» 🚗';
+    this.addLog(`🔄 Игра перезапущена. Тема полей на новую партию: ${restartThemeName}`, 'info', '🎲');
 
     if (this.gameMode === 'team') {
       this.teams.forEach(t => {
@@ -2273,6 +2415,7 @@ class GameEngine {
 
       // Map rankings back onto each player decorated with team rank
       const decoratedPlayers = this.players.map(p => {
+        const { clientIp, socketId, sessionToken, ...safeP } = p;
         const teamData = rankedTeams.find(t => t.id === p.teamId) || {
           netWorth: p.money,
           totalCapital: p.money,
@@ -2288,7 +2431,7 @@ class GameEngine {
         const isWinner = this.winner ? (this.winner.teamId === p.teamId || this.winner.id === p.id) : (teamRank === 1);
 
         return {
-          ...p,
+          ...safeP,
           rank: teamRank,
           isWinner,
           totalCapital: teamData.totalCapital,
@@ -2306,6 +2449,7 @@ class GameEngine {
     }
 
     const sorted = [...this.players].map(p => {
+      const { clientIp, socketId, sessionToken, ...safeP } = p;
       let propertyNominalValue = 0;
       let buildingsValue = 0;
 
@@ -2340,7 +2484,7 @@ class GameEngine {
       const netWorth = p.money + propertyNominalValue + buildingsValue;
 
       return {
-        ...p,
+        ...safeP,
         totalCapital: netWorth,
         netWorth,
         propertyNominalValue,
@@ -2418,6 +2562,9 @@ class GameEngine {
       status: this.status,
       mode: this.mode,
       gameMode: this.gameMode || 'classic',
+      theme: this.theme || 'panel',
+      boardTheme: this.theme || 'panel',
+      initialThemeOption: this.initialThemeOption || 'panel',
       maxRounds: this.maxRounds,
       maxPlayers: this.maxPlayers,
       isPrivate: this.isPrivate,

@@ -32,6 +32,7 @@ class RoomManager {
       startingCash: options.startingCash || 1500,
       maxPlayers: options.maxPlayers || ((options.mode === 'ranked' || options.gameMode === 'ranked') ? 2 : ((options.gameMode === 'team' || options.mode === 'team') ? 4 : 6)),
       gameMode: options.gameMode || (options.mode === 'reverse' ? 'reverse' : options.mode === 'team' ? 'team' : 'classic'),
+      theme: options.theme,
       maxRounds: options.maxRounds
     });
     game.addPlayer(hostPlayerId, hostPlayerName, options);
@@ -49,9 +50,13 @@ class RoomManager {
     const key = roomId.toUpperCase().trim();
     const game = this.rooms.get(key);
     if (game) {
-      game.clearTurnTimer();
-      game.stopActivePlayTracker();
-      game.stopDisconnectWaitingTimer();
+      if (typeof game.destroy === 'function') {
+        game.destroy();
+      } else {
+        game.clearTurnTimer();
+        game.stopActivePlayTracker();
+        game.stopDisconnectWaitingTimer();
+      }
     }
     return this.rooms.delete(key);
   }
@@ -64,9 +69,13 @@ class RoomManager {
       
       // Auto-delete empty or abandoned lobby rooms immediately
       if (game.status === 'LOBBY' && (game.players.length === 0 || connectedHumanPlayers.length === 0)) {
-        game.clearTurnTimer();
-        game.stopActivePlayTracker();
-        game.stopDisconnectWaitingTimer();
+        if (typeof game.destroy === 'function') {
+          game.destroy();
+        } else {
+          game.clearTurnTimer();
+          game.stopActivePlayTracker();
+          game.stopDisconnectWaitingTimer();
+        }
         this.rooms.delete(roomId);
         continue;
       }
@@ -100,9 +109,13 @@ class RoomManager {
     for (const [roomId, game] of this.rooms.entries()) {
       const connectedPlayers = game.players.filter(p => p.isConnected);
       if (connectedPlayers.length === 0 || (now - game.createdAt > TTL)) {
-        game.clearTurnTimer();
-        game.stopActivePlayTracker();
-        game.stopDisconnectWaitingTimer();
+        if (typeof game.destroy === 'function') {
+          game.destroy();
+        } else {
+          game.clearTurnTimer();
+          game.stopActivePlayTracker();
+          game.stopDisconnectWaitingTimer();
+        }
         this.rooms.delete(roomId);
       }
     }

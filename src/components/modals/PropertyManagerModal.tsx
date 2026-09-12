@@ -49,6 +49,9 @@ export const PropertyManagerModal: React.FC = () => {
           gameState.players.find((p) => p.id === t.ownerId)?.teamId === myPlayer.teamId))
   );
 
+  const isPanel = gameState?.boardTheme === 'panel' || gameState?.theme === 'panel' || theme === 'panel' || myTiles.some(t => Boolean(t?.iconUrl?.includes('/panel/')));
+  const isOffice = gameState?.boardTheme === 'office' || gameState?.theme === 'office' || theme === 'office' || myTiles.some(t => Boolean(t?.iconUrl?.includes('/office/')));
+
   const isMyTurn = Boolean(
     gameState.players[gameState.currentTurnIndex]?.id === playerId &&
       gameState.status !== "GAME_OVER" &&
@@ -89,6 +92,10 @@ export const PropertyManagerModal: React.FC = () => {
                 ? `КАРТОТЕКА ТЕРРИТОРИЙ (${myTiles.length})`
                 : isSoviet
                 ? `РЕЕСТР ОБЪЕКТОВ (ОКБ-1 • ${myTiles.length})`
+                : isPanel
+                ? `РЕЕСТР НЕДВИЖИМОСТИ (${myTiles.length})`
+                : isOffice
+                ? `РЕЕСТР ОТДЕЛОВ (${myTiles.length})`
                 : `УПРАВЛЕНИЕ АКТИВАМИ (${myTiles.length})`}
             </DialogTitle>
             {!isMyTurn && (
@@ -126,6 +133,18 @@ export const PropertyManagerModal: React.FC = () => {
                   У вас пока нет подконтрольных секторов и станций.
                   <br />
                   Используйте импульс гироскопов и осваивайте космодромы! 🚀
+                </>
+              ) : isPanel ? (
+                <>
+                  В вашем распоряжении пока нет выкупленной недвижимости.
+                  <br />
+                  Приобретайте квартиры и объекты спального района! 🏢
+                </>
+              ) : isOffice ? (
+                <>
+                  В вашем ведении пока нет отделов и служб.
+                  <br />
+                  Нанимайте специалистов и формируйте холдинг! 💼
                 </>
               ) : (
                 <>
@@ -196,7 +215,7 @@ export const PropertyManagerModal: React.FC = () => {
                       )}
                       {tile.isMortgaged && (
                         <span className="text-[8px] font-bold px-1.5 py-0.2 rounded-none bg-[#dc2626] text-white">
-                          {isNoir ? "В ЗАЛОГЕ" : isSoviet ? "РЕЗЕРВ" : "ЗАЛОГ"}
+                          {isNoir ? "В ЗАЛОГЕ" : isSoviet ? "РЕЗЕРВ" : isOffice ? "В КАЗНЕ" : "ЗАЛОГ"}
                         </span>
                       )}
                     </div>
@@ -214,6 +233,8 @@ export const PropertyManagerModal: React.FC = () => {
                         ? `Дань: $${tile.currentRent || tile.rent || 0}`
                         : isSoviet
                         ? `Сбор: ${tile.currentRent || tile.rent || 0} кР`
+                        : isOffice
+                        ? `Ставка: $${tile.currentRent || tile.rent || 0}`
                         : `Рента: $${tile.currentRent || tile.rent || 0}`}
                     </span>
                   </div>
@@ -232,7 +253,7 @@ export const PropertyManagerModal: React.FC = () => {
                     {/* Houses indicator */}
                     <div className="flex items-center gap-1">
                       <span className="text-[11px] text-[#94a3b8] mr-1">
-                        {isNoir ? "Явки:" : isSoviet ? "Модули:" : "Постройки:"}
+                        {isNoir ? "Явки:" : isSoviet ? "Модули:" : isOffice ? "Отделы:" : "Постройки:"}
                       </span>
                       {tile.houses && tile.houses > 0 ? (
                         tile.houses === 5 ? (
@@ -253,6 +274,8 @@ export const PropertyManagerModal: React.FC = () => {
                               ? "Штаб 🏛"
                               : isSoviet
                               ? "Комплекс «МИР» ★"
+                              : isOffice
+                              ? "Холдинг 🏢"
                               : "Отель 🏨"}
                           </span>
                         ) : (
@@ -273,6 +296,8 @@ export const PropertyManagerModal: React.FC = () => {
                             ? "Территория"
                             : isSoviet
                             ? "Базовый сектор"
+                            : isOffice
+                            ? "Штат 1 чел."
                             : "Без построек"}
                         </span>
                       )}
@@ -305,6 +330,10 @@ export const PropertyManagerModal: React.FC = () => {
                             ? tile.houses === 4
                               ? "+МИР"
                               : "+Модуль"
+                            : isOffice
+                            ? tile.houses === 4
+                              ? "+Холдинг"
+                              : "+Отдел"
                             : tile.houses === 4
                             ? "+Отель"
                             : "+Дом"}{" "}
@@ -339,6 +368,10 @@ export const PropertyManagerModal: React.FC = () => {
                             ? `-ЯВКА (+$${sellVal.refund})`
                             : isSoviet
                             ? `Снос (+${sellVal.refund} кР)`
+                            : isPanel
+                            ? (tile.houses === 5 ? `-Отель (+$${sellVal.refund})` : `-Дом (+$${sellVal.refund})`)
+                            : isOffice
+                            ? (tile.houses === 5 ? `-Холдинг (+$${sellVal.refund})` : `-Отдел (+$${sellVal.refund})`)
                             : `Снести (+$${sellVal.refund})`}
                         </button>
                       )}
@@ -364,6 +397,8 @@ export const PropertyManagerModal: React.FC = () => {
                             ? `ВЫКУП ($${unmortgageVal.cost})`
                             : isSoviet
                             ? `Расконсервация (${unmortgageVal.cost} кР)`
+                            : isOffice
+                            ? `Из казны ($${unmortgageVal.cost})`
                             : `Выкупить ($${unmortgageVal.cost})`}
                         </button>
                       ) : (
@@ -387,6 +422,8 @@ export const PropertyManagerModal: React.FC = () => {
                             ? `ЗАЛОЖИТЬ (+$${mortgageVal.value})`
                             : isSoviet
                             ? `В резерв (+${mortgageVal.value} кР)`
+                            : isOffice
+                            ? `В казну (+$${mortgageVal.value})`
                             : `Заложить (+$${mortgageVal.value})`}
                         </button>
                       )}
@@ -427,7 +464,7 @@ export const PropertyManagerModal: React.FC = () => {
             )}
             onClick={closeModal}
           >
-            {isNoir ? "ЗАКРЫТЬ КАРТОТЕКУ" : isSoviet ? "ЗАКРЫТЬ РЕЕСТР ★" : "ЗАКРЫТЬ"}
+            {isNoir ? "ЗАКРЫТЬ КАРТОТЕКУ" : isSoviet ? "ЗАКРЫТЬ РЕЕСТР ★" : isPanel || isOffice ? "ЗАКРЫТЬ РЕЕСТР" : "ЗАКРЫТЬ"}
           </button>
         </DialogFooter>
       </DialogContent>

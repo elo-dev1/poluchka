@@ -8,7 +8,7 @@ export interface ThemeOption {
 }
 
 export const THEMES: ThemeOption[] = [
-  { id: 'classic', name: '🏛 Классическая Монополия', desc: 'Изумрудный стол и классическая доска', primary: '#10b981', bg: '#062016' },
+  { id: 'classic', name: '🏛 Классический стиль', desc: 'Изумрудный стол и классическая доска', primary: '#10b981', bg: '#062016' },
   { id: 'soviet', name: '★ ЦУП Байконур 1961', desc: 'Советский космос (Только для авторизованных)', primary: '#dc2626', bg: '#040711', authOnly: true },
   { id: 'noir', name: '🔍 Film Noir 1947', desc: 'Детективный нуар (Только для авторизованных)', primary: '#d4a647', bg: '#0a0806', authOnly: true },
 ];

@@ -327,8 +327,16 @@ class BotEngine {
       const receivedPropsNominal = offerProps.reduce((sum, tId) => sum + (gameState.board[tId]?.price || 0), 0);
       const netWorthChange = (offerMoney + receivedPropsNominal) - (requestMoney + givenPropsNominal);
 
-      // If trade reduces or does not increase bot's assets, or sheds properties
-      if (netWorthChange <= 0 || (givenPropsNominal > 0 && receivedPropsNominal === 0)) {
+      // In reverse mode, taking on properties is disadvantageous
+      if (receivedPropsNominal > 0 && givenPropsNominal === 0) {
+        return { type: 'REJECT_TRADE' };
+      }
+      // Shedding properties without receiving new ones is always advantageous
+      if (givenPropsNominal > 0 && receivedPropsNominal === 0) {
+        return { type: 'ACCEPT_TRADE' };
+      }
+      // If exchanging properties, only accept if bot sheds more property value and does not increase net worth
+      if (givenPropsNominal > receivedPropsNominal && netWorthChange <= 0) {
         return { type: 'ACCEPT_TRADE' };
       }
       return { type: 'REJECT_TRADE' };

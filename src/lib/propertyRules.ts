@@ -125,7 +125,7 @@ export function canBuildHouse(
   }
 
   if (tile.isMortgaged) {
-    return { allowed: false, reason: "Компания заложена в банке", cost };
+    return { allowed: false, reason: "Объект заложен в банке", cost };
   }
 
   const isMyTurn = Boolean(
@@ -140,7 +140,7 @@ export function canBuildHouse(
     gameState.builtTilesThisTurn?.includes(tile.id) ||
     gameState.builtTilesThisTurn?.includes(Number(tile.id))
   ) {
-    return { allowed: false, reason: "Максимум 1 улучшение на одной компании за ход", cost };
+    return { allowed: false, reason: "Максимум 1 улучшение на одном объекте за ход", cost };
   }
 
   // Monopoly check

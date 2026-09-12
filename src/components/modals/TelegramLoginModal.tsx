@@ -345,21 +345,38 @@ export const TelegramLoginModal: React.FC = () => {
           </Tabs>
 
           {/* Legal Compliance Notice (152-ФЗ и 406-ФЗ) */}
-          <div className="pt-1.5 border-t border-white/10 text-[11px] text-muted-foreground leading-relaxed flex items-center justify-center gap-1 w-full">
-            <ShieldCheck className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <div className="pt-2 border-t border-white/10 text-[11px] text-muted-foreground leading-relaxed flex flex-col items-center justify-center gap-1 w-full text-center">
+            <div className="flex items-center justify-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span>
+                Авторизуясь, вы принимаете{" "}
+                <button
+                  type="button"
+                  onClick={() =>
+                    openModal("legal", {
+                      tab: "terms",
+                      returnTo: "telegramLogin",
+                    })
+                  }
+                  className="underline hover:text-foreground text-primary font-medium"
+                >
+                  пользовательское соглашение
+                </button>
+              </span>
+            </div>
             <span>
-              Авторизуясь, вы принимаете{" "}
+              и соглашаетесь на обработку данных согласно{" "}
               <button
                 type="button"
                 onClick={() =>
                   openModal("legal", {
-                    tab: "terms",
+                    tab: "privacy",
                     returnTo: "telegramLogin",
                   })
                 }
                 className="underline hover:text-foreground text-primary font-medium"
               >
-                условия сервиса
+                Политике конфиденциальности (152-ФЗ)
               </button>
             </span>
           </div>

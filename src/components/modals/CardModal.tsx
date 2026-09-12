@@ -18,6 +18,8 @@ export const CardModal: React.FC = () => {
 
   const isSoviet = theme === 'soviet';
   const isNoir = theme === 'noir';
+  const isPanel = gameState?.boardTheme === 'panel' || gameState?.theme === 'panel' || theme === 'panel';
+  const isOffice = gameState?.boardTheme === 'office' || gameState?.theme === 'office' || theme === 'office';
   const card = gameState?.lastDrawnCard;
   const [dismissedCardKey, setDismissedCardKey] = useState<string | null>(null);
 
@@ -70,7 +72,7 @@ export const CardModal: React.FC = () => {
       return (
         <Badge variant="gold" className="text-xs font-bold px-3 py-1 flex items-center gap-1">
           <Key className="w-3.5 h-3.5" />
-          {isNoir ? 'Связи в мэрии' : isSoviet ? 'Карта Свободы' : 'Освобождение из тюрьмы'}
+          {isNoir ? 'Связи в мэрии' : isSoviet ? 'Карта Свободы' : isPanel ? 'Записка от участкового' : isOffice ? 'Пропуск от HR' : 'Освобождение из тюрьмы'}
         </Badge>
       );
     }
@@ -79,7 +81,7 @@ export const CardModal: React.FC = () => {
       return (
         <Badge variant="destructive" className="text-xs font-bold px-3 py-1 flex items-center gap-1">
           <AlertTriangle className="w-3.5 h-3.5" />
-          {isNoir ? 'Облава' : isSoviet ? 'Карантин' : 'Арест'}
+          {isNoir ? 'Облава' : isSoviet ? 'Карантин' : isPanel ? 'Наряд ППС' : isOffice ? 'Вызов на ковер' : 'Арест'}
         </Badge>
       );
     }
@@ -115,7 +117,9 @@ export const CardModal: React.FC = () => {
           {/* Deck Badge */}
           <div className="flex items-center gap-1.5 mb-2">
             <img
-              src={isChance ? '/assets/tiles/chance_64px.png' : '/assets/tiles/chest_64px.png'}
+              src={isChance 
+                ? (isOffice ? '/assets/tiles/office/chance_offer.png' : isPanel ? '/assets/tiles/panel/chance_post.png' : '/assets/tiles/chance_64px.png') 
+                : (isOffice ? '/assets/tiles/office/chest_bonus.png' : isPanel ? '/assets/tiles/panel/gosuslugi.png' : '/assets/tiles/chest_64px.png')}
               alt={isChance ? 'Шанс' : 'Казна'}
               className="w-7 h-7 object-contain filter contrast-125 brightness-95"
               style={{ imageRendering: 'pixelated' }}
@@ -132,6 +136,10 @@ export const CardModal: React.FC = () => {
                 ? (isChance ? 'АНОНИМКА' : 'ДЕЛО №...')
                 : isSoviet
                 ? (isChance ? 'РАДИОГРАММА «ШАНС»' : 'ПРИКАЗ ГОСКОМИССИИ ОКБ-1')
+                : isPanel
+                ? (isChance ? 'ОБЪЯВЛЕНИЕ НА СТОЛБЕ' : 'ГОСУСЛУГИ / КАЗНА')
+                : isOffice
+                ? (isChance ? 'СЛУЖЕБНЫЙ ШАНС' : 'КОРПОРАТИВНАЯ КАЗНА')
                 : (isChance ? 'КАРТОЧКА «ШАНС»' : 'ОБЩЕСТВЕННАЯ КАЗНА')}
             </span>
           </div>
@@ -145,6 +153,10 @@ export const CardModal: React.FC = () => {
               ? (isMe ? 'Ваша улика' : `Детектив: ${card.playerName}`)
               : isSoviet
               ? (isMe ? 'Ваша директива' : `Экипаж: ${card.playerName}`)
+              : isPanel
+              ? (isMe ? 'Ваше извещение' : `Жилец: ${card.playerName}`)
+              : isOffice
+              ? (isMe ? 'Ваше уведомление' : `Сотрудник: ${card.playerName}`)
               : (isMe ? 'Ваша карта' : `Игрок: ${card.playerName}`)}
           </DialogDescription>
         </DialogHeader>
@@ -171,7 +183,7 @@ export const CardModal: React.FC = () => {
             onClick={handleDismiss}
           >
             <Check className="w-4 h-4 text-white" />
-            <span>{isNoir ? "ПРИОБЩИТЬ К ДЕЛУ ✓" : isSoviet ? "ПРИНЯТЬ К ИСПОЛНЕНИЮ ★" : "ПОНЯТНО ✓"}</span>
+            <span>{isNoir ? "ПРИОБЩИТЬ К ДЕЛУ ✓" : isSoviet ? "ПРИНЯТЬ К ИСПОЛНЕНИЮ ★" : isPanel ? "ПРИНЯТЬ К СВЕДЕНИЮ ✓" : isOffice ? "ПРИНЯТО В РАБОТУ ✓" : "ПОНЯТНО ✓"}</span>
           </button>
         </div>
       </DialogContent>

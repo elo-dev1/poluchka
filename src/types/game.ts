@@ -229,6 +229,8 @@ export interface GameState {
   hostId: string;
   status: 'LOBBY' | 'ROLLING' | 'ACTION' | 'AWAITING_ACTION' | 'TURN_END' | 'AUCTION' | 'TRADE' | 'GAME_OVER';
   isPrivate: boolean;
+  theme?: string;
+  boardTheme?: string;
   mode?: 'standard' | 'blitz' | 'ranked';
   gameMode?: 'classic' | 'reverse' | 'team';
   maxRounds?: number;

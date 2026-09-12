@@ -169,20 +169,24 @@ function setupSocketHandlers(io) {
     socket.on('create_room', ({ playerName, playerId, isPrivate, telegramId, avatarUrl, username, characterId, mode, gameMode, maxRounds, boardSize, startingCash, maxPlayers }, callback) => {
       try {
         const id = playerId || `p_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-        const rawName = (playerName || '').trim() || 'Игрок 1';
+        const rawName = (playerName || '').trim().substring(0, 24) || 'Игрок 1';
         const name = profanityFilter.censor(rawName);
+        const playerSessionToken = `st_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
         const options = {
           telegramId: telegramId || (currentTelegramUser ? currentTelegramUser.telegramId : null),
           avatarUrl: avatarUrl || (currentTelegramUser ? currentTelegramUser.avatarUrl : null),
           username: username || (currentTelegramUser ? currentTelegramUser.username : null),
           characterId: characterId || 'cat',
           clientIp: socketClientIp,
+          socketId: socket.id,
+          sessionToken: playerSessionToken,
           mode: mode || 'standard',
           gameMode: gameMode || (mode === 'reverse' ? 'reverse' : 'classic'),
           boardSize: boardSize || (mode === 'blitz' ? 24 : 40),
           maxRounds: maxRounds !== undefined ? Number(maxRounds) : (gameMode === 'reverse' || mode === 'reverse' ? ((boardSize === 24 || mode === 'blitz') ? 10 : 20) : 0),
           startingCash: Number(startingCash) || 1500,
-          maxPlayers: Number(maxPlayers) || ((mode === 'ranked' || gameMode === 'ranked') ? 2 : ((gameMode === 'team' || mode === 'team') ? 4 : 6))
+          maxPlayers: Number(maxPlayers) || ((mode === 'ranked' || gameMode === 'ranked') ? 2 : ((gameMode === 'team' || mode === 'team') ? 4 : 6)),
+          theme: 'random'
         };
 
         if (options.gameMode === 'reverse' && !options.telegramId) {
@@ -196,10 +200,12 @@ function setupSocketHandlers(io) {
         currentRoomId = game.roomId;
         currentPlayerId = id;
 
-        // Bind state change callback for timer auto-events
-        game.setStateChangeCallback((g) => {
-          broadcastGameState(g);
-        });
+        // Bind state change callback for timer auto-events (once)
+        if (!game.onStateChangeCallback) {
+          game.setStateChangeCallback((g) => {
+            broadcastGameState(g);
+          });
+        }
 
         socket.join(game.roomId);
 
@@ -208,6 +214,7 @@ function setupSocketHandlers(io) {
             success: true,
             roomId: game.roomId,
             playerId: id,
+            sessionToken: playerSessionToken,
             state: game.getPublicState()
           });
         }
@@ -221,14 +228,17 @@ function setupSocketHandlers(io) {
     socket.on('quick_match', ({ playerName, playerId, telegramId, avatarUrl, username, characterId }, callback) => {
       try {
         const id = playerId || `p_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-        const rawName = (playerName || '').trim() || 'Игрок';
+        const rawName = (playerName || '').trim().substring(0, 24) || 'Игрок';
         const name = profanityFilter.censor(rawName);
+        const playerSessionToken = `st_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
         const options = {
           telegramId: telegramId || (currentTelegramUser ? currentTelegramUser.telegramId : null),
           avatarUrl: avatarUrl || (currentTelegramUser ? currentTelegramUser.avatarUrl : null),
           username: username || (currentTelegramUser ? currentTelegramUser.username : null),
           characterId: characterId || 'cat',
-          clientIp: socketClientIp
+          clientIp: socketClientIp,
+          socketId: socket.id,
+          sessionToken: playerSessionToken
         };
 
         // Find candidate open rooms that are NOT private, in LOBBY state, and not full
@@ -260,6 +270,8 @@ function setupSocketHandlers(io) {
             }
           } else {
             player.isConnected = true;
+            player.socketId = socket.id;
+            if (!player.sessionToken) player.sessionToken = playerSessionToken;
             if (options.telegramId) player.telegramId = options.telegramId;
             if (options.avatarUrl) player.avatarUrl = options.avatarUrl;
             if (options.username) player.username = options.username;
@@ -268,6 +280,13 @@ function setupSocketHandlers(io) {
 
           currentRoomId = targetGame.roomId;
           currentPlayerId = id;
+
+          if (!targetGame.onStateChangeCallback) {
+            targetGame.setStateChangeCallback((g) => {
+              broadcastGameState(g);
+            });
+          }
+
           socket.join(targetGame.roomId);
 
           if (typeof callback === 'function') {
@@ -275,6 +294,7 @@ function setupSocketHandlers(io) {
               success: true,
               roomId: targetGame.roomId,
               playerId: id,
+              sessionToken: player.sessionToken || playerSessionToken,
               state: targetGame.getPublicState(),
               isNewRoom: false
             });
@@ -286,9 +306,11 @@ function setupSocketHandlers(io) {
           currentRoomId = newGame.roomId;
           currentPlayerId = id;
 
-          newGame.setStateChangeCallback((g) => {
-            broadcastGameState(g);
-          });
+          if (!newGame.onStateChangeCallback) {
+            newGame.setStateChangeCallback((g) => {
+              broadcastGameState(g);
+            });
+          }
 
           socket.join(newGame.roomId);
 
@@ -297,6 +319,7 @@ function setupSocketHandlers(io) {
               success: true,
               roomId: newGame.roomId,
               playerId: id,
+              sessionToken: playerSessionToken,
               state: newGame.getPublicState(),
               isNewRoom: true
             });
@@ -320,14 +343,17 @@ function setupSocketHandlers(io) {
         }
 
         const id = playerId || `p_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-        const rawName = (playerName || '').trim() || `Игрок ${game.players.length + 1}`;
+        const rawName = (playerName || '').trim().substring(0, 24) || `Игрок ${game.players.length + 1}`;
         const name = profanityFilter.censor(rawName);
+        const playerSessionToken = `st_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
         const options = {
           telegramId: telegramId || (currentTelegramUser ? currentTelegramUser.telegramId : null),
           avatarUrl: avatarUrl || (currentTelegramUser ? currentTelegramUser.avatarUrl : null),
           username: username || (currentTelegramUser ? currentTelegramUser.username : null),
           characterId: characterId || undefined,
-          clientIp: socketClientIp
+          clientIp: socketClientIp,
+          socketId: socket.id,
+          sessionToken: playerSessionToken
         };
 
         let player = game.players.find(p => p.id === id);
@@ -345,6 +371,8 @@ function setupSocketHandlers(io) {
           }
         } else {
           player.isConnected = true;
+          player.socketId = socket.id;
+          if (!player.sessionToken) player.sessionToken = playerSessionToken;
           if (options.telegramId) player.telegramId = options.telegramId;
           if (options.avatarUrl) player.avatarUrl = options.avatarUrl;
           if (options.username) player.username = options.username;
@@ -354,9 +382,11 @@ function setupSocketHandlers(io) {
         currentRoomId = game.roomId;
         currentPlayerId = id;
 
-        game.setStateChangeCallback((g) => {
-          broadcastGameState(g);
-        });
+        if (!game.onStateChangeCallback) {
+          game.setStateChangeCallback((g) => {
+            broadcastGameState(g);
+          });
+        }
 
         socket.join(game.roomId);
 
@@ -365,6 +395,7 @@ function setupSocketHandlers(io) {
             success: true,
             roomId: game.roomId,
             playerId: id,
+            sessionToken: player.sessionToken || playerSessionToken,
             state: game.getPublicState()
           });
         }
@@ -452,7 +483,7 @@ function setupSocketHandlers(io) {
     });
 
     // 4. Reconnect to Room
-    socket.on('reconnect_player', ({ roomId, playerId }, callback) => {
+    socket.on('reconnect_player', ({ roomId, playerId, sessionToken }, callback) => {
       try {
         const game = roomManager.getRoom(roomId);
         if (!game) {
@@ -464,13 +495,49 @@ function setupSocketHandlers(io) {
           return sendError(callback, 'Игрок не найден в этой комнате');
         }
 
+        // Security / Identity verification:
+        const isSameSocket = player.socketId === socket.id;
+        const hasMatchingToken = Boolean(sessionToken && player.sessionToken && player.sessionToken === sessionToken);
+        const hasMatchingAuth = Boolean(
+          (player.telegramId && currentTelegramUser && String(currentTelegramUser.telegramId) === String(player.telegramId)) ||
+          (player.yandexId && currentTelegramUser && String(currentTelegramUser.yandexId) === String(player.yandexId))
+        );
+
+        // If authenticated user on another account tries to reconnect to this player:
+        if (player.telegramId && currentTelegramUser && String(currentTelegramUser.telegramId) !== String(player.telegramId)) {
+          return sendError(callback, 'Действие отклонено: не совпадает аккаунт Telegram');
+        }
+        if (player.yandexId && currentTelegramUser && String(currentTelegramUser.yandexId) !== String(player.yandexId)) {
+          return sendError(callback, 'Действие отклонено: не совпадает аккаунт Яндекс');
+        }
+
+        // If player is already connected in another active socket session:
+        if (player.isConnected && player.socketId && player.socketId !== socket.id) {
+          const activeSocket = io.sockets.sockets.get(player.socketId);
+          if (activeSocket && activeSocket.connected) {
+            if (!hasMatchingToken && !hasMatchingAuth) {
+              return sendError(callback, 'Действие отклонено: игрок уже активен в другой сессии');
+            }
+          }
+        }
+
+        // For a new/different socket attempting reconnect: require matching sessionToken or matching auth
+        if (!isSameSocket && player.sessionToken) {
+          if (!hasMatchingToken && !hasMatchingAuth) {
+            return sendError(callback, 'Действие отклонено: неверный или отсутствующий ключ сессии');
+          }
+        }
+
+        player.socketId = socket.id;
         game.reconnectPlayer(playerId);
         currentRoomId = game.roomId;
         currentPlayerId = playerId;
 
-        game.setStateChangeCallback((g) => {
-          broadcastGameState(g);
-        });
+        if (!game.onStateChangeCallback) {
+          game.setStateChangeCallback((g) => {
+            broadcastGameState(g);
+          });
+        }
 
         socket.join(game.roomId);
 
@@ -479,6 +546,7 @@ function setupSocketHandlers(io) {
             success: true,
             roomId: game.roomId,
             playerId: player.id,
+            sessionToken: player.sessionToken,
             state: game.getPublicState()
           });
         }
@@ -505,6 +573,18 @@ function setupSocketHandlers(io) {
           callback({ success: true, state: ctx.game.getPublicState() });
         }
         broadcastGameState(ctx.game);
+      } catch (err) {
+        sendError(callback, err.message);
+      }
+    });
+
+    // 4b. Set Board Theme (Disabled: theme is randomly chosen for each match)
+    socket.on('set_board_theme', ({ roomId, playerId }, callback) => {
+      try {
+        const ctx = validatePlayerAction(roomId, playerId, callback);
+        if (!ctx) return;
+
+        return sendError(callback, 'Сменить тему полей нельзя');
       } catch (err) {
         sendError(callback, err.message);
       }
@@ -883,7 +963,17 @@ function setupSocketHandlers(io) {
         const ctx = validatePlayerAction(roomId, null, callback);
         if (!ctx) return;
 
-        ctx.game.dismissDrawnCard();
+        if (ctx.game.lastDrawnCard && ctx.game.lastDrawnCard.playerId) {
+          const cardOwnerId = ctx.game.lastDrawnCard.playerId;
+          const isOwner = cardOwnerId === ctx.playerId;
+          const isHost = ctx.game.hostId === ctx.playerId;
+          const isCurrentPlayer = ctx.game.getCurrentPlayer()?.id === ctx.playerId;
+          if (!isOwner && !isHost && !isCurrentPlayer) {
+            return sendError(callback, 'Вы не можете закрыть чужую карту');
+          }
+        }
+
+        ctx.game.dismissDrawnCard(ctx.playerId);
 
         if (typeof callback === 'function') {
           callback({ success: true, state: ctx.game.getPublicState() });

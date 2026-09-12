@@ -1,13 +1,13 @@
 {
   "name": "monopoly-mvp",
   "version": "1.0.0",
-  "description": "Multiplayer Monopoly MVP browser game",
+  "description": "Экономическая онлайн-игра «Получка» (Multiplayer Board Game 'Poluchka')",
   "main": "server/server.js",
   "scripts": {
     "dev": "node --watch --watch-path=server server/server.js",
     "build": "vite build",
     "start": "node server/server.js",
-    "test": "node tests/gameEngine.test.js && node tests/advancedMonopoly.test.js && node tests/turnTimeoutAfk.test.js && node tests/disconnectTimer.test.js && node tests/roomsBrowser.test.js && node tests/telegramAuth.test.js && node tests/botEngine.test.js && node tests/turnRestrictionsAndTradeLimits.test.js && node tests/auctionTimerAndProgressiveUpgrades.test.js && node tests/jailTurnBugFix.test.js && node tests/botTradeAndTurn.test.js && node tests/auctionPassLogic.test.js && node tests/botDirectOfferAuction.test.js && node tests/reverseMode.test.js && node tests/teamMode.test.js && node tests/e2eMultiplayer.test.js && node tests/ratingAntiAbuse.test.js && node tests/securityFixes.test.js && node tests/profanityFilter.test.js"
+    "test": "node tests/gameEngine.test.js && node tests/advancedMonopoly.test.js && node tests/turnTimeoutAfk.test.js && node tests/disconnectTimer.test.js && node tests/roomsBrowser.test.js && node tests/telegramAuth.test.js && node tests/botEngine.test.js && node tests/turnRestrictionsAndTradeLimits.test.js && node tests/auctionTimerAndProgressiveUpgrades.test.js && node tests/jailTurnBugFix.test.js && node tests/botTradeAndTurn.test.js && node tests/auctionPassLogic.test.js && node tests/botDirectOfferAuction.test.js && node tests/reverseMode.test.js && node tests/teamMode.test.js && node tests/e2eMultiplayer.test.js && node tests/ratingAntiAbuse.test.js && node tests/securityFixes.test.js && node tests/profanityFilter.test.js && node tests/auditBugFixes.test.js"
   },
   "keywords": [
     "monopoly",

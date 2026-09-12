@@ -16,7 +16,11 @@ class TradeManager {
     }
 
     const properties = items.properties || [];
-    for (const tileId of properties) {
+    for (const rawTileId of properties) {
+      const tileId = Number(rawTileId);
+      if (isNaN(tileId) || !Number.isInteger(tileId) || tileId < 0 || !Array.isArray(board) || tileId >= board.length) {
+        return { valid: false, reason: `Некорректный ID улицы: ${rawTileId}` };
+      }
       const tile = board[tileId];
       const isOwner = tile && (
         tile.ownerId === player.id ||
@@ -34,6 +38,44 @@ class TradeManager {
       if (hasBuildings) {
         return { valid: false, reason: `Нельзя обменивать улицу "${tile.name}", пока на районе построены дома. Сначала продайте постройки.` };
       }
+    }
+
+    return { valid: true };
+  }
+
+  /**
+   * Anti-Dumping / Anti-Collusion validation
+   * Blocks 1-sided resource dumping (e.g. giving away properties or cash for free)
+   */
+  static validateAntiDumping(offer, request, board, options = {}) {
+    if (options.isBotGame || options.skipAntiDumping) {
+      return { valid: true };
+    }
+
+    const evaluateItems = (items) => {
+      let val = items.money || 0;
+      val += (items.jailFreeCards || 0) * 50;
+      for (const tileId of (items.properties || [])) {
+        const tile = board[tileId];
+        if (tile) {
+          val += (tile.price || 0) + (tile.houses || 0) * (tile.housePrice || 50);
+        }
+      }
+      return val;
+    };
+
+    const offerVal = evaluateItems(offer);
+    const requestVal = evaluateItems(request);
+
+    // If one side gives away substantial assets (>= $100 for $0, or >= $150 for < 20% value), block as collusion dumping
+    const isExtremeDumpingOffer = (offerVal >= 100 && requestVal === 0) || (offerVal >= 150 && requestVal < offerVal * 0.2);
+    const isExtremeDumpingRequest = (requestVal >= 100 && offerVal === 0) || (requestVal >= 150 && offerVal < requestVal * 0.2);
+
+    if (isExtremeDumpingOffer || isExtremeDumpingRequest) {
+      return {
+        valid: false,
+        reason: 'Несбалансированная сделка отклонена: в рейтинговой игре запрещена безвозмездная передача активов для защиты от сговора'
+      };
     }
 
     return { valid: true };
@@ -85,30 +127,9 @@ class TradeManager {
     }
 
     // Anti-Dumping / Anti-Collusion check in competitive games
-    // Blocks 1-sided resource dumping (e.g., gifting $1000+ or multiple properties for free)
-    if (!options.isBotGame && !options.skipAntiDumping) {
-      const evaluateItems = (items) => {
-        let val = items.money || 0;
-        val += (items.jailFreeCards || 0) * 50;
-        for (const tileId of items.properties) {
-          const tile = board[tileId];
-          if (tile) {
-            val += (tile.price || 0) + (tile.houses || 0) * (tile.housePrice || 50);
-          }
-        }
-        return val;
-      };
-
-      const offerVal = evaluateItems(cleanOffer);
-      const requestVal = evaluateItems(cleanRequest);
-
-      // If one side gives away substantial assets (> $300) for almost nothing (< 20% value), block as collusion dumping
-      const isExtremeDumpingOffer = offerVal > 300 && requestVal < offerVal * 0.2;
-      const isExtremeDumpingRequest = requestVal > 300 && offerVal < requestVal * 0.2;
-
-      if (isExtremeDumpingOffer || isExtremeDumpingRequest) {
-        throw new Error('Несбалансированная сделка отклонена: в рейтинговой игре запрещена безвозмездная передача активов для защиты от сговора');
-      }
+    const dumpingCheck = this.validateAntiDumping(cleanOffer, cleanRequest, board, options);
+    if (!dumpingCheck.valid) {
+      throw new Error(dumpingCheck.reason);
     }
 
     return {
@@ -129,7 +150,7 @@ class TradeManager {
   /**
    * Atomically execute accepted trade
    */
-  static executeTrade(trade, players, board) {
+  static executeTrade(trade, players, board, options = {}) {
     const fromPlayer = players.find(p => p.id === trade.fromPlayerId);
     const toPlayer = players.find(p => p.id === trade.toPlayerId);
 
@@ -138,11 +159,15 @@ class TradeManager {
     }
 
     // Re-validate both sides right before execution
-    const offerCheck = this.validateTradeItems(fromPlayer, trade.offer, board);
+    const offerCheck = this.validateTradeItems(fromPlayer, trade.offer, board, options);
     if (!offerCheck.valid) throw new Error(offerCheck.reason);
 
-    const requestCheck = this.validateTradeItems(toPlayer, trade.request, board);
+    const requestCheck = this.validateTradeItems(toPlayer, trade.request, board, options);
     if (!requestCheck.valid) throw new Error(requestCheck.reason);
+
+    // Re-validate anti-dumping right before execution
+    const dumpingCheck = this.validateAntiDumping(trade.offer, trade.request, board, options);
+    if (!dumpingCheck.valid) throw new Error(dumpingCheck.reason);
 
     // 1. Swap Money
     fromPlayer.money = fromPlayer.money - trade.offer.money + trade.request.money;
